@@ -61,7 +61,7 @@ export default function Header({
             }}
           >
             {usage.brands}/{LIMITS.brands} brands · {usage.generations}/
-            {LIMITS.generations} generations
+            {LIMITS.generations} generations today
           </span>
         )}
         <button

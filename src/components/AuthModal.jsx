@@ -1,126 +1,227 @@
+// import { useState } from "react";
+// import { Modal } from "./Modal";
+// import { useAuth } from "../hooks/useAuth";
+
+// export default function AuthModal({ onClose }) {
+//   const { login, signup } = useAuth();
+//   const [isLogin, setIsLogin] = useState(true);
+  
+//   const [email, setEmail] = useState("");
+//   const [password, setPassword] = useState("");
+//   const [confirmPassword, setConfirmPassword] = useState(""); // <-- New state
+  
+//   const [error, setError] = useState("");
+//   const [loading, setLoading] = useState(false);
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     setError("");
+
+//     // Check if passwords match during sign up
+//     if (!isLogin && password !== confirmPassword) {
+//       return setError("Passwords do not match. Please try again.");
+//     }
+
+//     setLoading(true);
+
+//     const { error: authError } = isLogin 
+//       ? await login(email, password)
+//       : await signup(email, password);
+
+//     setLoading(false);
+
+//     if (authError) {
+//       setError(authError.message);
+//     } else {
+//       onClose(); // Close the modal on success
+//     }
+//   };
+
+//   return (
+//     <Modal title={isLogin ? "Welcome back" : "Create an account"} onClose={onClose}>
+      
+//       {/* Sleek Tabs for switching modes */}
+//       <div className="modetabs" style={{ padding: "0 0 1.2rem 0", borderBottom: "none" }}>
+//         <button 
+//           className={"modetab" + (isLogin ? " on" : "")} 
+//           onClick={() => { setIsLogin(true); setError(""); }}
+//           style={{ flex: 1, textAlign: "center" }}
+//         >
+//           Log In
+//         </button>
+//         <button 
+//           className={"modetab" + (!isLogin ? " on" : "")} 
+//           onClick={() => { setIsLogin(false); setError(""); }}
+//           style={{ flex: 1, textAlign: "center" }}
+//         >
+//           Sign Up
+//         </button>
+//       </div>
+
+//       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
+        
+//         {/* Beautiful Error Display using your existing CSS system */}
+//         {error && (
+//           <div className="note" style={{ borderColor: "var(--danger)", backgroundColor: "rgba(214, 58, 74, 0.05)" }}>
+//             <span className="ntag" style={{ color: "var(--danger)" }}>Error</span>
+//             <span style={{ color: "var(--danger)", fontSize: ".78rem" }}>{error}</span>
+//           </div>
+//         )}
+        
+//         <div className="field">
+//           <label>Email address</label>
+//           <input 
+//             type="email" 
+//             value={email} 
+//             onChange={(e) => setEmail(e.target.value)} 
+//             placeholder="you@example.com"
+//             required 
+//              style={{ width: "100%" ,height: "2.4rem", padding: "0.4rem 0.6rem", borderRadius: "4px", border: "1px solid var(--muted-3)" }}
+//           />
+//         </div>
+        
+//         <div className="field">
+//           <label>Password</label>
+//           <input 
+//             type="password" 
+//             value={password} 
+//             onChange={(e) => setPassword(e.target.value)} 
+//             placeholder="••••••••"
+//             required 
+//             minLength={6} 
+//              style={{ width: "100%" ,height: "2.4rem", padding: "0.4rem 0.6rem", borderRadius: "4px", border: "1px solid var(--muted-3)" }}
+//           />
+//         </div>
+
+//         {/* Conditional Confirm Password Field */}
+//         {!isLogin && (
+//           <div className="field">
+//             <label>Confirm Password</label>
+//             <input 
+//               type="password" 
+//               value={confirmPassword} 
+//               onChange={(e) => setConfirmPassword(e.target.value)} 
+//               placeholder="••••••••"
+//               required 
+//               minLength={6} 
+//                style={{ width: "100%" ,height: "2.4rem", padding: "0.4rem 0.6rem", borderRadius: "4px", border: "1px solid var(--muted-3)" }}
+//             />
+//           </div>
+//         )}
+        
+//         {/* Submit Button */}
+//         <button 
+//           className="btn-generate" 
+//           type="submit" 
+//           disabled={loading} 
+//           style={{ 
+//             marginTop: "0.5rem", 
+//             width: "100%", 
+//             justifyContent: "center", 
+//             padding: "0.6rem" 
+//           }}
+//         >
+//           {loading ? "Please wait..." : (isLogin ? "Log In securely" : "Create Account")}
+//         </button>
+//       </form>
+//     </Modal>
+//   );
+// }
+
 import { useState } from "react";
 import { Modal } from "./Modal";
 import { useAuth } from "../hooks/useAuth";
 
 export default function AuthModal({ onClose }) {
-  const { login, signup } = useAuth();
+  const { login, signup, signInWithGoogle } = useAuth(); // Extracted Google Auth
   const [isLogin, setIsLogin] = useState(true);
-  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState(""); // <-- New state
-  
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setLoading(true);
+    const { error: authError } = await signInWithGoogle();
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
-    // Check if passwords match during sign up
     if (!isLogin && password !== confirmPassword) {
       return setError("Passwords do not match. Please try again.");
     }
-
     setLoading(true);
-
     const { error: authError } = isLogin 
-      ? await login(email, password)
+      ? await login(email, password) 
       : await signup(email, password);
-
     setLoading(false);
-
     if (authError) {
       setError(authError.message);
     } else {
-      onClose(); // Close the modal on success
+      onClose();
     }
   };
 
   return (
     <Modal title={isLogin ? "Welcome back" : "Create an account"} onClose={onClose}>
       
-      {/* Sleek Tabs for switching modes */}
+      {/* --- NEW: Google Login Button --- */}
+      <button
+        type="button"
+        className="ghost"
+        onClick={handleGoogleSignIn}
+        disabled={loading}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", padding: "0.55rem", fontWeight: 600, marginBottom: "0.8rem" }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.15z" />
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.4 7.36 24 12 24z" />
+          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.24C.45 8.16 0 9.97 0 12s.45 3.84 1.24 5.42l4.04-3.15z" />
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.6 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+        </svg>
+        Continue with Google
+      </button>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: "0.4rem 0 1rem", color: "var(--muted)", fontSize: "0.75rem" }}>
+        <span style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+        <span>or</span>
+        <span style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+      </div>
+
       <div className="modetabs" style={{ padding: "0 0 1.2rem 0", borderBottom: "none" }}>
-        <button 
-          className={"modetab" + (isLogin ? " on" : "")} 
-          onClick={() => { setIsLogin(true); setError(""); }}
-          style={{ flex: 1, textAlign: "center" }}
-        >
-          Log In
-        </button>
-        <button 
-          className={"modetab" + (!isLogin ? " on" : "")} 
-          onClick={() => { setIsLogin(false); setError(""); }}
-          style={{ flex: 1, textAlign: "center" }}
-        >
-          Sign Up
-        </button>
+        <button className={"modetab" + (isLogin ? " on" : "")} onClick={() => { setIsLogin(true); setError(""); }} style={{ flex: 1, textAlign: "center" }}>Log In</button>
+        <button className={"modetab" + (!isLogin ? " on" : "")} onClick={() => { setIsLogin(false); setError(""); }} style={{ flex: 1, textAlign: "center" }}>Sign Up</button>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
-        
-        {/* Beautiful Error Display using your existing CSS system */}
         {error && (
           <div className="note" style={{ borderColor: "var(--danger)", backgroundColor: "rgba(214, 58, 74, 0.05)" }}>
             <span className="ntag" style={{ color: "var(--danger)" }}>Error</span>
             <span style={{ color: "var(--danger)", fontSize: ".78rem" }}>{error}</span>
           </div>
         )}
-        
         <div className="field">
           <label>Email address</label>
-          <input 
-            type="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            placeholder="you@example.com"
-            required 
-             style={{ width: "100%" ,height: "2.4rem", padding: "0.4rem 0.6rem", borderRadius: "4px", border: "1px solid var(--muted-3)" }}
-          />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required style={{ width: "100%", height: "2.4rem", padding: "0.4rem 0.6rem", borderRadius: "4px", border: "1px solid var(--border)" }} />
         </div>
-        
         <div className="field">
           <label>Password</label>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            placeholder="••••••••"
-            required 
-            minLength={6} 
-             style={{ width: "100%" ,height: "2.4rem", padding: "0.4rem 0.6rem", borderRadius: "4px", border: "1px solid var(--muted-3)" }}
-          />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} style={{ width: "100%", height: "2.4rem", padding: "0.4rem 0.6rem", borderRadius: "4px", border: "1px solid var(--border)" }} />
         </div>
-
-        {/* Conditional Confirm Password Field */}
         {!isLogin && (
           <div className="field">
             <label>Confirm Password</label>
-            <input 
-              type="password" 
-              value={confirmPassword} 
-              onChange={(e) => setConfirmPassword(e.target.value)} 
-              placeholder="••••••••"
-              required 
-              minLength={6} 
-               style={{ width: "100%" ,height: "2.4rem", padding: "0.4rem 0.6rem", borderRadius: "4px", border: "1px solid var(--muted-3)" }}
-            />
+            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} style={{ width: "100%", height: "2.4rem", padding: "0.4rem 0.6rem", borderRadius: "4px", border: "1px solid var(--border)" }} />
           </div>
         )}
-        
-        {/* Submit Button */}
-        <button 
-          className="btn-generate" 
-          type="submit" 
-          disabled={loading} 
-          style={{ 
-            marginTop: "0.5rem", 
-            width: "100%", 
-            justifyContent: "center", 
-            padding: "0.6rem" 
-          }}
-        >
+        <button className="btn-generate" type="submit" disabled={loading} style={{ marginTop: "0.5rem", width: "100%", justifyContent: "center", padding: "0.6rem" }}>
           {loading ? "Please wait..." : (isLogin ? "Log In securely" : "Create Account")}
         </button>
       </form>

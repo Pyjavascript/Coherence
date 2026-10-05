@@ -21,17 +21,30 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
   const generateAll = async () => {
     if (!precheck()) return;
     setBusy(true);
-    setStatus(`Generating ${variantCount} variant(s) across five mediums…`);
+    setStatus(`Generating ${variantCount} variant(s) across five mediums...`);
     setCards(Object.fromEntries(MEDIA.map((m) => [m.key, { status: "loading", items: [] }])));
     try {
       const data = await generateQuickGrid({ ctx, variantCount, tier });
       setCards(Object.fromEntries(MEDIA.map((m) => [m.key, { status: "ready", items: data[m.key] }])));
+      
+      // 1. AWAIT THE SAVES FIRST
+      const savePromises = MEDIA.map((m) => 
+        saveGeneration({ 
+          brandId, 
+          medium: m.key, 
+          inputContext: { message: ctx.brand.message, stage: ctx.brand.stage, mode: ctx.brand.mode }, 
+          output: data[m.key] 
+        })
+      );
+      await Promise.all(savePromises);
+
+      // 2. REFRESH THE USAGE COUNTER AFTER SAVING
       onGenerated({ type: "quick", medium: "packaging" });
       setStatus("Generated just now.", "ok");
-      saveGeneration({ brandId, medium: "all", inputContext: { message: ctx.brand.message, stage: ctx.brand.stage, mode: ctx.brand.mode }, output: data });
+      
     } catch (err) {
       setStatus(describeError(err), "err");
-      setCards(Object.fromEntries(MEDIA.map((m) => [m.key, { status: "error", items: [], message: "Couldn't generate — try again." }])));
+      setCards(Object.fromEntries(MEDIA.map((m) => [m.key, { status: "error", items: [], message: "Couldn't generate. Try again." }])));
     } finally {
       setBusy(false);
     }
@@ -43,11 +56,16 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     try {
       const items = await regenerateOutput({ ctx, medium, variantCount, tier });
       setCards((c) => ({ ...c, [medium]: { status: "ready", items } }));
+      
+      // 1. AWAIT THE SAVE FIRST
+      await saveGeneration({ brandId, medium, inputContext: { message: ctx.brand.message }, output: items });
+      
+      // 2. REFRESH THE USAGE COUNTER AFTER SAVING
       onGenerated({ type: "quick", medium });
-      saveGeneration({ brandId, medium, inputContext: { message: ctx.brand.message }, output: items });
+
     } catch (err) {
       setStatus(describeError(err), "err");
-      setCards((c) => ({ ...c, [medium]: { status: "error", items: [], message: "Couldn't regenerate — try again." } }));
+      setCards((c) => ({ ...c, [medium]: { status: "error", items: [], message: "Couldn't regenerate. Try again." } }));
     }
   };
 

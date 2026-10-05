@@ -217,6 +217,7 @@ export const NOTE_TYPES = [
 
 export const DEFAULT_BRAND = {
   name: "",
+  logo: "",
   belief: "",
   message: "",
   industry: "general",

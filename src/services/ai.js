@@ -14,7 +14,7 @@ export class AIError extends Error {
 }
 
 export function describeError(err) {
-  if (err?.code === "limit_reached") return "Generation limit reached (40 per browser).";
+  if (err?.code === "limit_reached") return `Daily generation limit reached (40/day). Resets tomorrow. ${err?.code}`;
   return err?.message ? `Generation failed — ${err.message}` : "Generation failed. Try again.";
 }
 

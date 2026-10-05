@@ -1,3 +1,6 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const MAX_GENERATIONS = 40; 
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +19,7 @@ const MAX_PROMPT_CHARS = 20000;
 
 const reply = (body: unknown) =>
   new Response(JSON.stringify(body), {
-    status: 200, // handled errors also return 200 so the client can read the message
+    status: 200, 
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 const fail = (error: string, code = "generation") => reply({ success: false, error, code });
@@ -50,10 +53,41 @@ Deno.serve(async (req) => {
   if (prompt.length > MAX_PROMPT_CHARS) return fail("Prompt is too long.", "bad_request");
 
   const requested = typeof body.model === "string" && MODEL_PATTERN.test(body.model) ? body.model : null;
+  
+  // NOTE: If you want to force free users to always use the cheap model, uncomment this line:
+  // const model = "gpt-4o-mini";
   const model = requested ?? FALLBACK_MODELS[tier as string] ?? FALLBACK_MODELS.balanced;
 
   const apiKey = Deno.env.get("OPENAI_API_KEY")?.split(/\r?\n/)[0].trim().replace(/^["']|["']$/g, "");
-  if (!apiKey) return fail("The server is missing its OpenAI key. Run: supabase secrets set OPENAI_API_KEY=...", "config");
+  if (!apiKey) return fail("The server is missing its OpenAI key.", "config");
+
+  // ==========================================
+  // AUTHENTICATION & USAGE LIMIT LOGIC
+  // ==========================================
+  
+  // 1. Get the Auth token sent by the React frontend
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return fail("Missing Authorization header. Please log in.", "unauthorized");
+
+  // 2. Validate the user token
+  const userClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+  
+  const { data: { user }, error: authError } = await userClient.auth.getUser();
+  if (authError || !user) return fail("Invalid or expired login token.", "unauthorized");
+  const userId = user.id;
+
+  // 3. Admin client to bypass RLS and read the usage table
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  
+  const { data: usage } = await admin.from("user_usage").select("generations").eq("user_id", userId).maybeSingle();
+  if ((usage?.generations ?? 0) >= MAX_GENERATIONS) {
+    return fail(`Limit reached: ${MAX_GENERATIONS} free generations.`, "limit_reached");
+  }
+  // ==========================================
 
   const wantsJson = type !== "coherence";
   const system = wantsJson
@@ -89,12 +123,18 @@ Deno.serve(async (req) => {
   const completion = await res.json();
   const content: string = completion?.choices?.[0]?.message?.content ?? "";
   if (!content) return fail("OpenAI returned an empty response.", "malformed");
+  
+  // Bump usage tracking table, passing p_user instead of p_client
+  await admin.rpc("bump_usage", { p_user: userId });
 
   if (!wantsJson) return reply({ success: true, data: { text: content.trim() } });
 
   try {
     const data = parseJson(content);
     if (!data || typeof data !== "object") throw new Error("not an object");
+    
+    // (Removed the duplicate bump_usage call that was here!)
+    
     return reply({ success: true, data });
   } catch {
     return fail("The AI returned malformed JSON. Try again.", "malformed");

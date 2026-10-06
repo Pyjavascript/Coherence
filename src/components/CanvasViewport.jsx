@@ -112,8 +112,8 @@ export default function CanvasViewport({ children, toolbar, inspector, modeTabs,
             </button>
             <button type="button" onClick={() => changeZoom(0.1)} aria-label="Zoom in">+</button>
           </div>
-          {inspector}
         </div>
+        {inspector}
       </div>
     </main>
   );

@@ -15,6 +15,7 @@ import { DEFAULT_TIER } from "./lib/constants";
 import { useUsage } from "./hooks/useUsage";
 import { useAuth } from "./hooks/useAuth";
 import AuthModal from "./components/AuthModal";
+import CanvasViewport from "./components/CanvasViewport";
 
 import host from "./hosts/browser";
 
@@ -30,6 +31,7 @@ export default function App() {
   const [stylePack, setStylePack] = useState("classic");
   const [variantCount, setVariantCount] = useState(1);
   const [mode, setMode] = useState("nodes");
+  const [brandPanelOpen, setBrandPanelOpen] = useState(false);
   const [modal, setModal] = useState(null);
   const [lastGenerated, setLastGenerated] = useState(null);
 
@@ -77,6 +79,21 @@ export default function App() {
     }
   };
 
+  const handleAddNode = (category) => {
+    setMode("nodes");
+    nodeStudioRef.current?.addNode(category);
+  };
+
+  const handleNewBrand = (scope = "regular") => {
+    ws.newBrand(scope);
+    setBrandPanelOpen(true);
+  };
+
+  const handleSelectBrand = async (id) => {
+    await ws.selectBrand(id);
+    setBrandPanelOpen(true);
+  };
+
   const handleSaveBrand = async (...args) => {
     await ws.save(...args);
     refreshUsage();
@@ -103,9 +120,18 @@ export default function App() {
   };
 
   const copy = async (text, ok) => {
-    if (!text) return setStatus("Generate a hook first.", "err");
-    try { await host.copyText(text); setStatus(ok, "ok"); }
-    catch { setStatus("Couldn't copy automatically — select the text and copy manually.", "err"); }
+    if (!text) {
+      setStatus("Generate a hook first.", "err");
+      return false;
+    }
+    try {
+      await host.copyText(text);
+      setStatus(ok, "ok");
+      return true;
+    } catch {
+      setStatus("Couldn't copy automatically — select the text and copy manually.", "err");
+      return false;
+    }
   };
 
   const unavailable = aiAvailable
@@ -118,18 +144,6 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header
-        fileLabel={ws.fileLabel} tier={tier} onTier={setTier} premium={premium} onPremium={setPremium}
-
-        // 3. Updated Header to use Master Generate & combined loading state
-        onGenerate={requireLogin(handleMasterGenerateAll)}
-        generating={isGeneratingAll || quick.busy}
-
-        usage={usage} atGenLimit={atGenLimit}
-        user={user}
-        onLogin={() => setShowAuthModal(true)}
-        onLogout={logout}
-      />
       <StatusBar status={status} unavailable={unavailable} />
 
       <div className="shell">
@@ -137,18 +151,48 @@ export default function App() {
         <BrandSidebar
           brands={ws.brands}
           currentId={ws.currentId}
-          onSelect={ws.selectBrand}
-          onNew={ws.newBrand}
+          onSelect={handleSelectBrand}
+          onNew={handleNewBrand}
           user={user}
+          usage={usage}
+          model="Free"
           onLogin={() => setShowAuthModal(true)}
           onLogout={logout}
         />
 
-        <main className="canvas">
-          <div className="modetabs">
-            <button className={"modetab" + (mode === "nodes" ? " on" : "")} onClick={() => setMode("nodes")}>Node studio</button>
-            <button className={"modetab" + (mode === "quick" ? " on" : "")} onClick={() => setMode("quick")}>Quick grid</button>
-          </div>
+        <CanvasViewport
+          panelOpen={brandPanelOpen}
+          mode={mode}
+          modeTabs={
+            <div className="modetabs canvas-mode-switch">
+              <button className={"modetab" + (mode === "nodes" ? " on" : "")} onClick={() => setMode("nodes")}>Node Studio</button>
+              <button className={"modetab" + (mode === "quick" ? " on" : "")} onClick={() => setMode("quick")}>Quick Grid</button>
+            </div>
+          }
+          toolbar={
+            <Header
+              tier={tier}
+              onTier={setTier}
+              onGenerate={requireLogin(handleMasterGenerateAll)}
+              generating={isGeneratingAll || quick.busy}
+              atGenLimit={atGenLimit}
+              panelOpen={brandPanelOpen}
+              onTogglePanel={() => setBrandPanelOpen((open) => !open)}
+              onAddNode={handleAddNode}
+            />
+          }
+          inspector={
+            <BrandPanel
+              brand={ws.brand} onField={ws.setField}
+              stylePack={stylePack} onStylePack={onStylePack} variantCount={variantCount} onVariantCount={onVariantCount}
+              researchCount={ws.notes.length}
+              onSave={requireLogin(handleSaveBrand)}
+              onDelete={requireLogin(handleDeleteBrand)}
+              onResearch={() => setModal("research")} onCoherence={() => setModal("coherence")} onHook={() => setModal("hook")}
+              open={brandPanelOpen} onClose={() => setBrandPanelOpen(false)}
+            />
+          }
+        >
           <NodeStudio
             ref={nodeStudioRef}
             active={mode === "nodes"} ctx={ctx} variantCount={variantCount} tier={tier}
@@ -158,16 +202,7 @@ export default function App() {
             brandId={ws.currentId}
           />
           <QuickGrid active={mode === "quick"} quick={quick} />
-        </main>
-
-        <BrandPanel
-          brand={ws.brand} onField={ws.setField}
-          stylePack={stylePack} onStylePack={onStylePack} variantCount={variantCount} onVariantCount={onVariantCount}
-          researchCount={ws.notes.length}
-          onSave={requireLogin(handleSaveBrand)}
-          onDelete={requireLogin(handleDeleteBrand)}
-          onResearch={() => setModal("research")} onCoherence={() => setModal("coherence")} onHook={() => setModal("hook")}
-        />
+        </CanvasViewport>
       </div>
 
       {showAuthModal && (

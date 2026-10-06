@@ -147,8 +147,6 @@ function NodeCard({ node, labelOf, linking, shareOpen, onField, onGenerate, onLi
 const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, tier, aiAvailable, setStatus, onGenerated, refreshUsage, brandId }, ref) {
   const [nodes, setNodes] = useState(seedNodes);
   const [linkingFrom, setLinkingFrom] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [qty, setQty] = useState({});
   const [shareId, setShareId] = useState(null);
   const [lines, setLines] = useState([]);
 
@@ -171,12 +169,14 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     const svg = svgRef.current, cols = colsRef.current;
     if (!svg || !cols) return;
     const base = svg.getBoundingClientRect();
+    const scale = base.width / svg.clientWidth || 1;
     const out = [];
     nodesRef.current.forEach((n) => n.connections.forEach((tid) => {
       const a = cols.querySelector(`[data-id="${n.id}"]`), b = cols.querySelector(`[data-id="${tid}"]`);
       if (!a || !b) return;
       const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
-      const x1 = ra.right - base.left, y1 = ra.top - base.top + 18, x2 = rb.left - base.left, y2 = rb.top - base.top + 18;
+      const x1 = (ra.right - base.left) / scale, y1 = (ra.top - base.top) / scale + 18;
+      const x2 = (rb.left - base.left) / scale, y2 = (rb.top - base.top) / scale + 18;
       out.push({ key: n.id + tid, x1, y1, x2, y2, mx: (x1 + x2) / 2 });
     }));
     setLines((prev) => (JSON.stringify(prev) === JSON.stringify(out) ? prev : out));
@@ -193,7 +193,6 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   // close menus on outside click
   useEffect(() => {
     const close = (e) => {
-      if (!e.target.closest(".addnode-wrap")) setMenuOpen(false);
       if (!e.target.closest(".sharewrap")) setShareId(null);
     };
     document.addEventListener("click", close);
@@ -208,7 +207,6 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
       for (let i = 0; i < n; i++) next.push(makeNode(category, next));
       return next;
     });
-    setMenuOpen(false);
   };
 
   const deleteNode = (id) =>
@@ -261,6 +259,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
 
   // 2. EXPOSE THE GENERATE ALL NODES FUNCTION TO THE PARENT (App.jsx)
   useImperativeHandle(ref, () => ({
+    addNode: (category) => addNodes(category, 1),
     generateAllNodes: async () => {
       // Loop through and sequentially generate all nodes that aren't already generating
       for (const n of nodesRef.current) {
@@ -291,29 +290,6 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   return (
     <div hidden={!active}>
       <div className="nodebar">
-        <div className="addnode-wrap">
-          <button className="btn-add" onClick={() => setMenuOpen((o) => !o)}>+ Add node</button>
-          {menuOpen && (
-            <div className="addnode-menu">
-              {Object.entries(NODE_CATS).map(([key, cat]) =>
-                cat.comingSoon ? (
-                  <div className="addnode-item disabled" key={key}>
-                    <span className="addnode-dot" style={{ background: cat.color }} />
-                    <span className="grow">{cat.label}</span><span className="soon-badge">Soon</span>
-                  </div>
-                ) : (
-                  <div className="addnode-item" key={key}>
-                    <span className="addnode-dot" style={{ background: cat.color }} />
-                    <span className="grow">{cat.label}</span>
-                    <input type="number" className="addqty" min="1" max="8" value={qty[key] ?? 1}
-                      onChange={(e) => setQty((q) => ({ ...q, [key]: e.target.value }))} />
-                    <button className="addqty-btn" onClick={() => addNodes(key, qty[key] ?? 1)}>Add</button>
-                  </div>
-                )
-              )}
-            </div>
-          )}
-        </div>
         <div className={"linkhint" + (linkingFrom ? " on" : "")}>
           Linking mode — click another node's 🔗 to correlate it, or click this node's 🔗 again to cancel.
         </div>

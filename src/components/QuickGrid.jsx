@@ -73,20 +73,14 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
 }
 
 export default function QuickGrid({ active, quick }) {
-  const [zoom, setZoom] = useState(1);
   return (
     <div hidden={!active}>
       <div className="canvas-inner">
-        <div className="canvas-grid" style={{ transform: `scale(${zoom})` }}>
+        <div className="canvas-grid">
           {MEDIA.map((m) => (
             <OutputCard key={m.key} meta={m} state={quick.cards[m.key]} onRegen={() => quick.regenerateOne(m.key)} />
           ))}
         </div>
-      </div>
-      <div className="zoomctl">
-        <button onClick={() => setZoom((z) => Math.max(0.7, +(z - 0.1).toFixed(2)))}>–</button>
-        <span className="pct mono">{Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom((z) => Math.min(1.25, +(z + 0.1).toFixed(2)))}>+</button>
       </div>
     </div>
   );

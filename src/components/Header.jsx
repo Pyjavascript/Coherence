@@ -173,12 +173,12 @@ export default function Header({
           </span>
         </button>
         {addMenuOpen && (
-          <div className="toolbar-node-menu">
+          <div className="toolbar-node-menu" role="group" aria-label="Add a node">
             {[
               ["email", "Email", "#363b99"],
               ["social", "Social", "#e92eaa"],
               ["website", "Website", "#00b881"],
-              ["advertising", "Advertising", "#ee2d66"],
+              ["advertising", "Marketing", "#ee2d66"],
               ["packaging", "Packaging", "#ff7b2c"],
             ].map(([category, label, color]) => (
               <button

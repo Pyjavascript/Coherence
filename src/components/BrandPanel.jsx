@@ -119,7 +119,7 @@ import {
   INDUSTRY_LAYERS, STYLE_PACKS, FUNNEL_STAGES, TONE_MODES, AUDIENCES, EMOTIONS, FORMALITIES, CTA_LEVELS,
 } from "../lib/constants";
 
-function BrandSelect({ value, onChange, options, label }) {
+function BrandSelect({ value, onChange, options, label, premium = false }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
@@ -182,6 +182,12 @@ function BrandSelect({ value, onChange, options, label }) {
           }
         }}
       >
+        {premium && (
+          <svg className="bp-dd-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="4.5" y="10" width="15" height="10" rx="2" />
+            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+          </svg>
+        )}
         <span className="bp-dd-value">{selected?.label ?? value}</span>
         <span className="bp-dd-chev" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -248,20 +254,17 @@ export default function BrandPanel({
     >
       <div className="inspector-titlebar">
         <h2>{brand.name || "Untitled Brand"}</h2>
-        <button type="button" aria-label="Close brand information panel" onClick={onClose}>×</button>
+        <button type="button" aria-label="Close brand information panel" onClick={onClose}>−</button>
       </div>
       <section className="bp-section bp-section-brand">
         <h3 className="bp-section-title">Brand core</h3>
         <div className="bp-card">
           <div className="bp-field">
             <label className="bp-label">Brand Name</label>
-            <input className="bp-input" type="text" placeholder="Write brand name" {...bind("name")} />
-          </div>
-          <div className="bp-field">
-            <div className="bp-upload-row">
-              <label className="bp-label">Brand Image / Logo</label>
+            <div className="bp-inline bp-name-input">
+              <input className="bp-input" type="text" placeholder="Write Brand name" {...bind("name")} />
               <button type="button" className="bp-addimg" onClick={() => fileInputRef.current?.click()}>
-                {brand.logo ? "Change image" : "Upload image"}
+                {brand.logo ? "Change image" : "Add image"}
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" className="bp-file-input" onChange={handleImageUpload} />
             </div>
@@ -275,7 +278,10 @@ export default function BrandPanel({
             <textarea className="bp-textarea" placeholder="Questions about cooperation, you will need to fill ..." {...bind("message")} />
           </div>
           <div className="bp-field">
-            <label className="bp-label">Industry Category</label>
+            <div className="bp-label-row">
+              <label className="bp-label">Industry Category</label>
+              <span className="bp-tag">Pixel layer</span>
+            </div>
             <BrandSelect
               label="Industry category"
               value={brand.industry}
@@ -314,14 +320,21 @@ export default function BrandPanel({
         </div>
       </section>
 
-      <section className="bp-section">
-        <h3 className="bp-section-title">Style &amp; Output</h3>
-        <div className="bp-card">
+      <section className="bp-section bp-section-premium">
+        <div className="bp-section-title-row">
+          <h3 className="bp-section-title">Style &amp; Output</h3>
+          <svg className="bp-section-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="4.5" y="10" width="15" height="10" rx="2" />
+            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+          </svg>
+        </div>
+        <div className="bp-card bp-card-gold">
           <div className="bp-row2">
             <div className="bp-field">
               <label className="bp-label">Style Pack</label>
               <BrandSelect
                 label="Style pack"
+                premium
                 value={stylePack}
                 onChange={onStylePack}
                 options={Object.entries(STYLE_PACKS).map(([value, pack]) => ({ value, label: `${pack.label}${value === "classic" ? "" : " 🔒"}` }))}
@@ -331,6 +344,7 @@ export default function BrandPanel({
               <label className="bp-label">Variants / medium</label>
               <BrandSelect
                 label="Variants per medium"
+                premium
                 value={String(variantCount)}
                 onChange={(value) => onVariantCount(parseInt(value, 10))}
                 options={[1, 2, 3].map((value) => ({ value: String(value), label: `${value}${value === 1 ? "" : " 🔒"}` }))}
@@ -374,18 +388,22 @@ export default function BrandPanel({
 
       <section className="bp-section bp-external-section">
         <h3 className="bp-section-title">External AI</h3>
-        <p className="bp-helper">CTA copy coherence check</p>
-        <button type="button" className="bp-copy" onClick={onCoherence}>Copy prompt for ChatGPT / other LLM <span aria-hidden="true">↗</span></button>
+        <button type="button" className="bp-copy" onClick={onCoherence}>
+          Copy Prompt
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="8.5" y="8.5" width="11" height="11" rx="3" />
+            <path d="M15.5 5.6c0-1.3-.9-2.1-2.1-2.1H6.1C4.8 3.5 4 4.4 4 5.6v7.3c0 1.2.8 2.1 2 2.1h.5" />
+          </svg>
+        </button>
       </section>
 
       <section className="bp-section bp-bonus-section">
-        <h3 className="bp-section-title">Bonus</h3>
-        <div className="bp-card bp-card-gold">
+        <div className="bp-card bp-card-hook">
           <div className="bp-gen-top">
             <span className="bp-gen-icon" aria-hidden="true">✦</span>
-            <div><h4>Hook Generator</h4><p>One decisive line from a plain-language brief</p></div>
+            <div><h4>Generate Free Hook.</h4><p>One available daily on free versions</p></div>
           </div>
-          <button type="button" className="bp-gen-btn" onClick={onHook}>Generate a hook</button>
+          <button type="button" className="bp-gen-btn" onClick={onHook}>Generate</button>
         </div>
       </section>
     </aside>

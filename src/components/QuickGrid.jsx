@@ -3,6 +3,7 @@ import OutputCard from "./OutputCard";
 import { MEDIA } from "../lib/constants";
 import { generateQuickGrid, regenerateOutput, describeError } from "../services/ai";
 import { saveGeneration } from "../services/brands";
+import host from "../hosts/browser";
 
 const emptyCards = () => Object.fromEntries(MEDIA.map((m) => [m.key, { status: "idle", items: [] }]));
 
@@ -69,16 +70,31 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     }
   };
 
-  return { cards, busy, generateAll, regenerateOne };
+  return { cards, busy, generateAll, regenerateOne, setStatus };
 }
 
 export default function QuickGrid({ active, quick }) {
+  const copyOutput = async (text) => {
+    try {
+      await host.copyText(text);
+      quick.setStatus("Copied — paste it into your design tool.", "ok");
+    } catch {
+      quick.setStatus("Couldn't copy automatically — select the text and copy manually.", "err");
+    }
+  };
+
   return (
     <div hidden={!active}>
       <div className="canvas-inner">
         <div className="canvas-grid">
           {MEDIA.map((m) => (
-            <OutputCard key={m.key} meta={m} state={quick.cards[m.key]} onRegen={() => quick.regenerateOne(m.key)} />
+            <OutputCard
+              key={m.key}
+              meta={m}
+              state={quick.cards[m.key]}
+              onRegen={() => quick.regenerateOne(m.key)}
+              onCopy={copyOutput}
+            />
           ))}
         </div>
       </div>

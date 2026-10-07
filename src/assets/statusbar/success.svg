@@ -1,0 +1,7 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- White background with rx="50" -->
+  <rect width="40" height="40" rx="50" fill="white"/>
+  
+  <!-- Original green checkmark -->
+  <path d="M12.832 21.757L17.656 25.6354L26.5 14" stroke="#099747" stroke-width="2.66219" stroke-linecap="round"/>
+</svg>

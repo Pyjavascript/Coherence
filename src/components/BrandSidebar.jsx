@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LIMITS } from "../lib/clientId";
+import {Logo} from "../assets/globalAssets";
 
 function BrandGroup({ items, currentId, onSelect, onNew, collapsed }) {
   return (
@@ -77,7 +78,9 @@ export default function BrandSidebar({
     <aside className={"rail" + (collapsed ? " collapsed" : "")}>
       <div className="rail-top">
         <div className="rail-brand">
-          <div className="rail-logo" aria-hidden="true">C</div>
+          <div className="rail-logo" aria-hidden="true">
+            <img src={Logo} alt="Logo" />
+          </div>
           {!collapsed && <span className="rail-product-name">Coherence Content<br />Orchestration</span>}
           <button
             type="button"

@@ -1,10 +1,17 @@
-/* Brand Language OS — visual system copied from the original HTML prototype. */
+
 [hidden]:not([hidden="until-found" i]) {
   display: none !important;
 }
 img {
   max-width: 100%;
 }
+@font-face {
+  font-family: 'NeueBit';
+  src: url('/fonts/neuebit.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
   --canvas: #ececef;
   --dot: rgba(20, 20, 26, 0.1);
@@ -283,6 +290,7 @@ select {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding:40px 20px;
 }
 .rail-head {
   display: flex;
@@ -1557,9 +1565,8 @@ body {
 }
 
 .rail.collapsed {
-  width: 64px;
   flex-basis: 64px;
-  padding: 14px 8px;
+  padding: 40px 20px;
 }
 
 .rail-top {
@@ -1590,6 +1597,7 @@ body {
 .rail-product-name {
   flex: 1;
   color: #fff;
+  font-family:'font-neuebit';
   font-size: 11px;
   font-weight: 550;
   line-height: 1.28;
@@ -2065,7 +2073,7 @@ body {
 }
 
 .toolbar-add-node {
-  height: 58px;
+  height: 60px;
   display: flex;
   align-items: center;
   gap: 22px;
@@ -2202,14 +2210,15 @@ body {
 }
 
 .toolbar-generate {
-  height: 58px;
+  height: 60px;
   min-width: 170px;
-  padding: 0 28px;
+  padding: 10px;
   color: #fff;
   background: #173cf5;
   border: 0;
-  border-radius: 23px;
-  font-size: 17px;
+  border-radius: 24px;
+  font-size: 18px;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -2226,8 +2235,8 @@ body {
   position: absolute;
   top: 0;
   right: 0;
-  width: 58px;
-  height: 58px;
+  width: 60px;
+  height: 60px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -3124,16 +3133,15 @@ body {
     z-index: 100;
     right: 28px;
     bottom: 28px;
-    width: min(620px, calc(100vw - 40px));
-    min-height: 112px;
+    width: min(460px, calc(100vw - 40px));
+    max-height: 90px;
     display: flex;
     align-items: center;
     gap: 24px;
-    padding: 24px 64px 24px 28px;
+    padding: 25px;
     color: #fff;
     background: #30378e;
-    border-radius: 28px;
-    box-shadow: 0 16px 40px rgba(8, 17, 65, 0.28);
+    border-radius: 24px;
     opacity: 1;
     transform: translate3d(0, 0, 0);
     transition: opacity 220ms ease, transform 260ms cubic-bezier(0.2, 0.75, 0.2, 1), visibility 220ms;
@@ -3166,7 +3174,7 @@ body {
   .toast-text {
     flex: 1;
     margin: 0;
-    font-size: 24px;
+    font-size: 16px;
     line-height: 1.4;
     font-weight: 400;
     letter-spacing: -0.01em;
@@ -3200,10 +3208,9 @@ body {
 
   .toast-close {
     position: absolute;
-    top: 18px;
-    right: 20px;
-    width: 28px;
-    height: 28px;
+    top: 10px;
+    right: 10px;
+    
     display: grid;
     place-items: center;
     padding: 0;
@@ -6047,5 +6054,85 @@ body {
     min-width: 136px;
     min-height: 48px;
     padding: 0 12px;
+  }
+}
+
+/* Fit every Quick Grid card into the visible canvas height. */
+.canvas-surface[data-mode="quick"] .canvas-world {
+  height: 100%;
+}
+
+.canvas-surface[data-mode="quick"] .canvas-world > div:not([hidden]) {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.canvas-surface[data-mode="quick"] .canvas-inner {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-surface[data-mode="quick"] .canvas-grid {
+  flex: 1 1 0;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+}
+
+.canvas-surface[data-mode="quick"] .canvas-grid .frame.full {
+  grid-column: 1 / -1;
+}
+
+.canvas-surface[data-mode="quick"] .frame {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas-surface[data-mode="quick"] .frame-body {
+  min-height: 0;
+  overflow: auto;
+}
+
+@container canvas-surface (max-width: 620px) {
+  .canvas-surface[data-mode="quick"] .frame {
+    --u: calc(100cqw / 100);
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 20px;
+  }
+
+  .canvas-surface[data-mode="quick"] .frame-pill {
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .canvas-surface[data-mode="quick"] .frame-hint {
+    font-size: 10px;
+  }
+
+  .canvas-surface[data-mode="quick"] .frame-action {
+    width: 30px;
+    height: 30px;
+  }
+
+  .canvas-surface[data-mode="quick"] .frame-body {
+    padding: 8px 10px;
+    border-radius: 14px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .canvas-surface[data-mode="quick"] .frame-vtabs {
+    gap: 4px;
+  }
+
+  .canvas-surface[data-mode="quick"] .frame-vtabs .vtab {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
   }
 }

@@ -1,0 +1,7 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- White circular background with rx="50" -->
+  <rect width="40" height="40" rx="50" fill="white"/>
+  
+  <!-- Original yellow exclamation mark -->
+  <path d="M20.4997 8.75V23.0833M20.5893 30.25V30.4292H20.4102V30.25H20.5893Z" stroke="#D19C3D" stroke-width="3.58333" stroke-linejoin="round"/>
+</svg>

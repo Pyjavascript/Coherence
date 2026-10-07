@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { MODEL_OPTIONS } from "../lib/constants";
+import { ChatGpt } from "../assets/globalAssets";
 
 const MODEL_DESCRIPTIONS = {
   fast: "Faster for everyday tasks",
@@ -22,7 +23,7 @@ function ModelSelector({ tier, onTier }) {
     if (!open || !rootRef.current || !menuRef.current) return;
     const triggerRect = rootRef.current.getBoundingClientRect();
     const menuRect = menuRef.current.getBoundingClientRect();
-    const surfaceRect = rootRef.current.closest(".canvas-surface")?.getBoundingClientRect();
+    const surfaceRect = rootRef.current.closest(".workspace")?.getBoundingClientRect();
     const rightBoundary = Math.min(window.innerWidth - 8, (surfaceRect?.right ?? window.innerWidth) - 8);
     setPlacement({
       right: triggerRect.left + menuRect.width > rightBoundary && triggerRect.right - menuRect.width >= 8,
@@ -94,7 +95,7 @@ function ModelSelector({ tier, onTier }) {
           }
         }}
       >
-        <span className="model-selector-logo" aria-hidden="true">✳</span>
+        <span className="model-selector-logo" aria-hidden="true"><img src={ChatGpt} alt="ChatGPT" /></span>
         <svg className="model-selector-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="m6 9 6 6 6-6" />
         </svg>
@@ -137,92 +138,135 @@ function ModelSelector({ tier, onTier }) {
   );
 }
 
+const MenuIcon = () => (
+  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 8h22M5 16h22M5 24h22" />
+  </svg>
+);
+
+const PanelIcon = () => (
+  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 16H21" />
+    <path d="M5 8H27" />
+    <path d="M5 24H17" />
+  </svg>
+);
+
+// Workspace toolbar: Add Node (options depend on the active view), model
+// selector, Generate, and the panel / navigation toggles.
 export default function Header({
   tier,
   onTier,
   onGenerate,
   generating,
   atGenLimit,
-  panelOpen,
-  onTogglePanel,
+  addOptions,
+  addDisabledTitle,
   onAddNode,
+  showNavToggle,
+  navOpen,
+  onToggleNav,
+  panelOpen,
+  hidePanelToggle,
+  onTogglePanel,
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const addMenuRef = useRef(null);
+  const canAdd = addOptions.length > 0;
+
+  // Close the menu if the options run out (e.g. the grid just became full).
+  useEffect(() => {
+    if (!canAdd) setAddMenuOpen(false);
+  }, [canAdd]);
 
   useEffect(() => {
-    const closeMenu = (event) => {
+    if (!addMenuOpen) return undefined;
+    const onDown = (event) => {
       if (addMenuRef.current && !addMenuRef.current.contains(event.target)) setAddMenuOpen(false);
     };
-    document.addEventListener("mousedown", closeMenu);
-    return () => document.removeEventListener("mousedown", closeMenu);
-  }, []);
+    const onKey = (event) => { if (event.key === "Escape") setAddMenuOpen(false); };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [addMenuOpen]);
 
   return (
-    <header className="canvas-topbar">
-      <div className="canvas-topbar-left" ref={addMenuRef}>
+    <header className="ws-topbar">
+      <div className="ws-topbar-start" ref={addMenuRef}>
+        {showNavToggle && (
+          <button
+            type="button"
+            className="toolbar-icon-btn"
+            aria-label={navOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={navOpen}
+            onClick={onToggleNav}
+          >
+            <MenuIcon />
+          </button>
+        )}
         <button
           type="button"
           className="toolbar-add-node"
+          aria-haspopup="menu"
           aria-expanded={addMenuOpen}
+          aria-label="Add node"
+          disabled={!canAdd}
+          title={canAdd ? undefined : addDisabledTitle}
           onClick={() => setAddMenuOpen((open) => !open)}
         >
-          <span>Add Node</span>
+          <span className="toolbar-add-label">Add Node</span>
           <span className="toolbar-add-spark" aria-hidden="true">
-            <i /><i /><i /><i />
+            <i>+</i><i>+</i><i>+</i><i>+</i>
           </span>
         </button>
-        {addMenuOpen && (
-          <div className="toolbar-node-menu" role="group" aria-label="Add a node">
-            {[
-              ["email", "Email", "#363b99"],
-              ["social", "Social", "#e92eaa"],
-              ["website", "Website", "#00b881"],
-              ["advertising", "Marketing", "#ee2d66"],
-              ["packaging", "Packaging", "#ff7b2c"],
-            ].map(([category, label, color]) => (
+        {addMenuOpen && canAdd && (
+          <div className="toolbar-node-menu" role="menu" aria-label="Add a node">
+            {addOptions.map((option) => (
               <button
                 type="button"
-                key={category}
+                role="menuitem"
+                key={option.type}
                 onClick={() => {
-                  onAddNode(category);
+                  onAddNode(option.type);
                   setAddMenuOpen(false);
                 }}
               >
-                <span style={{ "--node-color": color }}>+</span>
-                {label}
+                <span style={{ "--node-color": option.color }} aria-hidden="true">+</span>
+                {option.label}
               </button>
             ))}
           </div>
         )}
       </div>
-      <div className={"canvas-topbar-right" + (panelOpen ? " panel-open" : "")}>
-        <div className={"canvas-topbar-actions" + (panelOpen ? " panel-open" : "")}>
-          <ModelSelector tier={tier} onTier={onTier} />
-          <button
-            className="toolbar-generate"
-            disabled={generating || atGenLimit}
-            onClick={onGenerate}
-          >
-            {generating ? "Generating..." : "Generate"}
-          </button>
-        </div>
-        {!panelOpen && (
-          <button
-            type="button"
-            className="toolbar-panel-toggle"
-            aria-label="Open brand information panel"
-            aria-expanded={false}
-            onClick={onTogglePanel}
-          >
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 16H21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M5 8H27" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M5 24H17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+      <div className="ws-topbar-end">
+        <ModelSelector tier={tier} onTier={onTier} />
+        <button
+          type="button"
+          className={"toolbar-generate" + (generating ? " is-busy" : "")}
+          disabled={generating || atGenLimit}
+          aria-busy={generating}
+          title={atGenLimit ? "Daily generation limit reached" : undefined}
+          onClick={onGenerate}
+        >
+          {generating && <span className="toolbar-spinner" aria-hidden="true" />}
+          <span>{generating ? "Generating" : "Generate"}</span>
+        </button>
+        <button
+          type="button"
+          className={"toolbar-icon-btn toolbar-panel-btn" + (panelOpen ? " is-active" : "") + (hidePanelToggle ? " is-hidden" : "")}
+          tabIndex={hidePanelToggle ? -1 : undefined}
+          aria-hidden={hidePanelToggle || undefined}
+          aria-label={panelOpen ? "Close brand panel" : "Open brand panel"}
+          aria-expanded={panelOpen}
+          aria-controls="brand-panel"
+          onClick={onTogglePanel}
+        >
+          <PanelIcon />
+        </button>
 
-          </button>
-        )}
       </div>
     </header>
   );

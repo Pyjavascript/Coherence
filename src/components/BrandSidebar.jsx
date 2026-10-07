@@ -1,128 +1,130 @@
 import { useEffect, useRef, useState } from "react";
 import { LIMITS } from "../lib/clientId";
-import {Logo} from "../assets/globalAssets";
+import { Logo } from "../assets/globalAssets";
 
-function BrandGroup({ items, currentId, onSelect, onNew, collapsed }) {
+// Every row is [fixed 40px icon slot][label]. The icon slot never moves, so
+// only the labels fade/slide when the sidebar expands or collapses.
+function Row({ as: Tag = "button", className = "", icon, label, ...rest }) {
   return (
-    <section className="rail-group">
-      {/* {!collapsed && (
-        <div className="rail-head">
-          <span className="lbl">Brands</span>
-          <button type="button" className="rail-new" title="New brand" onClick={onNew}>+</button>
-        </div>
-      )} */}
-      <div className="rail-items">
-        {items.map((brand) => (
-          <button
-            key={brand.id}
-            type="button"
-            title={collapsed ? (brand.name || "Untitled") : undefined}
-            className={"rail-item" + (brand.id === currentId ? " active" : "")}
-            onClick={() => onSelect(brand.id)}
-          >
-            {brand.logo ? (
-              <img src={brand.logo} alt="" className="rail-brand-avatar" />
-            ) : (
-              <span className="rail-brand-avatar rail-brand-fallback" style={{ "--brand-color": brand.color || "#373c9b" }}>
-                {(brand.name || "B").trim().charAt(0).toUpperCase()}
-              </span>
-            )}
-            {!collapsed && <span>{brand.name || "Untitled"}</span>}
-          </button>
-        ))}
-        {/* {!items.length && !collapsed && (
-          <div className="rail-empty">No saved brands yet.</div>
-        )} */}
-      </div>
-    </section>
+    <Tag type={Tag === "button" ? "button" : undefined} className={"lnav-row " + className} {...rest}>
+      <span className="lnav-slot">{icon}</span>
+      <span className="lnav-label">{label}</span>
+    </Tag>
   );
 }
 
+const ProfileIcon = () => (
+  <span className="lnav-icon lnav-profile">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.25" />
+      <path d="M4.5 20c.8-3.5 3.5-5.5 7.5-5.5s6.7 2 7.5 5.5" />
+    </svg>
+  </span>
+);
+
 export default function BrandSidebar({
-  brands, currentId, onSelect, onNew, user, onLogin, onLogout, usage, model,
+  open, drawer, onToggle, onExpand, brands, currentId, onSelect, onNew, user, onLogin, onLogout, usage, model,
 }) {
-  const [collapsed, setCollapsed] = useState(true);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [usageOpen, setUsageOpen] = useState(false);
+  const [popover, setPopover] = useState(null); // null | "profile" | "usage"
   const footerRef = useRef(null);
 
+  // The cards are sized to the expanded panel; never leave one open on a collapsed rail.
+  useEffect(() => { if (!open) setPopover(null); }, [open]);
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (footerRef.current && !footerRef.current.contains(event.target)) {
-        setProfileOpen(false);
-        setUsageOpen(false);
-      }
+    if (!popover) return undefined;
+    const onDown = (event) => {
+      if (footerRef.current && !footerRef.current.contains(event.target)) setPopover(null);
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    const onKey = (event) => { if (event.key === "Escape") setPopover(null); };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [popover]);
 
   const generationsUsed = Math.min(LIMITS.generations, Math.max(0, usage?.generations || 0));
   const generationsLeft = LIMITS.generations - generationsUsed;
   const usagePercent = Math.round((generationsUsed / LIMITS.generations) * 100);
-  const progress = (generationsUsed / LIMITS.generations) * 100;
-
-  const toggleProfile = () => {
-    setCollapsed(false);
-    setUsageOpen(false);
-    setProfileOpen((open) => !open);
+  const togglePopover = (name) => {
+    if (!open) onExpand?.();
+    setPopover((current) => (current === name ? null : name));
   };
-
-  const toggleUsage = () => {
-    setCollapsed(false);
-    setProfileOpen(false);
-    setUsageOpen((open) => !open);
-  };
+  const tip = (text) => (open ? undefined : text);
 
   return (
-    <aside className={"rail" + (collapsed ? " collapsed" : "")}>
-      <div className="rail-top">
-        <div className="rail-brand">
-          <div className="rail-logo" aria-hidden="true">
-            <img src={Logo} alt="Logo" />
-          </div>
-          {!collapsed && <span className="rail-product-name">Coherence Content<br />Orchestration</span>}
-          <button
-            type="button"
-            className="rail-collapse"
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onClick={() => setCollapsed((value) => !value)}
-          >
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
-              <path d={collapsed ? "M9 4v16" : "M15 4v16"} />
-            </svg>
-          </button>
-        </div>
-
-        <button
-          type="button"
-          className="rail-add-brand"
-          onClick={() => onNew("regular")}
-          title="Add brand"
-        >
-          <span className="rail-add-icon" aria-hidden="true">+</span>
-          {!collapsed && <span>Add Brand</span>}
-        </button>
+    <aside className="lnav" data-open={open} aria-label="Workspace navigation">
+      <div className="lnav-head">
+        <span className="lnav-slot">
+          <span className="lnav-logo"><img src={Logo} alt="" /></span>
+        </span>
+        <span className="lnav-label lnav-title rail-product-name">Coherence Content<br />Orchestration</span>
       </div>
 
-      <nav className="rail-brands" aria-label="Brands">
-        <BrandGroup items={brands} currentId={currentId} onSelect={onSelect} onNew={() => onNew("regular")} collapsed={collapsed} />
+      <Row
+        className="lnav-toggle"
+        aria-expanded={open}
+        aria-label={drawer ? "Close navigation" : open ? "Collapse sidebar" : "Expand sidebar"}
+        title={drawer ? undefined : open ? "Collapse sidebar" : "Expand sidebar"}
+        onClick={onToggle}
+        icon={
+          drawer ? (
+            <svg className="lnav-glyph" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          ) : (
+            <svg className="lnav-glyph" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+              <path className="lnav-glyph-bar" d="M9 4v16" />
+            </svg>
+          )
+        }
+        label=""
+      />
+
+      <Row
+        className="lnav-add"
+        title={tip("Add brand")}
+        onClick={() => onNew("regular")}
+        icon={<span className="lnav-plus" aria-hidden="true">+</span>}
+        label="Add Brand"
+      />
+
+      <nav className="lnav-brands" aria-label="Brands">
+        <div className="lnav-brand-list">
+        {brands.map((brand) => (
+          <Row
+            key={brand.id}
+            className={"lnav-item" + (brand.id === currentId ? " is-active" : "")}
+            aria-current={brand.id === currentId ? "true" : undefined}
+            title={tip(brand.name || "Untitled")}
+            onClick={() => onSelect(brand.id)}
+            icon={
+              brand.logo ? (
+                <span className="lnav-avatar"><img src={brand.logo} alt="" /></span>
+              ) : (
+                <span className="lnav-avatar lnav-avatar-fallback" style={{ "--brand-color": brand.color || "#373c9b" }}>
+                  {(brand.name || "B").trim().charAt(0).toUpperCase()}
+                </span>
+              )
+            }
+            label={brand.name || "Untitled"}
+          />
+        ))}
+        </div>
       </nav>
 
-      <div className="rail-footer" ref={footerRef}>
-        {profileOpen && user && (
-          <div className="rail-account-card">
+      <div className="lnav-footer" ref={footerRef}>
+        {popover === "profile" && user && (
+          <div className="rail-account-card" role="dialog" aria-label="Account">
             <p className="rail-card-caption">Signed in as</p>
             <p className="rail-card-email" title={user.email}>{user.email}</p>
             <hr className="rail-card-divider" />
             <button type="button" className="rail-logout" onClick={onLogout}>Log out</button>
           </div>
         )}
-        {usageOpen && (
-          <div className="rail-usage-card">
+        {popover === "usage" && (
+          <div className="rail-usage-card" role="dialog" aria-label="Credits">
             <div className="rail-usage-heading">
               <strong>{generationsLeft}/{LIMITS.generations}</strong>
               <span>Credits Left</span>
@@ -155,39 +157,34 @@ export default function BrandSidebar({
             </div>
           </div>
         )}
+
         {user ? (
-          <div className="user-profile">
-            <button
-              type="button"
-              className="rail-footer-action"
-              onClick={toggleProfile}
-              title={collapsed ? "Profile" : user.email}
-            >
-              <span className="rail-footer-icon rail-profile-avatar">{user.email.charAt(0).toUpperCase()}</span>
-              {!collapsed && <span>Profile</span>}
-            </button>
-          </div>
-        ) : (
-          <button type="button" className="rail-footer-action" onClick={() => { setCollapsed(false); onLogin(); }} title={collapsed ? "Profile" : "Log in"}>
-            <span className="rail-footer-icon">?</span>
-            {!collapsed && <span>Profile</span>}
-          </button>
-        )}
-        <button
-          type="button"
-          className="rail-footer-action rail-credits"
-          onClick={toggleUsage}
-          aria-expanded={usageOpen}
-          aria-label={`Credits used: ${usagePercent}%`}
-        >
-          <span
-            className="rail-credits-meter"
-            style={{ "--credits-progress": `${progress}%` }}
-            data-percent={`${usagePercent}%`}
-            aria-label={`${usagePercent}% of daily credits used`}
+          <Row
+            title={tip(user.email)}
+            aria-expanded={popover === "profile"}
+            onClick={() => togglePopover("profile")}
+            icon={<ProfileIcon />}
+            label="Profile"
           />
-          {!collapsed && <span>Credits used</span>}
-        </button>
+        ) : (
+          <Row title={tip("Log in")} onClick={onLogin} icon={<ProfileIcon />} label="Log in" />
+        )}
+        <Row
+          className="rail-credits"
+          aria-expanded={popover === "usage"}
+          aria-label={`Credits used: ${usagePercent}%`}
+          title={tip(`Credits used: ${usagePercent}%`)}
+          onClick={() => togglePopover("usage")}
+          icon={
+            <span
+              className="rail-credits-meter"
+              style={{ "--credits-progress": `${usagePercent}%` }}
+              data-percent={`${usagePercent}%`}
+              aria-hidden="true"
+            />
+          }
+          label="Credits used"
+        />
       </div>
     </aside>
   );

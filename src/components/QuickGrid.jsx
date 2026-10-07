@@ -1,79 +1,171 @@
-import { useState } from "react";
-import OutputCard from "./OutputCard";
-import { MEDIA } from "../lib/constants";
+import { useEffect, useMemo, useRef, useState } from "react";
+import NodeCard from "./nodes/NodeCard";
+import { MEDIA, MEDIA_BY_KEY } from "../lib/constants";
 import { generateQuickGrid, regenerateOutput, describeError } from "../services/ai";
 import { saveGeneration } from "../services/brands";
+import { useFlip } from "../hooks/useFlip";
 import host from "../hosts/browser";
 
-const emptyCards = () => Object.fromEntries(MEDIA.map((m) => [m.key, { status: "idle", items: [] }]));
+let seq = 0;
+const uid = () => `q${Date.now().toString(36)}${(seq++).toString(36)}`;
 
-// Holds Quick Grid state + generation logic (used by App so the header's
-// "Generate all" button can drive it).
-export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, setStatus, onGenerated }) {
-  const [cards, setCards] = useState(emptyCards);
+// node = { id, type, width, status: idle|loading|ready|error, items, version, message }
+const createNode = (type, from) => ({
+  id: uid(),
+  type,
+  width: MEDIA_BY_KEY[type]?.full ? "full" : "half",
+  status: from?.status === "ready" ? "ready" : "idle",
+  items: from?.status === "ready" ? from.items : [],
+  version: 0,
+  message: "",
+});
+const seedNodes = () => MEDIA.map((m) => createNode(m.key));
+
+// A failed request keeps whatever copy the node already had.
+const failed = (n, message) => (n.items.length ? { ...n, status: "ready" } : { ...n, status: "error", message });
+
+// Quick Grid state + generation logic. Lives in App so the toolbar's Generate
+// button can drive it and so the data survives switching views.
+export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, setStatus, onGenerated, ensureAuth, onMissingMessage }) {
+  const [nodes, setNodes] = useState(seedNodes);
   const [busy, setBusy] = useState(false);
+  const [lastAdded, setLastAdded] = useState(null);
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const busyRef = useRef(false);
+  // nodeId -> token of the newest request for it; stale responses are dropped.
+  const tokens = useRef(new Map());
 
   const precheck = () => {
     if (!aiAvailable) { setStatus("AI generation isn't available here.", "err"); return false; }
-    if (!ctx.brand.message.trim()) { setStatus("Add a message to adapt first.", "err"); return false; }
+    if (ensureAuth && !ensureAuth()) return false;
+    if (!ctx.brand.message.trim()) {
+      setStatus("Add a message to adapt first.", "err");
+      onMissingMessage?.();
+      return false;
+    }
     return true;
   };
 
   const generateAll = async () => {
-    if (!precheck()) return;
+    if (busyRef.current || !precheck()) return;
+    const targets = nodesRef.current;
+    if (!targets.length) return setStatus("Add a node to generate into.", "err");
+
+    busyRef.current = true;
     setBusy(true);
-    setStatus(`Generating ${variantCount} variant(s) across five mediums...`);
-    setCards(Object.fromEntries(MEDIA.map((m) => [m.key, { status: "loading", items: [] }])));
+    const token = {};
+    const ids = new Set(targets.map((n) => n.id));
+    ids.forEach((id) => tokens.current.set(id, token));
+    const stillMine = () => new Set([...ids].filter((id) => tokens.current.get(id) === token));
+    const types = [...new Set(targets.map((n) => n.type))];
+
+    setNodes((list) => list.map((n) => (ids.has(n.id) ? { ...n, status: "loading", message: "" } : n)));
+    setStatus(`Generating ${variantCount} variant(s) across ${types.length} medium${types.length === 1 ? "" : "s"}...`);
     try {
       const data = await generateQuickGrid({ ctx, variantCount, tier });
-      setCards(Object.fromEntries(MEDIA.map((m) => [m.key, { status: "ready", items: data[m.key] }])));
-      
-      // 1. AWAIT THE SAVES FIRST
-      const savePromises = MEDIA.map((m) => 
-        saveGeneration({ 
-          brandId, 
-          medium: m.key, 
-          inputContext: { message: ctx.brand.message, stage: ctx.brand.stage, mode: ctx.brand.mode }, 
-          output: data[m.key] 
-        })
-      );
-      await Promise.all(savePromises);
-
-      // 2. REFRESH THE USAGE COUNTER AFTER SAVING
-      onGenerated({ type: "quick", medium: "packaging" });
+      const live = stillMine();
+      setNodes((list) => list.map((n) => {
+        if (!live.has(n.id)) return n;
+        const items = data[n.type] || [];
+        return items.length
+          ? { ...n, status: "ready", items, version: n.version + 1, message: "" }
+          : failed(n, "No copy came back for this medium. Try regenerating it.");
+      }));
+      await Promise.all(types.map((type) => saveGeneration({
+        brandId,
+        medium: type,
+        inputContext: { message: ctx.brand.message, stage: ctx.brand.stage, mode: ctx.brand.mode },
+        output: data[type],
+      })));
+      onGenerated({ type: "quick", medium: types[0] });
       setStatus("Generated just now.", "ok");
-      
     } catch (err) {
+      const live = stillMine();
       setStatus(describeError(err), "err");
-      setCards(Object.fromEntries(MEDIA.map((m) => [m.key, { status: "error", items: [], message: "Couldn't generate. Try again." }])));
+      setNodes((list) => list.map((n) => (live.has(n.id) ? failed(n, "Couldn't generate. Try again.") : n)));
     } finally {
+      ids.forEach((id) => { if (tokens.current.get(id) === token) tokens.current.delete(id); });
+      busyRef.current = false;
       setBusy(false);
     }
   };
 
-  const regenerateOne = async (medium) => {
-    if (!precheck()) return;
-    setCards((c) => ({ ...c, [medium]: { status: "loading", items: [] } }));
+  const regenerate = async (id) => {
+    const node = nodesRef.current.find((n) => n.id === id);
+    if (!node || node.status === "loading" || !precheck()) return;
+    const token = {};
+    tokens.current.set(id, token);
+    const mine = () => tokens.current.get(id) === token;
+    setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "loading", message: "" } : n)));
     try {
-      const items = await regenerateOutput({ ctx, medium, variantCount, tier });
-      setCards((c) => ({ ...c, [medium]: { status: "ready", items } }));
-      
-      // 1. AWAIT THE SAVE FIRST
-      await saveGeneration({ brandId, medium, inputContext: { message: ctx.brand.message }, output: items });
-      
-      // 2. REFRESH THE USAGE COUNTER AFTER SAVING
-      onGenerated({ type: "quick", medium });
-
+      const items = await regenerateOutput({ ctx, medium: node.type, variantCount, tier });
+      if (!mine()) return;
+      setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "ready", items, version: n.version + 1 } : n)));
+      await saveGeneration({ brandId, medium: node.type, inputContext: { message: ctx.brand.message }, output: items });
+      onGenerated({ type: "quick", medium: node.type });
     } catch (err) {
+      if (!mine()) return;
       setStatus(describeError(err), "err");
-      setCards((c) => ({ ...c, [medium]: { status: "error", items: [], message: "Couldn't regenerate. Try again." } }));
+      setNodes((list) => list.map((n) => (n.id === id ? failed(n, "Couldn't regenerate. Try again.") : n)));
+    } finally {
+      if (mine()) tokens.current.delete(id);
     }
   };
 
-  return { cards, busy, generateAll, regenerateOne, setStatus };
+  const add = (type) => {
+    // One node per medium: the grid can't grow past the default set.
+    if (!MEDIA_BY_KEY[type] || nodesRef.current.some((n) => n.type === type)) return;
+    const node = createNode(type);
+    setNodes((list) => [...list, node]);
+    setLastAdded(node.id);
+  };
+
+  const duplicate = (id) => {
+    const src = nodesRef.current.find((n) => n.id === id);
+    if (!src) return;
+    const copy = createNode(src.type, src);
+    setNodes((list) => {
+      const at = list.findIndex((n) => n.id === id);
+      return at === -1 ? [...list, copy] : [...list.slice(0, at + 1), copy, ...list.slice(at + 1)];
+    });
+    setLastAdded(copy.id);
+  };
+
+  const remove = (id) => {
+    tokens.current.delete(id);
+    setNodes((list) => list.filter((n) => n.id !== id));
+  };
+
+  const restoreDefaults = () => setNodes(seedNodes());
+
+  // First node of each medium, keyed by medium (used for the coherence prompt).
+  const cards = useMemo(() => {
+    const out = {};
+    nodes.forEach((n) => { if (!out[n.type]) out[n.type] = n; });
+    return out;
+  }, [nodes]);
+
+  return { nodes, cards, busy, lastAdded, generateAll, regenerate, add, duplicate, remove, restoreDefaults, setStatus };
 }
 
-export default function QuickGrid({ active, quick }) {
+export default function QuickGrid({ quick, atGenLimit }) {
+  const gridRef = useRef(null);
+  useFlip(gridRef, quick.nodes.map((n) => n.id).join("|"));
+
+  useEffect(() => {
+    // Scroll only the grid's own scroller (scrollIntoView would also nudge ancestors).
+    const scroller = gridRef.current?.parentElement;
+    const el = quick.lastAdded && gridRef.current?.querySelector(`[data-flip-id="${quick.lastAdded}"]`);
+    if (!scroller || !el) return;
+    const box = scroller.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const below = r.bottom - (box.bottom - 80); // keep clear of the view switch
+    const above = r.top - box.top;
+    if (below > 0) scroller.scrollBy({ top: Math.min(below, above), behavior: "smooth" });
+    else if (above < 0) scroller.scrollBy({ top: above - 8, behavior: "smooth" });
+  }, [quick.lastAdded]);
+
   const copyOutput = async (text) => {
     try {
       await host.copyText(text);
@@ -84,19 +176,28 @@ export default function QuickGrid({ active, quick }) {
   };
 
   return (
-    <div hidden={!active}>
-      <div className="canvas-inner">
-        <div className="canvas-grid">
-          {MEDIA.map((m) => (
-            <OutputCard
-              key={m.key}
-              meta={m}
-              state={quick.cards[m.key]}
-              onRegen={() => quick.regenerateOne(m.key)}
-              onCopy={copyOutput}
-            />
-          ))}
+    <div className="qg">
+      {!quick.nodes.length && (
+        <div className="qg-empty">
+          <h2>No nodes on the grid</h2>
+          <p>Use Add Node to place a medium, or bring back the default set.</p>
+          <button type="button" onClick={quick.restoreDefaults}>Restore default nodes</button>
         </div>
+      )}
+      <div className="qg-grid" ref={gridRef}>
+        {quick.nodes.map((n) => (
+          <NodeCard
+            key={n.id}
+            node={n}
+            meta={MEDIA_BY_KEY[n.type]}
+            regenDisabled={atGenLimit}
+            regenTitle={atGenLimit ? "Daily generation limit reached" : undefined}
+            onRegenerate={() => quick.regenerate(n.id)}
+            onCopy={copyOutput}
+            onDuplicate={() => quick.duplicate(n.id)}
+            onDelete={() => quick.remove(n.id)}
+          />
+        ))}
       </div>
     </div>
   );

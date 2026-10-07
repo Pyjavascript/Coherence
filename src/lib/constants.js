@@ -102,40 +102,47 @@ export const SPECS = {
   email: "a subject line under 8 words plus a preview line under 14 words",
 };
 
-// Quick Grid frames (order, tags and placeholders match the prototype)
+// Quick Grid node types (order, tags and placeholders match the prototype).
+// `full` nodes span the whole grid row; `color` drives the node indicator.
 export const MEDIA = [
   {
     key: "packaging",
     label: "Packaging",
     tag: "2–6 words",
+    color: "#f47a2c",
     placeholder: "What it is, felt instantly.",
   },
   {
     key: "marketing",
     label: "Marketing",
     tag: "<12 words",
+    color: "#f3245c",
     placeholder: "One line. Identity over feature.",
   },
   {
     key: "advertising",
     label: "Advertising",
     tag: "headline + subtext",
+    color: "#f72fbd",
     placeholder: "Headline plus one-line subtext.",
   },
   {
     key: "website",
     label: "Website",
     tag: "hero + support",
+    color: "#07b67c",
     placeholder: "Hero headline plus supporting line.",
   },
   {
     key: "email",
     label: "Email",
     tag: "subject + preview",
+    color: "#2b2f8c",
     placeholder: "Subject line plus preview text.",
     full: true,
   },
 ];
+export const MEDIA_BY_KEY = Object.fromEntries(MEDIA.map((m) => [m.key, m]));
 
 // Node Studio
 export const NODE_CATS = {

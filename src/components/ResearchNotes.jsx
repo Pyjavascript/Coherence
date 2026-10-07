@@ -108,9 +108,8 @@ export default function ResearchNotes({ notes, onAdd, onDelete, onClose }) {
   };
 
   return (
-    <Modal title="Research notes" onClose={onClose} modalClassName="research-modal">
+    <Modal title="Research Notes" onClose={onClose} modalClassName="research-modal">
       <div className="research-modal-content">
-        <p className="research-description">Keep useful audience insights, competitor references, and ideas close to your brand.</p>
         <div className="research-panel">
           <NoteTypeSelect value={type} onChange={setType} />
           <div className="research-field">

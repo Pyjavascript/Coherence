@@ -6,9 +6,9 @@ img {
   max-width: 100%;
 }
 @font-face {
-  font-family: 'NeueBit';
-  src: url('/fonts/neuebit.woff2') format('woff2');
-  font-weight: normal;
+  font-family: "NeueBit";
+  src: url("../assets/fonts/PPNeueBit-Bold.woff2") format("woff2");
+  font-weight: 700;
   font-style: normal;
 }
 
@@ -135,7 +135,7 @@ select {
 .tb-mark {
   width: 26px;
   height: 26px;
-  border-radius: 7px;
+  border-radius: 24px;
   background: var(--accent);
   flex: 0 0 auto;
   display: flex;
@@ -178,7 +178,7 @@ select {
   align-items: center;
   gap: 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 100px;
+  border-radius: 24px;
   padding: 0.28rem 0.6rem 0.28rem 0.7rem;
   background: var(--panel-sunk);
   cursor: pointer;
@@ -200,7 +200,7 @@ select {
 .switch-track {
   width: 28px;
   height: 16px;
-  border-radius: 100px;
+  border-radius: 24px;
   background: var(--border-strong);
   position: relative;
   flex: 0 0 auto;
@@ -212,7 +212,7 @@ select {
   left: 2px;
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  border-radius: 24px;
   background: var(--panel);
   transition: left 0.15s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
@@ -231,7 +231,7 @@ select {
   background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 24px;
   padding: 0.5rem 0.95rem;
   font-size: 0.82rem;
   font-weight: 600;
@@ -310,7 +310,7 @@ select {
   border: 1px solid var(--border);
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: 24px;
   font-size: 0.85rem;
   line-height: 1;
   color: var(--muted);
@@ -337,7 +337,7 @@ select {
   align-items: center;
   gap: 0.45rem;
   padding: 0.42rem 0.55rem;
-  border-radius: 7px;
+  border-radius: 24px;
   cursor: pointer;
   position: relative;
 }
@@ -353,7 +353,7 @@ select {
 .rail-dot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: 24px;
   background: var(--border-strong);
   flex: 0 0 auto;
 }
@@ -399,7 +399,7 @@ select {
 .frame {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: 24px;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
   overflow: hidden;
 }
@@ -434,7 +434,7 @@ select {
 .frame-regen {
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: 24px;
   border: 1px solid var(--border);
   background: var(--panel);
   color: var(--muted);
@@ -479,7 +479,7 @@ select {
 .vtab {
   width: 19px;
   height: 19px;
-  border-radius: 50%;
+  border-radius: 24px;
   border: 1px solid var(--border);
   background: var(--panel);
   font-size: 0.62rem;
@@ -502,7 +502,7 @@ select {
   );
   background-size: 200% 100%;
   animation: sh 1.1s infinite;
-  border-radius: 4px;
+  border-radius: 24px;
   margin-bottom: 0.4rem;
 }
 .skel.w60 {
@@ -527,7 +527,7 @@ select {
   gap: 0.2rem;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 24px;
   padding: 0.25rem;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 }
@@ -537,7 +537,7 @@ select {
   border: none;
   background: none;
   color: var(--muted);
-  border-radius: 6px;
+  border-radius: 24px;
   font-size: 0.85rem;
   cursor: pointer;
 }
@@ -611,7 +611,7 @@ textarea,
 select {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 24px;
   padding: 0.5rem 0.6rem;
   font-size: 0.82rem;
   background: var(--panel-sunk);
@@ -656,7 +656,7 @@ select {
 .ghost {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 24px;
   padding: 0.48rem 0.7rem;
   font-size: 0.76rem;
   color: var(--ink);
@@ -704,7 +704,7 @@ option[disabled] {
 }
 .modal {
   background: var(--panel);
-  border-radius: 12px;
+  border-radius: 24px;
   border: 1px solid var(--border);
   max-width: 460px;
   width: 100%;
@@ -744,7 +744,7 @@ option[disabled] {
   background: var(--ink);
   color: var(--panel);
   border: none;
-  border-radius: 8px;
+  border-radius: 24px;
   padding: 0.5rem 0.8rem;
   font-size: 0.78rem;
   font-weight: 600;
@@ -762,7 +762,7 @@ option[disabled] {
 }
 .note {
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 24px;
   padding: 0.6rem 0.7rem;
   font-size: 0.78rem;
   position: relative;
@@ -797,7 +797,7 @@ option[disabled] {
   align-items: center;
   gap: 0.4rem;
   border: 1px solid var(--border);
-  border-radius: 100px;
+  border-radius: 24px;
   padding: 0.28rem 0.5rem 0.28rem 0.7rem;
   background: var(--panel-sunk);
 }
@@ -832,7 +832,7 @@ option[disabled] {
   letter-spacing: 0.05em;
   font-weight: 700;
   padding: 0.05rem 0.35rem;
-  border-radius: 4px;
+  border-radius: 24px;
   background: var(--accent-soft);
   color: var(--accent);
   text-transform: uppercase;
@@ -849,7 +849,7 @@ option[disabled] {
   background: none;
   border: 1px solid var(--border);
   border-bottom: none;
-  border-radius: 8px 8px 0 0;
+  border-radius: 24px;
   padding: 0.4rem 0.85rem;
   font-size: 0.78rem;
   font-weight: 600;
@@ -885,7 +885,7 @@ option[disabled] {
   background: var(--ink);
   color: var(--panel);
   border: none;
-  border-radius: 8px;
+  border-radius: 24px;
   padding: 0.45rem 0.8rem;
   font-size: 0.78rem;
   font-weight: 600;
@@ -900,7 +900,7 @@ option[disabled] {
   left: 0;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 24px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   width: 270px;
   padding: 0.4rem;
@@ -914,7 +914,7 @@ option[disabled] {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.6rem;
-  border-radius: 7px;
+  border-radius: 24px;
   cursor: pointer;
   font-size: 0.8rem;
 }
@@ -931,7 +931,7 @@ option[disabled] {
 .addnode-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: 24px;
   flex: 0 0 auto;
 }
 .addnode-item span.grow {
@@ -945,7 +945,7 @@ option[disabled] {
   color: var(--muted);
   border: 1px solid var(--border);
   padding: 0.08rem 0.35rem;
-  border-radius: 100px;
+  border-radius: 24px;
   text-transform: uppercase;
 }
 .groupfilter {
@@ -960,7 +960,7 @@ option[disabled] {
   font-size: 0.72rem;
   color: var(--accent);
   background: var(--accent-soft);
-  border-radius: 8px;
+  border-radius: 24px;
   padding: 0.4rem 0.7rem;
   display: none;
 }
@@ -997,7 +997,7 @@ option[disabled] {
 .nodecol-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: 24px;
 }
 .nodesvg {
   position: absolute;
@@ -1020,7 +1020,7 @@ option[disabled] {
 .node {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 24px;
   position: relative;
   z-index: 1;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
@@ -1036,7 +1036,7 @@ option[disabled] {
   padding: 0.6rem 0.7rem;
   border-bottom: 1px solid var(--border);
   border-left: 3px solid var(--cat, var(--accent));
-  border-radius: 10px 0 0 0;
+  border-radius: 24px;
 }
 .node-head input {
   border: none;
@@ -1050,13 +1050,13 @@ option[disabled] {
 .node-head input:focus {
   outline: none;
   background: var(--panel-sunk);
-  border-radius: 5px;
+  border-radius: 24px;
   padding: 0.1rem 0.3rem;
 }
 .node-icon {
   width: 20px;
   height: 20px;
-  border-radius: 6px;
+  border-radius: 24px;
   background: var(--cat, var(--accent));
   flex: 0 0 auto;
   display: flex;
@@ -1093,7 +1093,7 @@ option[disabled] {
 .node-body input[type="number"] {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 24px;
   padding: 0.4rem 0.5rem;
   background: var(--panel-sunk);
   font-size: 0.78rem;
@@ -1115,7 +1115,7 @@ option[disabled] {
   font-size: 0.66rem;
   background: var(--panel-sunk);
   border: 1px solid var(--border);
-  border-radius: 100px;
+  border-radius: 24px;
   padding: 0.15rem 0.55rem;
   color: var(--muted);
 }
@@ -1129,7 +1129,7 @@ option[disabled] {
   background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 7px;
+  border-radius: 24px;
   padding: 0.4rem;
   font-size: 0.76rem;
   font-weight: 600;
@@ -1148,7 +1148,7 @@ option[disabled] {
   flex: 0 0 auto;
   border: 1px solid var(--border);
   background: var(--panel-sunk);
-  border-radius: 7px;
+  border-radius: 24px;
   font-size: 0.75rem;
   cursor: pointer;
   color: var(--muted);
@@ -1180,7 +1180,7 @@ option[disabled] {
   right: 0;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 24px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   width: 190px;
   padding: 0.5rem;
@@ -1196,7 +1196,7 @@ option[disabled] {
   width: 100%;
   text-align: left;
   padding: 0.4rem 0.5rem;
-  border-radius: 6px;
+  border-radius: 24px;
   border: none;
   background: none;
   color: var(--ink);
@@ -1218,7 +1218,7 @@ option[disabled] {
 .coherence-out {
   background: var(--panel-sunk);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 24px;
   padding: 0.7rem;
   font-size: 0.74rem;
   line-height: 1.5;
@@ -1251,7 +1251,7 @@ option[disabled] {
   margin-left: auto;
   background: none;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 24px;
   padding: 0.15rem 0.5rem;
   font-size: 0.64rem;
   font-weight: 600;
@@ -1271,7 +1271,7 @@ option[disabled] {
 .addqty {
   width: 38px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 24px;
   padding: 0.2rem 0.3rem;
   font-size: 0.72rem;
   background: var(--panel-sunk);
@@ -1283,7 +1283,7 @@ option[disabled] {
   background: var(--ink);
   color: var(--panel);
   border: none;
-  border-radius: 6px;
+  border-radius: 24px;
   padding: 0.28rem 0.55rem;
   font-size: 0.68rem;
   font-weight: 600;
@@ -1296,7 +1296,7 @@ option[disabled] {
 .hook-card {
   background: var(--panel-sunk);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 24px;
   padding: 1rem 1.1rem;
   min-height: 70px;
 }
@@ -1388,7 +1388,7 @@ option[disabled] {
   height: 28px;
   padding: 0;
   border: 1px solid var(--border-strong);
-  border-radius: 50%;
+  border-radius: 24px;
   cursor: pointer;
   background: none;
   flex: 0 0 auto;
@@ -1401,12 +1401,12 @@ option[disabled] {
 
 .brand-color-picker::-webkit-color-swatch {
   border: none;
-  border-radius: 50%;
+  border-radius: 24px;
 }
 
 .brand-color-picker::-moz-color-swatch {
   border: none;
-  border-radius: 50%;
+  border-radius: 24px;
 }
 
 .brand-color-picker:focus {
@@ -1429,7 +1429,7 @@ option[disabled] {
 .avatar {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 24px;
   background: var(--accent);
   color: #fff;
   display: flex;
@@ -1459,7 +1459,7 @@ option[disabled] {
   width: 200px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 24px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   padding: .4rem;
   z-index: 50;
@@ -1498,7 +1498,7 @@ option[disabled] {
   background: none;
   border: none;
   padding: .45rem .5rem;
-  border-radius: 6px;
+  border-radius: 24px;
   font-size: .78rem;
   color: var(--danger);
   cursor: pointer;
@@ -1525,7 +1525,7 @@ option[disabled] {
 .brand-logo-preview {
   width: 44px;
   height: 44px;
-  border-radius: 8px;
+  border-radius: 24px;
   object-fit: cover;
   border: 1px solid var(--border-strong);
   background: var(--panel-sunk);
@@ -1534,7 +1534,7 @@ option[disabled] {
 .rail-brand-avatar {
   width: 18px;
   height: 18px;
-  border-radius: 4px;
+  border-radius: 24px;
 }
 
 /* Coherence workspace rail and infinite canvas */
@@ -1566,7 +1566,7 @@ body {
 
 .rail.collapsed {
   flex-basis: 64px;
-  padding: 40px 20px;
+  padding: 40px 12px;
 }
 
 .rail-top {
@@ -1587,7 +1587,7 @@ body {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border-radius: 12px;
+  border-radius: 24px;
   background: #fff;
   color: var(--rail-navy);
   font-size: 21px;
@@ -1597,9 +1597,9 @@ body {
 .rail-product-name {
   flex: 1;
   color: #fff;
-  font-family:'font-neuebit';
+  font-family: "NeueBit", system-ui, sans-serif;
   font-size: 11px;
-  font-weight: 550;
+  font-weight: 700;
   line-height: 1.28;
 }
 
@@ -1612,7 +1612,7 @@ body {
   color: #fff;
   background: transparent;
   border: 0;
-  border-radius: 7px;
+  border-radius: 24px;
   font-size: 22px;
   cursor: pointer;
 }
@@ -1644,11 +1644,11 @@ body {
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
-  padding: 0 12px;
+  padding: 15px;
   color: var(--rail-navy);
   background: #fff;
   border: 0;
-  border-radius: 12px;
+  border-radius: 24px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1671,8 +1671,17 @@ body {
 .rail-brands {
   flex: 1 1 auto;
   min-height: 0;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 8px 0;
+}
+
+.rail-nav {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .rail .rail-group,
@@ -1721,9 +1730,10 @@ body {
 }
 
 .rail .rail-item:hover,
+.rail .rail-item:focus-visible,
 .rail .rail-item.active {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
+  color: var(--rail-navy);
+  background: #fff;
 }
 
 .rail .rail-item span {
@@ -1733,15 +1743,15 @@ body {
 }
 
 .rail .rail-item.active span {
-  color: #fff;
-  font-weight: 650;
+  color: var(--rail-navy);
+  font-weight: 600;
 }
 
 .rail .rail-brand-avatar {
   width: 30px;
   height: 30px;
   flex: 0 0 30px;
-  border-radius: 50%;
+  border-radius: 24px;
   object-fit: cover;
 }
 
@@ -1792,7 +1802,7 @@ body {
   color: #fff;
   background: transparent;
   border: 0;
-  border-radius: 10px;
+  border-radius: 24px;
   text-align: left;
   font-size: 12px;
   cursor: pointer;
@@ -1804,11 +1814,20 @@ body {
   display: grid;
   place-items: center;
   flex: 0 0 30px;
-  border-radius: 50%;
+  border-radius: 24px;
   color: #26347f;
   background: #fff;
   font-size: 13px;
   font-weight: 700;
+}
+
+.rail-profile-avatar svg {
+  width: 24px;
+  height: 24px;
+  stroke: #2d343a;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .rail-credits {
@@ -1845,7 +1864,7 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: 20px;
+  border-radius: 24px;
   background:
     radial-gradient(ellipse at 94% 103%, rgba(93, 126, 255, 0.9), transparent 58%),
     linear-gradient(135deg, #f6f7ff 0%, #e7ebff 42%, #b8c7ff 100%);
@@ -1952,7 +1971,7 @@ body {
   color: #1b286b;
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(35, 48, 120, 0.12);
-  border-radius: 12px;
+  border-radius: 24px;
   box-shadow: 0 5px 20px rgba(24, 38, 99, 0.14);
 }
 
@@ -1964,7 +1983,7 @@ body {
   color: inherit;
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: 24px;
   font-size: 19px;
   cursor: pointer;
 }
@@ -2101,7 +2120,7 @@ body {
   width: 13px;
   height: 13px;
   display: block;
-  border-radius: 50%;
+  border-radius: 24px;
   background: #ff7b2c;
 }
 
@@ -2117,7 +2136,7 @@ body {
   display: flex;
   gap: 8px;
   padding: 7px;
-  border-radius: 20px;
+  border-radius: 24px;
   background: #0c174f;
   box-shadow: 0 14px 30px rgba(14, 28, 89, 0.2);
 }
@@ -2133,7 +2152,7 @@ body {
   color: #0c174f;
   background: #fff;
   border: 0;
-  border-radius: 17px;
+  border-radius: 24px;
   font-size: 15px;
   cursor: pointer;
   white-space: nowrap;
@@ -2149,7 +2168,7 @@ body {
   display: grid;
   place-items: center;
   flex: 0 0 18px;
-  border-radius: 50%;
+  border-radius: 24px;
   color: #fff;
   background: var(--node-color);
   font-weight: 700;
@@ -2180,7 +2199,7 @@ body {
   padding: 0 14px;
   color: #0c174f;
   background: #fff;
-  border-radius: 23px;
+  border-radius: 24px;
 }
 
 .toolbar-ai-mark {
@@ -2188,7 +2207,7 @@ body {
   height: 39px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: 24px;
   color: #fff;
   background: #08b68a;
   font-size: 12px;
@@ -2245,7 +2264,7 @@ body {
   padding: 0 15px;
   background: #0c174f;
   border: 0;
-  border-radius: 23px;
+  border-radius: 24px;
   cursor: pointer;
 }
 
@@ -2253,7 +2272,7 @@ body {
   width: 25px;
   height: 2px;
   display: block;
-  border-radius: 2px;
+  border-radius: 24px;
   background: #fff;
 }
 
@@ -2278,7 +2297,7 @@ body {
   gap: 4px;
   padding: 5px;
   border: 1px solid rgba(49, 58, 141, 0.1);
-  border-radius: 15px;
+  border-radius: 24px;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 7px 22px rgba(29, 43, 117, 0.14);
   transform: translateX(-50%);
@@ -2292,7 +2311,7 @@ body {
   color: #313a8d;
   background: transparent;
   border: 0;
-  border-radius: 11px;
+  border-radius: 24px;
   font-size: 12px;
   transition: color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
 }
@@ -2325,7 +2344,7 @@ body {
   color: #fff;
   background: #0c174f;
   border: 0;
-  border-radius: 22px;
+  border-radius: 24px;
   opacity: 0;
   pointer-events: none;
   transform: translateX(calc(100% + 24px));
@@ -2369,7 +2388,7 @@ body {
   color: #fff;
   background: transparent;
   border: 0;
-  border-radius: 7px;
+  border-radius: 24px;
   font-size: 23px;
   cursor: pointer;
 }
@@ -2385,7 +2404,7 @@ body {
   color: #0c174f;
   background: #f3f5ff;
   border: 0;
-  border-radius: 17px;
+  border-radius: 24px;
 }
 
 .canvas-inspector .sec-head {
@@ -2419,7 +2438,7 @@ body {
   color: #10194b;
   background-color: #fff;
   border: 0;
-  border-radius: 12px;
+  border-radius: 24px;
   font-size: 12px;
 }
 
@@ -2438,7 +2457,7 @@ body {
 .canvas-inspector .btnrow .ghost {
   min-height: 36px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 24px;
 }
 
 .canvas-inspector .btnrow .ghost:first-child {
@@ -2525,6 +2544,27 @@ body {
   stroke-width: 2;
 }
 
+.rail:not(.collapsed) .rail-brand {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 20px;
+}
+
+.rail:not(.collapsed) .rail-product-name {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.rail:not(.collapsed) .rail-collapse {
+  grid-column: 1;
+  grid-row: 2;
+  width: 40px;
+  height: 40px;
+}
+
 .rail.collapsed .rail-add-brand {
   width: 44px;
   min-height: 44px;
@@ -2532,7 +2572,7 @@ body {
   padding: 0;
   color: #fff;
   background: transparent;
-  border-radius: 12px;
+  border-radius: 24px;
 }
 
 .rail.collapsed .rail-add-brand:hover {
@@ -2556,7 +2596,7 @@ body {
   width: 40px;
   height: 40px;
   flex-basis: 40px;
-  border-radius: 50%;
+  border-radius: 24px;
 }
 
 .rail.collapsed .rail-footer {
@@ -2605,7 +2645,7 @@ body {
   color: #fff;
   background: #0a1450;
   border: 0;
-  border-radius: 26px;
+  border-radius: 24px;
   box-shadow: 0 24px 70px rgba(5, 12, 48, 0.38);
   animation: coherence-enter 220ms cubic-bezier(0.2, 0.75, 0.2, 1) both;
 }
@@ -2650,7 +2690,7 @@ body {
   color: #fff;
   background: transparent;
   border: 0;
-  border-radius: 50%;
+  border-radius: 24px;
   cursor: pointer;
   transition: background-color 150ms ease, transform 100ms ease;
 }
@@ -2707,7 +2747,7 @@ body {
   gap: 8px;
   padding: 16px;
   background: #f4f7ff;
-  border-radius: 26px;
+  border-radius: 24px;
 }
 
 .coherence-prompt {
@@ -2722,7 +2762,7 @@ body {
   color: #b3b3d3;
   background: #fff;
   border: 2px solid transparent;
-  border-radius: 26px;
+  border-radius: 24px;
   font: 500 clamp(12px, 3.3vw, 13px)/1.38 "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
   letter-spacing: -0.03em;
   resize: none;
@@ -2754,7 +2794,7 @@ body {
 .coherence-prompt::-webkit-scrollbar-thumb {
   background: #d4d6ea;
   border: 2px solid #fff;
-  border-radius: 10px;
+  border-radius: 24px;
 }
 
 .coherence-copy {
@@ -2770,7 +2810,7 @@ body {
   color: #fff;
   background: #0a66ff;
   border: 0;
-  border-radius: 26px;
+  border-radius: 24px;
   font-size: 15px;
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -2856,13 +2896,13 @@ body {
 
   .coherence-modal {
     padding: 18px 16px 16px;
-    border-radius: 22px;
+    border-radius: 24px;
   }
 
   .coherence-panel,
   .coherence-prompt,
   .coherence-copy {
-    border-radius: 22px;
+    border-radius: 24px;
   }
 
   .coherence-copy {
@@ -2935,7 +2975,6 @@ body {
     background: #fff;
     border-radius: 24px;
     box-shadow: 0 14px 42px rgba(4, 12, 46, 0.3);
-    scale:0.5;
   }
 
   .rail-account-card {
@@ -2969,7 +3008,7 @@ body {
     color: #f11;
     background: #f3f5ff;
     border: 0;
-    border-radius: 28px;
+    border-radius: 24px;
     font-size: 16px;
     cursor: pointer;
   }
@@ -3025,7 +3064,7 @@ body {
 
   .rail-usage-bars i {
     height: 26px;
-    border-radius: 5px;
+    border-radius: 24px;
     background: #d9d9d9;
   }
 
@@ -3228,7 +3267,7 @@ body {
   .toast-close:focus-visible {
     outline: 2px solid #fff;
     outline-offset: 4px;
-    border-radius: 4px;
+    border-radius: 24px;
   }
 
   @media (max-width: 600px) {
@@ -3268,7 +3307,7 @@ body {
     height: 46px;
     gap: 10px;
     padding: 0 12px;
-    border-radius: 17px;
+    border-radius: 24px;
     font-size: 12px;
   }
 
@@ -3299,7 +3338,7 @@ body {
     height: 46px;
     gap: 4px;
     padding: 0 7px;
-    border-radius: 17px;
+    border-radius: 24px;
   }
 
   .toolbar-ai-mark {
@@ -3316,7 +3355,7 @@ body {
     height: 46px;
     min-width: 82px;
     padding: 0 10px;
-    border-radius: 17px;
+    border-radius: 24px;
     font-size: 13px;
   }
 
@@ -3325,7 +3364,7 @@ body {
     height: 46px;
     gap: 4px;
     padding: 0 11px;
-    border-radius: 17px;
+    border-radius: 24px;
   }
 
   .toolbar-panel-toggle span {
@@ -3381,7 +3420,7 @@ body {
   max-height: 100%;
   padding: 0;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 24px;
   opacity: 0;
   transform: translateX(calc(100% + 24px));
   transition:
@@ -3457,7 +3496,7 @@ body {
   color: #fff;
   background: #0a1450;
   border: 0;
-  border-radius: 26px;
+  border-radius: 24px;
   box-shadow: 0 24px 70px rgba(5, 12, 48, 0.38);
 }
 
@@ -3478,7 +3517,7 @@ body {
   width: 36px;
   height: 36px;
   color: #fff;
-  border-radius: 50%;
+  border-radius: 24px;
   font-size: 1.25rem;
   transition: background-color 150ms ease;
 }
@@ -3516,7 +3555,7 @@ body {
   color: #19204f;
   background: #f4f7ff;
   border: 2px solid transparent;
-  border-radius: 18px;
+  border-radius: 24px;
   font-size: 14px;
   line-height: 1.5;
   resize: vertical;
@@ -3542,7 +3581,7 @@ body {
   gap: 10px;
   padding: 0 18px;
   border: 0;
-  border-radius: 17px;
+  border-radius: 24px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -3577,7 +3616,7 @@ body {
   padding: 16px;
   color: #10194b;
   background: #f4f7ff;
-  border-radius: 19px;
+  border-radius: 24px;
 }
 
 .hook-result-label {
@@ -3625,7 +3664,7 @@ body {
   color: #fff;
   background: #0a1450;
   border: 0;
-  border-radius: 26px;
+  border-radius: 24px;
   box-shadow: 0 24px 70px rgba(5, 12, 48, 0.38);
 }
 
@@ -3646,7 +3685,7 @@ body {
   width: 36px;
   height: 36px;
   color: #fff;
-  border-radius: 50%;
+  border-radius: 24px;
   font-size: 1.25rem;
 }
 
@@ -3675,7 +3714,7 @@ body {
   gap: 8px;
   padding: 16px;
   background: #f4f7ff;
-  border-radius: 20px;
+  border-radius: 24px;
 }
 
 .research-compose label {
@@ -3692,7 +3731,7 @@ body {
   color: #10194b;
   background-color: #fff;
   border: 1px solid #e4e8f5;
-  border-radius: 13px;
+  border-radius: 24px;
   font-size: 13px;
 }
 
@@ -3716,7 +3755,7 @@ body {
   color: #fff;
   background: #0a66ff;
   border: 0;
-  border-radius: 14px;
+  border-radius: 24px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -3763,7 +3802,7 @@ body {
   place-items: center;
   color: #0c174f;
   background: #fff;
-  border-radius: 999px;
+  border-radius: 24px;
   font-size: 12px;
   font-weight: 700;
 }
@@ -3783,7 +3822,7 @@ body {
   padding: 18px;
   color: #858ba8;
   background: #f4f7ff;
-  border-radius: 16px;
+  border-radius: 24px;
   font-size: 13px;
   text-align: center;
 }
@@ -3794,7 +3833,7 @@ body {
   padding: 13px 42px 13px 14px;
   color: #10194b;
   background: #f4f7ff;
-  border-radius: 15px;
+  border-radius: 24px;
 }
 
 .research-note-type {
@@ -3803,7 +3842,7 @@ body {
   padding: 4px 9px;
   color: #30378e;
   background: #e4e9ff;
-  border-radius: 999px;
+  border-radius: 24px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -3828,7 +3867,7 @@ body {
   color: #727997;
   background: #fff;
   border: 0;
-  border-radius: 50%;
+  border-radius: 24px;
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
@@ -3850,13 +3889,13 @@ body {
   }
 
   .canvas-inspector:not(.open) {
-    border-radius: 16px;
+    border-radius: 24px;
   }
 
   .hook-modal,
   .research-modal {
     padding: 18px 16px 16px;
-    border-radius: 22px;
+    border-radius: 24px;
   }
 }
 
@@ -3864,7 +3903,7 @@ body {
 .canvas-layout {
   position: relative;
   overflow: hidden;
-  border-radius: 30px;
+  border-radius: 24px;
   background:
     radial-gradient(ellipse at 94% 103%, rgba(93, 126, 255, 0.9), transparent 58%),
     radial-gradient(rgba(49, 62, 149, 0.13) 0.75px, transparent 0.9px),
@@ -3873,7 +3912,7 @@ body {
 }
 
 .canvas-surface {
-  border-radius: 30px;
+  border-radius: 24px;
 }
 
 .canvas-inspector {
@@ -3881,7 +3920,7 @@ body {
   margin: 6px 8px 8px 0;
   color: #fff;
   background: #0d1445;
-  border-radius: 30px;
+  border-radius: 24px;
   touch-action: pan-y;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
@@ -3889,7 +3928,7 @@ body {
 .canvas {
   padding: 8px;
   background: #5e7fff;
-  border-radius: 30px;
+  border-radius: 24px;
 }
 
 .canvas-inspector.open {
@@ -3904,7 +3943,7 @@ body {
   padding: 0 12px 0 18px;
   color: #0e1646;
   background: #f4f7ff;
-  border-radius: 999px;
+  border-radius: 24px;
 }
 
 .inspector-titlebar h2 {
@@ -3944,7 +3983,7 @@ body {
   padding: 15px 14px 14px;
   color: #0e1646;
   background: #f3f6ff;
-  border-radius: 23px;
+  border-radius: 24px;
 }
 
 .bp-field {
@@ -3960,8 +3999,8 @@ body {
 .bp-label {
   display: block;
   margin: 0 0 5px 1px;
-  color: #6e7596;
-  font-size: 11px;
+  color: #0A144B;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.01em;
 }
@@ -3972,7 +4011,7 @@ body {
   color: #0e1646;
   background: #fff;
   border: 1px solid transparent;
-  border-radius: 17px;
+  border-radius: 24px;
   outline: none;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 11px;
@@ -3984,7 +4023,7 @@ body {
 .canvas-inspector textarea.bp-textarea {
   min-height: 42px;
   padding: 0 14px;
-  border-radius: 17px;
+  border-radius: 24px;
   font-size: 11px;
 }
 
@@ -4085,7 +4124,7 @@ body {
   color: #0e1646;
   background: #fff;
   border: 1px solid transparent;
-  border-radius: 17px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 11px;
   font-weight: 600;
@@ -4144,7 +4183,7 @@ body {
   padding: 7px;
   list-style: none;
   background: #fff;
-  border-radius: 18px;
+  border-radius: 24px;
   box-shadow: 0 12px 30px rgba(10, 18, 70, 0.22), 0 2px 8px rgba(10, 18, 70, 0.1);
   scrollbar-width: thin;
   scrollbar-color: #d5dbf5 transparent;
@@ -4161,7 +4200,7 @@ body {
   color: #0e1646;
   background: transparent;
   border: 0;
-  border-radius: 14px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 11px;
   font-weight: 600;
@@ -4192,7 +4231,7 @@ body {
 .bp-save {
   height: 44px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 24px;
   cursor: pointer;
   transition: transform 120ms ease, filter 150ms ease;
 }
@@ -4275,7 +4314,7 @@ body {
   color: #a9aec9;
   background: #fff;
   border: 0;
-  border-radius: 18px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 12px;
   text-align: left;
@@ -4309,7 +4348,7 @@ body {
   color: #0e1646;
   background: #fff;
   border: 1px solid rgba(255, 255, 255, 0.75);
-  border-radius: 17px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 11px;
   cursor: pointer;
@@ -4340,7 +4379,7 @@ body {
   place-items: center;
   color: #fff;
   background: #d6a447;
-  border-radius: 50%;
+  border-radius: 24px;
   font-size: 19px;
 }
 
@@ -4363,7 +4402,7 @@ body {
   color: #fff;
   background: #0a52ff;
   border: 0;
-  border-radius: 16px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 12px;
   font-weight: 600;
@@ -4393,7 +4432,7 @@ body {
   color: #0a1450;
   background: #fff;
   border: 0;
-  border-radius: 999px;
+  border-radius: 24px;
   box-shadow: 0 1px 2px rgba(10, 20, 80, 0.06), 0 4px 14px rgba(10, 20, 80, 0.06);
   cursor: pointer;
   transition: box-shadow 150ms ease, transform 100ms ease;
@@ -4419,7 +4458,7 @@ body {
   place-items: center;
   color: #fff;
   background: #19b88c;
-  border-radius: 50%;
+  border-radius: 24px;
   font-size: 23px;
   line-height: 1;
 }
@@ -4446,7 +4485,7 @@ body {
   padding: 8px;
   list-style: none;
   background: #fff;
-  border-radius: 25px;
+  border-radius: 24px;
   box-shadow: 0 0 0 1px rgba(10, 20, 80, 0.04), 0 12px 32px rgba(10, 20, 80, 0.16);
   animation: model-menu-pop 140ms ease-out;
 }
@@ -4470,7 +4509,7 @@ body {
   color: #0a1450;
   background: transparent;
   border: 0;
-  border-radius: 21px;
+  border-radius: 24px;
   text-align: left;
   cursor: pointer;
 }
@@ -4493,7 +4532,7 @@ body {
   place-items: center;
   color: #0a1450;
   background: #f4f7ff;
-  border-radius: 50%;
+  border-radius: 24px;
   font-size: 20px;
 }
 
@@ -4572,7 +4611,7 @@ body {
   gap: 9px;
   padding: 14px;
   background: #f4f7ff;
-  border-radius: 22px;
+  border-radius: 24px;
 }
 
 .hook-label {
@@ -4590,7 +4629,7 @@ body {
   color: #0a1450;
   background: #fff;
   border: 2px solid transparent;
-  border-radius: 18px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 13px;
   font-weight: 500;
@@ -4611,7 +4650,7 @@ body {
   flex: 0 0 auto;
   color: #fff;
   background: #0a1450;
-  border-radius: 999px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -4627,7 +4666,7 @@ body {
   flex: 1 1 auto;
   padding: 12px 16px;
   background: #fff;
-  border-radius: 18px;
+  border-radius: 24px;
 }
 
 .hook-result-label {
@@ -4657,7 +4696,7 @@ body {
   flex: 0 0 auto;
   color: #fff;
   background: #0a66ff;
-  border-radius: 999px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-weight: 500;
 }
@@ -4707,7 +4746,7 @@ body {
   color: #2b3290;
   background: #fff;
   border: 2px solid transparent;
-  border-radius: 18px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 13px;
   font-weight: 500;
@@ -4744,7 +4783,7 @@ body {
   padding: 8px;
   list-style: none;
   background: #fff;
-  border-radius: 19px;
+  border-radius: 24px;
   box-shadow: 0 10px 28px rgba(10, 20, 80, 0.14);
 }
 
@@ -4758,7 +4797,7 @@ body {
   color: #0a1450;
   background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 13px;
   font-weight: 600;
@@ -4785,7 +4824,7 @@ body {
   display: flex;
   background: #fff;
   border: 2px solid transparent;
-  border-radius: 18px;
+  border-radius: 24px;
 }
 
 .research-field:focus-within {
@@ -4802,7 +4841,7 @@ body {
   color: #0a1450;
   background: transparent;
   border: 0;
-  border-radius: inherit;
+  border-radius: 24px;
   outline: none;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 13px;
@@ -4821,7 +4860,7 @@ body {
   flex: 0 0 auto;
   color: #fff;
   background: #0a1450;
-  border-radius: 999px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -4854,7 +4893,7 @@ body {
   gap: 10px;
   padding: 12px 10px 13px 16px;
   background: #fff;
-  border-radius: 18px;
+  border-radius: 24px;
   animation: research-note-in 180ms ease-out;
 }
 
@@ -4893,7 +4932,7 @@ body {
   color: #2b3290;
   background: transparent;
   border: 0;
-  border-radius: 50%;
+  border-radius: 24px;
   cursor: pointer;
 }
 
@@ -4912,7 +4951,7 @@ body {
   padding: 13px;
   color: #a1a2c8;
   background: #fff;
-  border-radius: 17px;
+  border-radius: 24px;
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 12px;
   text-align: center;
@@ -4944,12 +4983,12 @@ body {
   .hook-modal,
   .research-modal {
     padding: 18px 16px 16px;
-    border-radius: 22px;
+    border-radius: 24px;
   }
 
   .hook-panel,
   .research-panel {
-    border-radius: 20px;
+    border-radius: 24px;
     padding: 13px;
   }
 
@@ -4975,7 +5014,7 @@ body {
 
 .canvas-layout {
   overflow: visible;
-  border-radius: 0;
+  border-radius: 24px;
   background: transparent;
 }
 
@@ -4996,12 +5035,16 @@ body {
   text-shadow: none !important;
 }
 
+#root .app .rail-product-name {
+  font-family: "NeueBit", system-ui, sans-serif !important;
+}
+
 /* Match the supplied brand-panel and account popover references. */
 .canvas-inspector {
   border: 0;
   outline: 0;
   box-shadow: none;
-  border-radius: 32px;
+  border-radius: 24px;
 }
 
 .canvas-inspector.open {
@@ -5017,7 +5060,7 @@ body {
   padding: 0 22px 0 1px;
   color: #fff;
   background: transparent;
-  border-radius: 0;
+  border-radius: 24px;
 }
 
 .inspector-titlebar h2 {
@@ -5048,7 +5091,7 @@ body {
 
 .bp-card {
   padding: 16px 17px 17px;
-  border-radius: 28px;
+  border-radius: 24px;
 }
 
 .bp-label {
@@ -5066,7 +5109,7 @@ body {
   min-height: 57px;
   height: 57px;
   padding: 0 18px;
-  border-radius: 28px;
+  border-radius: 24px;
   font-size: 14px;
 }
 
@@ -5096,7 +5139,7 @@ body {
 .bp-dd-opt {
   min-height: 44px;
   padding: 12px 14px;
-  border-radius: 20px;
+  border-radius: 24px;
   font-size: 14px;
 }
 
@@ -5108,12 +5151,12 @@ body {
 .bp-del {
   width: 58px;
   height: 58px;
-  border-radius: 22px;
+  border-radius: 24px;
 }
 
 .bp-save {
   height: 58px;
-  border-radius: 22px;
+  border-radius: 24px;
   font-size: 16px;
 }
 
@@ -5182,7 +5225,7 @@ body {
   color: red;
   background: #f3f6ff;
   border: 0;
-  border-radius: 27px;
+  border-radius: 24px;
   font-size: 16px;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -5257,7 +5300,7 @@ body {
 .rail-usage-bars i {
   min-width: 0;
   height: 100%;
-  border-radius: 4px;
+  border-radius: 24px;
   background: #dcdcdc;
   transition: background-color 200ms ease;
 }
@@ -5307,7 +5350,7 @@ body {
   padding: 0 16px;
   color: #0e1646;
   background: #f3f6ff;
-  border-radius: 19px;
+  border-radius: 24px;
   font-size: 16px;
   font-weight: 500;
 }
@@ -5336,7 +5379,7 @@ body {
   background: transparent;
   content: attr(data-percent);
   font-size: 8px;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 120ms ease;
 }
 
@@ -5404,7 +5447,7 @@ body {
 .canvas {
   padding: 12px 0 0;
   background: var(--rail-navy);
-  border-radius: 0;
+  border-radius: 24px;
 }
 
 .canvas-layout {
@@ -5414,7 +5457,7 @@ body {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border-radius: 30px;
+  border-radius: 24px;
   background:
     radial-gradient(ellipse at 94% 103%, rgba(93, 126, 255, 0.9), transparent 58%),
     linear-gradient(135deg, #f6f7ff 0%, #e7ebff 42%, #b8c7ff 100%);
@@ -5576,7 +5619,7 @@ body {
   color: #0d1445;
   background: #fff;
   border: 1px solid #eef0f7;
-  border-radius: clamp(24px, 3.2vw, 32px);
+  border-radius: 24px;
 }
 
 .canvas-surface[data-mode="quick"] .frame.full {
@@ -5605,7 +5648,7 @@ body {
   overflow: hidden;
   color: #0d1445;
   background: #f3f6ff;
-  border-radius: 999px;
+  border-radius: 24px;
   font-size: clamp(15px, calc(var(--u) * 3), 28px);
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -5618,7 +5661,7 @@ body {
   width: clamp(8px, calc(var(--u) * 1.8), 17px);
   height: clamp(8px, calc(var(--u) * 1.8), 17px);
   flex: none;
-  border-radius: 50%;
+  border-radius: 24px;
   background: var(--frame-dot, #0d1445);
 }
 
@@ -5669,7 +5712,7 @@ body {
   color: #0d1445;
   background: #f3f6ff;
   border: 0;
-  border-radius: 50%;
+  border-radius: 24px;
   cursor: pointer;
   transition: background-color 150ms ease;
 }
@@ -5705,7 +5748,7 @@ body {
   padding: clamp(14px, calc(var(--u) * 3.2), 32px);
   color: #a2a4ae;
   background: #f3f6ff;
-  border-radius: clamp(20px, calc(var(--u) * 4), 38px);
+  border-radius: 24px;
   font-size: clamp(13px, calc(var(--u) * 2.6), 24px);
   font-weight: 500;
   line-height: 1.4;
@@ -5805,7 +5848,7 @@ body {
 
 .inspector-titlebar {
   background: transparent;
-  border-radius: 0;
+  border-radius: 24px;
 }
 
 .inspector-titlebar h2 {
@@ -5925,7 +5968,7 @@ body {
   padding: 24px 22px 22px;
   color: #fff;
   background: #0a52ff;
-  border-radius: 28px;
+  border-radius: 24px;
 }
 
 .bp-card-hook .bp-gen-top {
@@ -5956,7 +5999,7 @@ body {
   margin-top: 20px;
   color: #0e1646;
   background: #fff;
-  border-radius: 30px;
+  border-radius: 24px;
   font-size: 18px;
   font-weight: 500;
 }
@@ -5974,7 +6017,7 @@ body {
   padding: 0;
   overflow: visible;
   background: transparent;
-  border-radius: 0;
+  border-radius: 24px;
   box-shadow: none;
   transform: translateY(-50%);
 }
@@ -5988,7 +6031,7 @@ body {
   gap: 14px;
   padding: 0 24px;
   color: #0d1445;
-  border-radius: 30px;
+  border-radius: 24px;
   font-size: 17px;
   transition: background-color 150ms ease, transform 150ms ease;
 }
@@ -6102,7 +6145,7 @@ body {
     --u: calc(100cqw / 100);
     gap: 8px;
     padding: 8px 10px;
-    border-radius: 20px;
+    border-radius: 24px;
   }
 
   .canvas-surface[data-mode="quick"] .frame-pill {
@@ -6121,7 +6164,7 @@ body {
 
   .canvas-surface[data-mode="quick"] .frame-body {
     padding: 8px 10px;
-    border-radius: 14px;
+    border-radius: 24px;
     font-size: 12px;
     line-height: 1.3;
   }

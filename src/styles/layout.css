@@ -1,0 +1,2811 @@
+/* ==========================================================================
+   Application shell — LeftSidebar | MainWorkspace | RightSidebar
+   Loaded after index.css; owns layout, panel states, cards, Node Studio and
+   the dialog skins.
+
+   Breakpoints (keep in sync with hooks/useBreakpoint.js):
+     desktop ≥1024  both panels inline, workspace resizes between them
+     tablet  768–1023  rail inline (collapsed), expanded rail + brand panel are drawers
+     mobile  <768   no rail; navigation + brand panel are drawers
+
+   Sizing is fluid (clamp) and tuned so a 1440px viewport matches the design.
+   Every rounded rectangle uses --r (24px); only the profile icon and credits meter stay 50%.
+   ========================================================================== */
+
+:root {
+  --shell-navy: #0c174f;
+  --shell-indigo: #2b2f8c;
+  --shell-ink: #0d1445;
+  --shell-tint: #f3f6ff;
+  --shell-tint-2: #e6ecff;
+  --shell-line: #eef0f7;
+  --shell-muted: #a2a4ae;
+  --shell-hint: #b6b9c8;
+  --shell-blue: #173cf5;
+  --shell-blue-hover: #0f31d8;
+  --shell-ease: cubic-bezier(0.2, 0.75, 0.2, 1);
+  --shell-dur: 300ms;
+  --r: 24px;
+  --shell-radius: var(--r);
+
+  --gap: clamp(8px, 0.75vw, 12px);
+  --ui-icon: clamp(40px, 3.4vw, 50px);
+  --lnav-pad: clamp(12px, 1.35vw, 20px);
+  --lnav-closed: calc(var(--ui-icon) + var(--lnav-pad) * 2);
+  --lnav-open: clamp(236px, 19vw, 290px);
+  --lnav-row-gap: clamp(10px, 1.2vw, 18px);
+  /* Labels are laid out at their final (open) width and simply revealed as the
+     rail grows, so text never re-wraps or re-ellipsizes mid-animation. */
+  --lnav-label-w: calc(var(--lnav-open) - var(--lnav-pad) * 2 - var(--ui-icon) - var(--lnav-row-gap));
+  --rsb-w: clamp(320px, 28vw, 420px);
+  --tb-h: clamp(44px, 4vw, 58px);
+  --tb-pad-top: clamp(12px, 1.5vw, 22px);
+  --tb-pad-bottom: clamp(10px, 1.1vw, 16px);
+  /* Full toolbar height: Node Studio's canvas extends up under it by this much. */
+  --tb-total: calc(var(--tb-pad-top) + var(--tb-h) + var(--tb-pad-bottom));
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--shell-navy);
+}
+
+.app {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--shell-navy);
+  overflow: hidden;
+}
+
+.app-loading {
+  height: 100vh;
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.72);
+  background: var(--shell-navy);
+  font-size: 14px;
+}
+
+.app-shell {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  padding: var(--gap) var(--gap) var(--gap) 0;
+  background: var(--shell-navy);
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Left dock + rail
+   ========================================================================== */
+
+.shell-left {
+  position: relative;
+  z-index: 30;
+  flex: 0 0 auto;
+  width: var(--lnav-closed);
+  transition: width var(--shell-dur) var(--shell-ease);
+}
+
+.app-shell[data-bp="desktop"][data-left="open"] .shell-left {
+  width: var(--lnav-open);
+}
+
+.app-shell[data-drawer="left"] .shell-left {
+  z-index: 45;
+}
+
+.lnav {
+  position: absolute;
+  top: calc(var(--gap) * -1);
+  bottom: calc(var(--gap) * -1);
+  left: 0;
+  width: var(--lnav-closed);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 0.7vw, 10px);
+  padding: clamp(16px, 2vw, 30px) var(--lnav-pad) clamp(16px, 2vw, 30px);
+  color: #fff;
+  background: var(--shell-navy);
+  transition:
+    width var(--shell-dur) var(--shell-ease),
+    transform var(--shell-dur) var(--shell-ease),
+    border-radius var(--shell-dur) var(--shell-ease);
+}
+
+.lnav[data-open="true"] {
+  width: var(--lnav-open);
+}
+
+/* Tablet: the rail stays collapsed in flow; expanding it overlays the workspace. */
+.app-shell[data-bp="tablet"] .lnav[data-open="true"] {
+  border-radius: var(--r);
+}
+
+/* Mobile: off-canvas drawer. */
+.app-shell[data-bp="mobile"] {
+  padding: 8px;
+}
+
+.app-shell[data-bp="mobile"] .shell-left {
+  width: 0;
+}
+
+.app-shell[data-bp="mobile"] .lnav {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: min(300px, 86vw);
+  border-radius: var(--r);
+  transform: translateX(-100%);
+}
+
+.app-shell[data-bp="mobile"][data-left="open"] .lnav {
+  transform: none;
+}
+
+/* Rows: fixed icon slot + fading label, so icons never move. */
+.lnav-row,
+.lnav-head {
+  position: relative;
+  width: 100%;
+  min-height: var(--ui-icon);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--lnav-row-gap);
+  padding: 0;
+  overflow: hidden;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: clamp(16px, 1.05vw, 18px);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+.lnav-head{
+  border-radius:0;
+}
+
+.lnav-head {
+  cursor: default;
+}
+
+.lnav-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lnav-row:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+}
+
+.lnav-slot {
+  width: var(--ui-icon);
+  height: var(--ui-icon);
+  flex: 0 0 var(--ui-icon);
+  display: grid;
+  place-items: center;
+}
+
+.lnav-label {
+  flex: 0 0 var(--lnav-label-w);
+  width: var(--lnav-label-w);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 120ms ease, transform 200ms var(--shell-ease);
+}
+
+.lnav[data-open="true"] .lnav-label {
+  opacity: 1;
+  transform: none;
+  transition: opacity 200ms ease 80ms, transform 260ms var(--shell-ease) 40ms;
+}
+
+/* The mobile drawer doesn't animate its width, so labels can just fill the row. */
+.app-shell[data-bp="mobile"] .lnav-label {
+  flex: 1 1 auto;
+  width: auto;
+  font-size: clamp(18px, 1.2vw, 18px);
+  font-weight: 500;
+}
+
+/* No clip or fill here: logo.svg draws its own white rounded tile, and it
+   scales with the icon size so the corner stays in proportion. (A 24px CSS
+   radius on this ~49px box is half its width, which turns it into a circle.) */
+.lnav-logo {
+  width: var(--ui-icon);
+  height: var(--ui-icon);
+  display: grid;
+  place-items: center;
+}
+
+.lnav-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* nowrap: the <br> sets the two lines; letting it wrap made the header grow
+   taller while the rail was narrow and shoved every row below it down. */
+.lnav .lnav-title {
+  flex: 0 0 var(--lnav-label-w);
+  color: #fff;
+  font-size: clamp(24px, 1vw, 16px);
+  font-weight: 700;
+  line-height:0.9;
+  white-space: nowrap;
+}
+
+.lnav-glyph {
+  width: clamp(22px, 1.9vw, 28px);
+  height: clamp(22px, 1.9vw, 28px);
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.lnav-glyph-bar {
+  transition: transform var(--shell-dur) var(--shell-ease);
+}
+
+.lnav[data-open="true"] .lnav-glyph-bar {
+  transform: translateX(6px);
+}
+
+.lnav-toggle:hover {
+  background: transparent;
+}
+
+.lnav-toggle .lnav-slot {
+  transition: background-color 180ms ease;
+}
+
+.lnav-toggle:hover .lnav-slot {
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.lnav-plus {
+  font-size: clamp(26px, 2.2vw, 32px);
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* Collapsed: a white "+" on the navy rail. Hover / press / open rail: the white
+   24px pill from the design, with navy "+" and label. */
+.lnav .lnav-add {
+  color: #fff;
+  background: transparent;
+  font-weight: 500;
+  transition: background-color 180ms ease, color 180ms ease, transform 120ms ease;
+}
+
+.lnav .lnav-add:hover,
+.lnav .lnav-add:focus-visible,
+.lnav .lnav-add:active,
+.lnav[data-open="true"] .lnav-add {
+  color: var(--shell-navy);
+  background: #fff;
+}
+
+.lnav[data-open="true"] .lnav-add:hover {
+  background: #eff1ff;
+}
+
+.lnav .lnav-add:active {
+  transform: scale(0.97);
+}
+
+/* Brand list: centred vertically in the free space; scrolls when it doesn't fit. */
+.lnav-brands {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0 -4px;
+  padding: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.lnav-brand-list {
+  margin-block: auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1vw, 16px);
+}
+
+.lnav-item.is-active {
+  background:#fff;
+  color: var(--shell-navy);
+  font-weight: 600;
+}
+
+.lnav-avatar {
+  width: var(--ui-icon);
+  height: var(--ui-icon);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--r);
+  background: #fff;
+}
+
+.lnav-avatar img {
+  width: 64%;
+  height: 64%;
+  object-fit: contain;
+}
+
+.lnav-avatar-fallback {
+  color: var(--brand-color);
+  font-size: clamp(13px, 1.1vw, 16px);
+  font-weight: 700;
+}
+
+/* Footer: profile + credits, popovers stay inside the panel. */
+.lnav-footer {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 0.8vw, 12px);
+}
+
+.lnav-icon {
+  width: var(--ui-icon);
+  height: var(--ui-icon);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.lnav-profile svg {
+  width: 56%;
+  height: 56%;
+  stroke: var(--shell-ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.lnav .rail-credits {
+  cursor: pointer;
+}
+
+.lnav .rail-credits-meter {
+  position: relative;
+  width: var(--ui-icon);
+  height: var(--ui-icon);
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.lnav .rail-credits-meter::before {
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  background: conic-gradient(var(--shell-navy) var(--credits-progress), #dcdfea 0);
+  content: "";
+}
+
+.lnav .rail-credits-meter::after {
+  position: absolute;
+  inset: calc(12% + 3px);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--shell-ink);
+  background: #fff;
+  content: attr(data-percent);
+  font-size: clamp(9px, 0.75vw, 11px);
+  font-weight: 600;
+  opacity: 1;
+  transition: color 150ms ease;
+}
+
+/* Collapsed rail: percentage only on hover / keyboard focus. */
+.lnav[data-open="false"] .rail-credits-meter::after {
+  color: transparent;
+}
+
+.lnav[data-open="false"] .rail-credits:hover .rail-credits-meter::after,
+.lnav[data-open="false"] .rail-credits:focus-visible .rail-credits-meter::after {
+  color: var(--shell-ink);
+}
+
+.lnav .rail-account-card,
+.lnav .rail-usage-card {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  max-width: 100%;
+  padding: clamp(14px, 1.3vw, 18px);
+  color: var(--shell-ink);
+  background: #fff;
+  border-radius: var(--r);
+  animation: rail-usage-in 180ms ease-out both;
+}
+
+.lnav .rail-card-caption {
+  font-size: clamp(13px, 1.05vw, 16px);
+}
+
+.lnav .rail-card-email {
+  margin-top: 8px;
+  font-size: clamp(14px, 1.2vw, 18px);
+}
+
+.lnav .rail-card-divider {
+  margin: 12px 0;
+}
+
+.lnav .rail-account-card .rail-logout {
+  min-height: clamp(42px, 3.4vw, 52px);
+  font-size: clamp(14px, 1.05vw, 16px);
+}
+
+.lnav .rail-usage-heading strong {
+  font-size: clamp(24px, 2vw, 26px);
+}
+
+.lnav .rail-usage-heading span {
+  font-size: clamp(14px, 1.2vw, 18px);
+}
+
+.lnav .rail-reset-time,
+.lnav .rail-model-usage {
+  margin-top: 12px;
+  font-size: clamp(13px, 1vw, 15px);
+}
+
+.lnav .rail-reset-time span {
+  color: inherit;
+  font-size: inherit;
+}
+
+.lnav .rail-model-usage b {
+  min-height: 32px;
+  font-size: 14px;
+}
+
+.lnav .rail-usage-bars {
+  height: 20px;
+  margin-top: 12px;
+  gap: 2px;
+}
+
+/* ==========================================================================
+   Right dock + brand panel
+   ========================================================================== */
+
+.shell-right {
+  position: relative;
+  z-index: 50;
+  flex: 0 0 auto;
+  width: 0;
+  transition: width var(--shell-dur) var(--shell-ease);
+}
+
+.app-shell[data-bp="desktop"][data-right="open"] .shell-right {
+  width: calc(var(--rsb-w) + var(--gap));
+}
+
+.rsb {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--gap);
+  width: var(--rsb-w);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--shell-navy);
+  border-radius: var(--r);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 220ms ease,
+    transform var(--shell-dur) var(--shell-ease),
+    visibility 0s linear var(--shell-dur);
+}
+
+.app-shell[data-right="open"] .rsb {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 220ms ease 60ms,
+    transform var(--shell-dur) var(--shell-ease),
+    visibility 0s;
+}
+
+/* Tablet + mobile: right drawer over the workspace. */
+.app-shell:not([data-bp="desktop"]) .shell-right {
+  position: static;
+  width: 0;
+}
+
+.app-shell:not([data-bp="desktop"]) .rsb {
+  position: fixed;
+  z-index: 50;
+  top: var(--gap);
+  right: var(--gap);
+  bottom: var(--gap);
+  left: auto;
+  width: min(420px, calc(100vw - var(--gap) * 2));
+  transform: translateX(calc(100% + var(--gap) * 2));
+}
+
+.app-shell[data-bp="mobile"] .rsb {
+  top: 8px;
+  right: 8px;
+  bottom: 8px;
+  width: min(440px, calc(100vw - 16px));
+}
+
+.app-shell:not([data-bp="desktop"])[data-right="open"] .rsb {
+  transform: none;
+}
+
+/* The whole panel scrolls, title included (nothing is pinned). Rules are
+   scoped to .rsb so they win over the older .bp-* rules in index.css. */
+.rsb-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: clamp(14px, 1.3vw, 20px) clamp(12px, 1.1vw, 16px) clamp(16px, 1.6vw, 22px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: #fff;
+}
+
+.rsb .rsb-head {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 clamp(12px, 1.2vw, 18px);
+  padding: 0 0 0 2px;
+  color: #fff;
+}
+
+.rsb .rsb-head h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: clamp(22px, 1.8vw, 27px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rsb .rsb-head button {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.rsb .rsb-head button svg {
+  width: 24px;
+  height: 24px;
+}
+
+.rsb .rsb-head button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.rsb .rsb-head button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+}
+
+/* Sections + cards */
+.rsb .bp-section {
+  margin: 0 0 clamp(16px, 1.5vw, 22px);
+}
+
+.rsb .bp-section:last-child {
+  margin-bottom: 0;
+}
+
+.rsb .bp-section-title {
+  display: block;
+  margin: 0 0 clamp(10px, 1vw, 14px) 2px;
+  color: #fff;
+  font-size: clamp(16px, 1.3vw, 18px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.rsb .bp-card {
+  position: relative;
+  padding: clamp(14px, 1.2vw, 18px) clamp(14px, 1.2vw, 17px) clamp(16px, 1.3vw, 19px);
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border-radius: var(--r);
+}
+
+.rsb .bp-field {
+  position: relative;
+  min-width: 0;
+  margin: 0 0 clamp(10px, 0.9vw, 13px);
+}
+
+.rsb .bp-field:last-child,
+.rsb .bp-row2:last-child .bp-field {
+  margin-bottom: 0;
+}
+
+.rsb .bp-label {
+  display: block;
+  margin: 0 0 8px 2px;
+  padding: 0;
+  color: #0A144B;
+  font-size: clamp(13px, 1vw, 14px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.rsb .bp-label-row,
+.rsb .bp-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rsb .bp-label-row .bp-label {
+  margin-bottom: 8px;
+}
+
+.rsb .bp-tag {
+  margin-bottom: 8px;
+  padding: 0;
+  color: #0f1ff0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Inputs */
+.rsb .bp-input,
+.rsb .bp-textarea {
+  display: block;
+  width: 100%;
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  outline: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: border-color 150ms ease;
+}
+
+.rsb .bp-input {
+  height: clamp(48px, 3.8vw, 54px);
+  min-height: 0;
+  padding: 0 18px;
+}
+
+.rsb .bp-textarea {
+  height: auto;
+  min-height: clamp(58px, 4.6vw, 66px);
+  padding: 13px 18px;
+  line-height: 1.4;
+  resize: none;
+}
+
+.rsb .bp-input::placeholder,
+.rsb .bp-textarea::placeholder {
+  color: #a9aec9;
+  font-weight: 400;
+}
+
+.rsb .bp-input:focus,
+.rsb .bp-textarea:focus {
+  border-color: #c9d2ff;
+}
+
+.rsb .bp-name-input .bp-input {
+  padding-right: 110px;
+}
+
+.rsb .bp-name-input .bp-addimg {
+  position: absolute;
+  top: 0;
+  right: 20px;
+  height: 100%;
+  max-width: 96px;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  color: #0f1ff0;
+  background: transparent;
+  border: 0;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.rsb .bp-row2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 clamp(8px, 0.8vw, 12px);
+}
+
+.rsb .bp-row2 .bp-input {
+  padding: 0 16px;
+  font-size: 13px;
+}
+
+/* Dropdowns */
+.rsb .bp-dd-trigger,
+.rsb .bp-row2 .bp-dd-trigger {
+  width: 100%;
+  height: clamp(48px, 3.8vw, 54px);
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px 0 20px;
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  font-size: clamp(14px, 1.15vw, 16px);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rsb .bp-dd-chev {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: var(--shell-ink);
+}
+
+.rsb .bp-dd-chev svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Premium triggers: lock — centred value — chevron. */
+.rsb .bp-dd-premium .bp-dd-trigger {
+  padding-left: 18px;
+}
+
+.rsb .bp-dd-premium .bp-dd-value {
+  text-align: center;
+}
+
+.rsb .bp-dd-lock {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: #d89a32;
+}
+
+/* Muted trigger reads like a filled-in hint (Audience Posture). */
+.rsb .bp-dd-muted .bp-dd-trigger {
+  color: #a9aec9;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.rsb .bp-dd-muted .bp-dd-chev {
+  display: none;
+}
+
+.rsb .bp-dd-menu {
+  border-radius: var(--r);
+}
+
+.rsb .bp-dd-opt {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--r);
+  font-size: 14px;
+}
+
+/* Save / delete */
+.rsb .bp-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: clamp(14px, 1.2vw, 18px);
+}
+
+.rsb .bp-del,
+.rsb .bp-save {
+  height: clamp(50px, 4vw, 56px);
+  border: 0;
+  border-radius: var(--r);
+  cursor: pointer;
+}
+
+.rsb .bp-del {
+  width: clamp(50px, 4vw, 56px);
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #fff;
+  background: #ff0f0f;
+}
+
+.rsb .bp-del svg {
+  width: 24px;
+  height: 24px;
+}
+
+.rsb .bp-save {
+  flex: 1;
+  color: #fff;
+  background: #00c95a;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Style & Output (premium) */
+.rsb .bp-section-premium .bp-section-title {
+  color: #e5a52b;
+}
+
+.rsb .bp-section-lock {
+  width: 22px;
+  height: 22px;
+  margin: 0 4px clamp(10px, 1vw, 14px) 0;
+  color: #e5a52b;
+}
+
+.rsb .bp-section .bp-card-gold {
+  padding: clamp(14px, 1.2vw, 18px) clamp(14px, 1.2vw, 17px) clamp(12px, 1vw, 15px);
+  background: linear-gradient(180deg, #fffaf1 0%, #f8ecd4 38%, #e9c789 72%, #c9963b 100%);
+}
+
+.rsb .bp-premium-note {
+  margin: 12px 2px 0;
+  color: #7a5313;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Advanced Behaviour toggle: chevron points down when open, right when closed. */
+.rsb .bp-section-toggle {
+  width: 100%;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 clamp(10px, 1vw, 14px);
+  padding: 0 6px 0 0;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.rsb .bp-section-toggle[aria-expanded="false"] {
+  margin-bottom: 0;
+}
+
+.rsb .bp-section-toggle .bp-section-title {
+  margin: 0 0 0 2px;
+}
+
+.rsb .bp-section-toggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+  border-radius: var(--r);
+}
+
+.rsb .bp-section-chevron {
+  width: 20px;
+  height: 20px;
+  color: #fff;
+  transform: rotate(-90deg);
+  transition: transform 220ms var(--shell-ease);
+}
+
+.rsb .bp-section-chevron.open {
+  transform: none;
+}
+
+.rsb .bp-research-field {
+  width: 100%;
+  height: clamp(48px, 3.8vw, 54px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 22px 0 18px;
+  color: #a9aec9;
+  background: #fff;
+  border: 0;
+  border-radius: var(--r);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.rsb .bp-research-field:hover {
+  background: #fbfcff;
+}
+
+.rsb .bp-research-field b {
+  color: var(--shell-ink);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+/* External AI row */
+.rsb .bp-external-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 clamp(4px, 1vw, 16px);
+}
+
+.rsb .bp-external-section .bp-section-title {
+  margin: 0;
+}
+
+.rsb .bp-copy {
+  width: auto;
+  min-width: 0;
+  height: clamp(50px, 4vw, 56px);
+  min-height: 0;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 clamp(16px, 1.4vw, 22px);
+  color: var(--shell-ink);
+  background: #fff;
+  border: 0;
+  border-radius: var(--r);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.rsb .bp-copy svg {
+  width: 22px;
+  height: 22px;
+  color: var(--shell-ink);
+}
+
+.rsb .bp-copy:hover {
+  background: #f4f6ff;
+}
+
+/* Generate Free Hook card */
+.rsb .bp-bonus-section {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.rsb .bp-card-hook {
+  padding: clamp(18px, 1.7vw, 26px) clamp(16px, 1.5vw, 22px) clamp(16px, 1.5vw, 22px);
+  color: #fff;
+  background: #0f55ff;
+  border-radius: var(--r);
+}
+
+.rsb .bp-card-hook .bp-gen-top {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.2vw, 18px);
+  padding-left: 6px;
+  color: #fff;
+}
+
+.rsb .bp-card-hook .bp-gen-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: transparent;
+}
+
+.rsb .bp-card-hook .bp-gen-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.rsb .bp-card-hook .bp-gen-top h4 {
+  margin: 0;
+  font-size: clamp(16px, 1.3vw, 18px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.rsb .bp-card-hook .bp-gen-top p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.rsb .bp-card-hook .bp-gen-btn {
+  width: 100%;
+  height: clamp(54px, 4.6vw, 66px);
+  min-height: 0;
+  margin-top: clamp(14px, 1.4vw, 20px);
+  color: var(--shell-ink);
+  background: #fff;
+  border: 0;
+  border-radius: var(--r);
+  font-size: clamp(16px, 1.3vw, 18px);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.rsb .bp-del:focus-visible,
+.rsb .bp-save:focus-visible,
+.rsb .bp-copy:focus-visible,
+.rsb .bp-research-field:focus-visible,
+.rsb .bp-dd-trigger:focus-visible,
+.rsb .bp-card-hook .bp-gen-btn:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Scrim (drawers only)
+   ========================================================================== */
+
+.shell-scrim {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  background: rgba(9, 17, 61, 0.48);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+}
+
+.shell-scrim[data-visible="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ==========================================================================
+   Main workspace + toolbar
+   ========================================================================== */
+
+.workspace {
+  container: ws / inline-size;
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overflow: clip;
+  border-radius: var(--r);
+  background:
+    radial-gradient(ellipse at 94% 103%, rgba(93, 126, 255, 0.9), transparent 58%),
+    linear-gradient(160deg, #f6f7ff 0%, #e7ebff 45%, #b8c7ff 100%);
+}
+
+.ws-topbar {
+  background: transparent;
+  position: relative;
+  z-index: 20;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: var(--tb-pad-top) clamp(12px, 1.6vw, 24px) var(--tb-pad-bottom);
+  /* Transparent bar floats over the node canvas: only its controls take clicks. */
+  pointer-events: none;
+}
+
+.ws-topbar > * {
+  pointer-events: auto;
+}
+
+.ws-topbar-start,
+.ws-topbar-end {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 0.9vw, 14px);
+}
+
+.ws-topbar .toolbar-add-node,
+.ws-topbar .toolbar-generate,
+.ws-topbar .toolbar-icon-btn,
+.ws-topbar .model-selector-trigger {
+  height: var(--tb-h);
+  border-radius: var(--r);
+  transition: background-color 180ms ease, opacity 180ms ease, transform 120ms ease, width var(--shell-dur) var(--shell-ease), margin var(--shell-dur) var(--shell-ease);
+}
+
+.ws-topbar .toolbar-add-node {
+  gap: clamp(12px, 1.4vw, 22px);
+  padding: 0 clamp(16px, 1.6vw, 24px);
+  font-size: clamp(14px, 1.25vw, 18px);
+  white-space: nowrap;
+}
+
+.ws-topbar .toolbar-add-node[aria-expanded="true"] {
+  background: #182765;
+}
+
+.ws-topbar .toolbar-add-node:disabled {
+  cursor: not-allowed;
+}
+
+.ws-topbar .toolbar-add-spark {
+  grid-template-columns: repeat(2, clamp(13px, 1.15vw, 17px));
+  gap: 3px;
+}
+
+.ws-topbar .toolbar-add-spark i {
+  width: clamp(13px, 1.15vw, 17px);
+  height: clamp(13px, 1.15vw, 17px);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: clamp(10px, 0.85vw, 13px);
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ws-topbar .model-selector-trigger {
+  gap: 6px;
+  padding: 0 14px 0 8px;
+}
+
+.ws-topbar .model-selector-logo {
+  width: calc(var(--tb-h) - 16px);
+  height: calc(var(--tb-h) - 16px);
+  font-size: calc(var(--tb-h) * 0.42);
+}
+
+.ws-topbar .toolbar-generate {
+  min-width: clamp(96px, 11vw, 160px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 clamp(14px, 1.6vw, 24px);
+  background: var(--shell-blue);
+  font-size: clamp(14px, 1.4vw, 18px);
+}
+
+.ws-topbar .toolbar-generate:hover:not(:disabled) {
+  background: var(--shell-blue-hover);
+}
+
+.ws-topbar .toolbar-generate:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.ws-topbar .toolbar-generate.is-busy:disabled {
+  opacity: 0.85;
+  cursor: progress;
+}
+
+.toolbar-spinner {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: var(--r);
+  animation: shell-spin 800ms linear infinite;
+}
+
+.toolbar-icon-btn {
+  width: var(--tb-h);
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  overflow: hidden;
+  color: #fff;
+  background: var(--shell-navy);
+  border: 0;
+  cursor: pointer;
+}
+
+.toolbar-icon-btn svg {
+  width: 55%;
+  height: 55%;
+}
+
+.toolbar-icon-btn:hover,
+.toolbar-icon-btn.is-active {
+  background: #182765;
+}
+
+/* The panel toggle folds away while the brand panel is docked (it has its own close). */
+.ws-topbar .toolbar-panel-btn.is-hidden {
+  width: 0;
+  margin-left: calc(clamp(8px, 0.9vw, 14px) * -1);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toolbar-icon-btn:focus-visible,
+.ws-topbar .toolbar-add-node:focus-visible,
+.ws-topbar .toolbar-generate:focus-visible {
+  outline: 3px solid rgba(23, 60, 245, 0.35);
+  outline-offset: 2px;
+}
+
+/* Add-node menu: always a row — beside the button on wide workspaces, below it when narrow. */
+.ws-topbar .toolbar-node-menu {
+  z-index: 30;
+  animation: shell-fade 160ms ease both;
+}
+
+.ws-topbar .toolbar-node-menu button {
+  border-radius: var(--r);
+}
+
+@container ws (max-width: 1279px) {
+  .ws-topbar .toolbar-node-menu {
+    top: calc(100% + 8px);
+    left: 0;
+    width: max-content;
+    max-width: calc(100cqw - 40px);
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid var(--shell-line);
+    border-radius: var(--r);
+    transform: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    animation-name: shell-pop;
+  }
+
+  .ws-topbar .toolbar-node-menu button {
+    height: 46px;
+    padding: 0 16px 0 12px;
+    font-size: 15px;
+  }
+
+  .ws-topbar .toolbar-node-menu button:hover {
+    transform: none;
+  }
+}
+
+@container ws (max-width: 760px) {
+  .ws-topbar {
+    gap: 8px;
+  }
+
+  .ws-topbar-start,
+  .ws-topbar-end {
+    gap: 8px;
+  }
+}
+
+@container ws (max-width: 520px) {
+  .ws-topbar .toolbar-add-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .ws-topbar .toolbar-add-node {
+    width: var(--tb-h);
+    justify-content: center;
+    padding: 0;
+  }
+
+  .ws-topbar .model-selector-trigger {
+    gap: 4px;
+    padding: 0 8px 0 6px;
+  }
+}
+
+@container ws (max-width: 380px) {
+  .ws-topbar .model-selector-chevron {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Stage + views
+   ========================================================================== */
+
+.ws-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ws-view {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition:
+    opacity 240ms ease,
+    transform 300ms var(--shell-ease),
+    visibility 0s linear 300ms;
+}
+
+.ws-view[data-active="true"] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 240ms ease 60ms,
+    transform 300ms var(--shell-ease) 60ms,
+    visibility 0s;
+}
+
+/* View switch */
+.ws-switch {
+  position: absolute;
+  z-index: 15;
+  bottom: clamp(10px, 1.4vw, 22px);
+  left: 50%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 6px;
+  background: #fff;
+  border-radius: var(--r);
+  transform: translateX(-50%);
+  isolation: isolate;
+  max-height: 70px;
+}
+
+.ws-switch-thumb {
+  position: absolute;
+  z-index: -1;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: calc((100% - 12px) / 2);
+  background: var(--shell-indigo);
+  border-radius: var(--r);
+  transform: translateX(calc(var(--i) * 100%));
+  transition: transform 280ms var(--shell-ease);
+}
+
+.ws-switch-btn {
+  min-height: clamp(40px, 3.8vw, 56px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1vw, 18px);
+  padding: 0 clamp(14px, 1.5vw, 22px);
+  color: var(--shell-indigo);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: clamp(13px, 1.15vw, 17px);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 200ms ease;
+}
+
+.ws-switch-btn svg {
+  width: clamp(18px, 1.6vw, 24px);
+  height: clamp(18px, 1.6vw, 24px);
+  flex: none;
+}
+
+.ws-switch-btn.on {
+  color: #fff;
+}
+
+.ws-switch-btn:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 1px;
+}
+
+@container ws (max-width: 420px) {
+  .ws-switch-btn svg {
+    display: none;
+  }
+}
+
+/* Narrow workspace: lift the zoom controls above the view switch. */
+@container ws (max-width: 640px) {
+  .ws-view-nodes .canvas-controls {
+    bottom: 76px;
+  }
+}
+
+/* ==========================================================================
+   Quick Grid — fills the stage; rows stretch to fit one screen
+   ========================================================================== */
+
+.qg {
+  --row-min: clamp(150px, 21vh, 240px);
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 clamp(12px, 1.6vw, 24px) clamp(12px, 1.6vw, 24px);
+  background-image: radial-gradient(rgba(49, 62, 149, 0.13) 0.75px, transparent 0.9px);
+  background-size: 18px 18px;
+  background-attachment: local;
+}
+
+.qg-grid {
+  position: relative;
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: minmax(var(--row-min), 1fr);
+  grid-auto-flow: row dense;
+  gap: clamp(10px, 1.1vw, 16px);
+}
+
+@container ws (min-width: 640px) {
+  .qg-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ncard.is-full {
+    grid-column: 1 / -1;
+  }
+}
+
+@container ws (min-width: 1200px) {
+  .qg-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ncard.is-full {
+    grid-column: span 2;
+  }
+}
+
+@container ws (min-width: 1800px) {
+  .qg-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ncard.is-full {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Mobile: a plain scrolling column with room to clear the view switch. */
+@container ws (max-width: 639px) {
+  .qg {
+    padding-bottom: 92px;
+  }
+
+  .qg-grid {
+    min-height: 0;
+    grid-auto-rows: minmax(var(--row-min), auto);
+  }
+}
+
+.qg-empty {
+  max-width: 420px;
+  margin: 12vh auto 24px;
+  padding: 28px 24px;
+  color: var(--shell-ink);
+  text-align: center;
+  background: #fff;
+  border-radius: var(--r);
+  animation: ncard-in 260ms var(--shell-ease) both;
+}
+
+.qg-empty h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.qg-empty p {
+  margin: 0 0 18px;
+  color: #70748d;
+  font-size: 14px;
+}
+
+.qg-empty button {
+  height: 46px;
+  padding: 0 20px;
+  color: #fff;
+  background: var(--shell-navy);
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ---------- Node card ---------- */
+
+.ncard {
+  container: ncard / inline-size;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 0.9vw, 14px);
+  padding: clamp(10px, 1vw, 16px);
+  color: var(--shell-ink);
+  background: #fff;
+  border-radius: var(--r);
+  animation: ncard-in 280ms var(--shell-ease) both;
+}
+
+.ncard.is-leaving {
+  pointer-events: none;
+  animation: ncard-out 200ms ease-in both;
+}
+
+.ncard-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.6vw, 24px);
+  padding-left: 6px;
+}
+
+.ncard-pill {
+  min-width: 0;
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: clamp(8px, 0.8vw, 12px);
+  margin: 0;
+  color: var(--shell-ink);
+  font-size: clamp(16px, 1.5vw, 20px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.ncard-pill-label {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ncard-dot {
+  width: clamp(8px, 0.7vw, 11px);
+  height: clamp(8px, 0.7vw, 11px);
+  flex: none;
+  border-radius: var(--r);
+  background: var(--node-color, var(--shell-ink));
+}
+
+/* The hint gives way before the node label does. */
+.ncard-hint {
+  flex: 0 100 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--shell-hint);
+  font-size: clamp(11px, 0.9vw, 14px);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ncard-actions {
+  display: flex;
+  flex: none;
+  gap: clamp(6px, 0.6vw, 10px);
+  margin-left: auto;
+}
+
+.ncard-action {
+  width: clamp(32px, 2.6vw, 40px);
+  height: clamp(32px, 2.6vw, 40px);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border: 0;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background-color 150ms ease, opacity 150ms ease;
+}
+
+.ncard-action svg {
+  width: 46%;
+  height: 46%;
+}
+
+.ncard-action:hover:not(:disabled) {
+  background: var(--shell-tint-2);
+}
+
+.ncard-action:active:not(:disabled) {
+  background: #dbe4ff;
+}
+
+.ncard-action:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
+.ncard-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ncard-action.is-spinning:disabled {
+  cursor: progress;
+  opacity: 1;
+}
+
+.ncard-action.is-spinning svg {
+  animation: shell-spin 900ms linear infinite;
+}
+
+.ncard-more {
+  position: relative;
+}
+
+.ncard-menu {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid var(--shell-line);
+  border-radius: var(--r);
+  animation: shell-pop 160ms var(--shell-ease) both;
+}
+
+.ncard-menu button {
+  height: 40px;
+  padding: 0 14px;
+  color: var(--shell-ink);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.ncard-menu button:hover,
+.ncard-menu button:focus-visible {
+  background: var(--shell-tint);
+  outline: none;
+}
+
+.ncard-menu button.danger {
+  color: #e5303a;
+}
+
+.ncard-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: clamp(14px, 1.7vw, 26px) clamp(14px, 1.7vw, 24px);
+  overflow-y: auto;
+  color: var(--shell-muted);
+  background: var(--shell-tint);
+  border-radius: var(--r);
+  font-size: clamp(13px, 1.05vw, 16px);
+  font-weight: 500;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
+.ncard-body p {
+  margin: 0;
+}
+
+.ncard-body.is-generated {
+  color: var(--shell-ink);
+}
+
+.ncard-copy {
+  animation: ncard-content-in 320ms var(--shell-ease) both;
+}
+
+#root .app .ncard-headline {
+  color: var(--shell-ink);
+  font-family: "Playfair Display", Georgia, "Times New Roman", serif !important;
+  font-size: clamp(17px, 1.6vw, 24px);
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.005em;
+}
+
+.ncard-sub {
+  margin-top: 0.8em !important;
+  color: var(--shell-ink);
+  font-size: clamp(12px, 0.95vw, 14px);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+/* Regenerating: keep previous copy visible, dimmed, with a shimmer sweep. */
+.ncard-body.is-refreshing .ncard-copy {
+  opacity: 0.45;
+  transition: opacity 200ms ease;
+}
+
+.ncard-body.is-refreshing::after,
+.ncard-skel {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.75) 50%, rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: shell-shimmer 1.2s ease-in-out infinite;
+}
+
+.ncard-body.is-refreshing::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.ncard-skel {
+  height: 14px;
+  margin-bottom: 12px;
+  background-color: #e3e8fb;
+  border-radius: var(--r);
+}
+
+.ncard-skel.w70 { width: 70%; }
+.ncard-skel.w40 { width: 40%; }
+
+.ncard-body.is-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  color: #b0303a;
+  background: #fff3f4;
+}
+
+.ncard-retry {
+  height: 38px;
+  padding: 0 16px;
+  color: #fff;
+  background: var(--shell-navy);
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ncard-vtabs {
+  display: flex;
+  gap: 6px;
+}
+
+.ncard-vtab {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.ncard-vtab.on {
+  color: #fff;
+  background: var(--shell-ink);
+}
+
+@container ncard (max-width: 330px) {
+  .ncard-hint {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Node Studio
+   ========================================================================== */
+
+/* Canvas runs up under the transparent toolbar so nodes panned upward stay
+   visible behind it instead of being clipped at the stage edge. */
+.ws-view-nodes .canvas-surface {
+  position: absolute;
+  inset: calc(-1 * var(--tb-total)) 0 0 0;
+  overflow: hidden;
+  width: auto;
+  height: auto;
+  border-radius: var(--r);
+  background-color: transparent;
+  background-image: radial-gradient(rgba(49, 62, 149, 0.13) 0.75px, transparent 0.9px);
+  background-size: var(--canvas-dot-size) var(--canvas-dot-size);
+  background-position: var(--canvas-dot-x) var(--canvas-dot-y);
+}
+
+.ws-view-nodes .canvas-controls {
+  right: clamp(10px, 1.4vw, 22px);
+  bottom: clamp(10px, 1.4vw, 22px);
+  border: 0;
+}
+
+/* Offset content by the toolbar height so the initial view starts below it. */
+.ws-view-nodes .canvas-world .nodebar {
+  min-height: 0;
+  padding: var(--tb-total) clamp(16px, 1.6vw, 24px) 0;
+}
+
+.ws-view-nodes .linkhint {
+  width: max-content;
+  max-width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 16px;
+  color: #fff;
+  background: var(--shell-indigo);
+  border-radius: var(--r);
+  font-size: 13px;
+}
+
+.ws-view-nodes .nodecanvas {
+  position: relative;
+  padding: 4px clamp(16px, 1.6vw, 24px) 140px;
+}
+
+.ws-view-nodes .nodesvg path {
+  fill: none;
+  stroke: var(--shell-navy);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+.ws-view-nodes .nodesvg circle {
+  fill: var(--shell-navy);
+}
+
+.ws-view-nodes .nodecols {
+  --sn-col-w: clamp(280px, 27vw, 400px);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(20px, 3vw, 48px);
+  width: max-content;
+  min-width: 0;
+}
+
+.sn-col {
+  flex: 0 0 var(--sn-col-w);
+  width: var(--sn-col-w);
+  display: flex;
+  flex-direction: column;
+}
+
+.sn-col-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: clamp(12px, 1.6vw, 24px);
+  padding: 0 14px;
+  color: var(--shell-ink);
+}
+
+.sn-col-dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: var(--r);
+  background: var(--cat);
+}
+
+.sn-col-head h2 {
+  margin: 0;
+  font-size: clamp(16px, 1.45vw, 21px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.sn-col-gen {
+  margin-left: auto;
+  padding: 6px 12px;
+  color: var(--shell-indigo);
+  background: rgba(255, 255, 255, 0.7);
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sn-col-gen:hover {
+  background: #fff;
+}
+
+.sn-count {
+  min-width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  padding: 0 7px;
+  color: #fff;
+  background: var(--cat);
+  border-radius: var(--r);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sn-col-gen + .sn-count {
+  margin-left: 0;
+}
+
+.sn-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Decorative joint between stacked nodes (dot — line — dot). */
+.sn-joint {
+  position: relative;
+  align-self: center;
+  width: 1.5px;
+  height: clamp(22px, 2.2vw, 32px);
+  background: var(--shell-navy);
+}
+
+.sn-joint::before,
+.sn-joint::after {
+  position: absolute;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r);
+  background: var(--shell-navy);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.sn-joint::before { top: -4px; }
+.sn-joint::after { bottom: -4px; }
+
+.ws-view-nodes .sn-node {
+  position: relative;
+  z-index: 1;
+  color: var(--shell-ink);
+  background: #fff;
+  border: 0;
+  border-radius: var(--r);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  animation: studio-node-in 260ms var(--shell-ease) both;
+  transition: outline-color 180ms ease;
+}
+
+.ws-view-nodes .sn-node.linking {
+  outline-color: var(--shell-indigo);
+}
+
+.ws-view-nodes .sn-node.is-leaving {
+  pointer-events: none;
+  animation: studio-node-out 200ms ease-in both;
+}
+
+.sn-head {
+  min-height: clamp(56px, 4.6vw, 68px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.sn-icon {
+  width: clamp(36px, 2.9vw, 44px);
+  height: clamp(36px, 2.9vw, 44px);
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--cat);
+  border-radius: var(--r);
+}
+
+.sn-icon svg {
+  width: 56%;
+  height: 56%;
+}
+
+.ws-view-nodes .sn-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  overflow: hidden;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: clamp(14px, 1vw, 15px);
+  letter-spacing: -0.02em;
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.ws-view-nodes .sn-title:hover {
+  background: var(--shell-tint);
+}
+
+.ws-view-nodes .sn-title:focus {
+  background: var(--shell-tint);
+  outline: 2px solid #c9d3ff;
+}
+
+.sn-done {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--r);
+  background: #07b67c;
+}
+
+.sn-head-actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.sn-node:hover .sn-head-actions,
+.sn-node:focus-within .sn-head-actions,
+.sn-node.is-open .sn-head-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .sn-head-actions {
+    opacity: 1;
+  }
+}
+
+.sn-mini,
+.sn-toggle {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.sn-mini svg {
+  width: 17px;
+  height: 17px;
+}
+
+.sn-toggle {
+  color: var(--shell-indigo);
+}
+
+.sn-toggle svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 350ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sn-mini:hover,
+.sn-toggle:hover {
+  background: var(--shell-tint);
+}
+
+.sn-mini.danger:hover {
+  color: #e5303a;
+}
+
+.sn-node.is-open .sn-toggle svg {
+  transform: rotate(180deg);
+}
+
+/* Expand / collapse: animate the row track from 0fr to 1fr. */
+.sn-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sn-collapse[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.sn-collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Once open, let the share menu escape the card (clip only while animating). */
+.sn-collapse[data-open="true"] .sn-collapse-inner {
+  overflow: visible;
+  animation: sn-clip 380ms;
+}
+
+.sn-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 2px 12px 12px;
+  padding: clamp(12px, 1.3vw, 18px);
+  background: var(--shell-tint);
+  border-radius: var(--r);
+}
+
+.sn-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sn-field label {
+  color: #6a7090;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.sn-field input,
+.sn-field textarea,
+.sn-field select {
+  width: 100%;
+  min-height: clamp(42px, 3.4vw, 50px);
+  padding: 0 16px;
+  color: var(--shell-ink);
+  background-color: #fff;
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: clamp(12px, 0.9vw, 13px);
+  font-weight: 500;
+}
+
+.sn-field input[type="number"] {
+  font-size: 15px;
+  font-weight: 700;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.sn-field input[type="number"]::-webkit-outer-spin-button,
+.sn-field input[type="number"]::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+/* Height is set from the content (AutoTextarea), so never scroll inside. */
+.sn-field textarea {
+  min-height: 56px;
+  padding: 16px;
+  overflow: hidden;
+  line-height: 1.4;
+  resize: none;
+  overflow-wrap: anywhere;
+}
+
+.sn-field input::placeholder,
+.sn-field textarea::placeholder {
+  color: #a7aac6;
+}
+
+.sn-field input:focus,
+.sn-field textarea:focus,
+.sn-field select:focus {
+  outline: 2px solid #c9d3ff;
+}
+
+.sn-row2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sn-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sn-tag {
+  padding: 5px 12px;
+  color: var(--shell-indigo);
+  background: #fff;
+  border-radius: var(--r);
+  font-size: 12px;
+}
+
+.sn-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sn-gen {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: clamp(44px, 3.6vw, 48px);
+  color: #fff;
+  background: var(--shell-indigo);
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: clamp(14px, 1.1vw, 16px);
+  cursor: pointer;
+  transition: background-color 150ms ease, opacity 150ms ease;
+}
+
+.sn-gen:hover:not(:disabled) {
+  background: #23277a;
+}
+
+.sn-gen:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.sn-round {
+  width: clamp(44px, 3.6vw, 48px);
+  height: clamp(44px, 3.6vw, 48px);
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--shell-indigo);
+  background: #fff;
+  border: 0;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.sn-round svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sn-round:hover {
+  background: var(--shell-tint-2);
+}
+
+.sn-round.active {
+  color: #fff;
+  background: var(--shell-indigo);
+}
+
+.sn-actions .sharewrap {
+  position: relative;
+}
+
+.sn-actions .share-menu {
+  z-index: 20;
+  right: 0;
+  left: auto;
+  border-radius: var(--r);
+}
+
+/* Generated copy sits in a white result box inside the node panel. */
+.sn-out {
+  padding: 10px 14px;
+  color: var(--shell-ink);
+  background: #fff;
+  border-radius: var(--r);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  user-select: text;
+  animation: ncard-content-in 320ms var(--shell-ease) both;
+}
+
+.sn-out p {
+  margin: 0;
+}
+
+.sn-out-empty {
+  color: var(--shell-muted);
+  font-size: 13px;
+}
+
+.sn-out-headline {
+  color: var(--shell-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sn-out-body {
+  margin-top: 6px !important;
+  color: #3b4170;
+  white-space: pre-wrap;
+}
+
+.sn-out-meta {
+  margin-top: 8px;
+  color: var(--shell-muted);
+  font-size: 12px;
+}
+
+.sn-vtabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.sn-vtab {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sn-vtab.on {
+  color: #fff;
+  background: var(--shell-ink);
+}
+
+/* Free-drag node wrapper (positioned by NodeStudio via transform). */
+.ws-view-nodes .cn {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 340px;
+  cursor: grab;
+  touch-action: none;
+  will-change: transform;
+}
+
+.ws-view-nodes .cn.dragging {
+  cursor: grabbing;
+}
+
+.sn-add {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  margin-top: clamp(16px, 2vw, 28px);
+  padding: 0;
+  color: #fff;
+  background: var(--shell-navy);
+  border: 0;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background-color 150ms ease, scale 150ms ease;
+}
+
+.sn-add svg {
+  width: 46%;
+  height: 46%;
+  stroke-width: 2.4;
+}
+
+.sn-add:hover {
+  background: var(--shell-indigo);
+  scale: 1.04;
+}
+
+/* "+" under a node: spawns a connected child. */
+.sn-add-child {
+  position: absolute;
+  z-index: 10;
+  bottom: -16px;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, 100%);
+}
+
+/* "+" in an empty column. */
+.sn-add-empty {
+  margin: 80px auto 0;
+}
+
+.sn-add:focus-visible,
+.sn-round:focus-visible,
+.sn-gen:focus-visible,
+.sn-toggle:focus-visible,
+.sn-mini:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
+.sn-soon {
+  opacity: 0.7;
+}
+
+.sn-soon p {
+  margin: 0;
+  color: #70748d;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   Dialogs
+   ========================================================================== */
+
+.overlay {
+  z-index: 80;
+  padding: 16px;
+  background: rgba(9, 17, 61, 0.48);
+}
+
+.modal-head button svg {
+  width: 24px;
+  height: 24px;
+}
+
+.research-modal {
+  height: auto;
+  max-height: min(760px, calc(100dvh - 32px));
+  overflow-y: auto;
+}
+
+/* Auth: navy shell, light inner card (Create an Account / Welcome back!) */
+.auth-modal {
+  width: min(440px, 100%);
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: clamp(20px, 2.2vw, 30px) clamp(14px, 1.6vw, 20px) clamp(14px, 1.6vw, 20px);
+  color: #fff;
+  background: var(--shell-navy);
+  border: 0;
+  border-radius: var(--r);
+}
+
+.auth-modal .modal-head {
+  position: relative;
+  justify-content: center;
+  margin: 0;
+  padding: 0 48px;
+}
+
+.auth-modal .modal-head h3 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(24px, 2.4vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  text-align: center;
+}
+
+.auth-modal .modal-head button {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.auth-modal .modal-head button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.modal-subtitle {
+  margin: 10px 0 clamp(16px, 1.8vw, 24px);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: clamp(14px, 1.2vw, 17px);
+  text-align: center;
+}
+
+.auth-switch {
+  padding: 0;
+  color: #fff;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(14px, 1.6vw, 20px);
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border-radius: var(--r);
+}
+
+.auth-google,
+.auth-field input,
+.auth-submit {
+  width: 100%;
+  height: clamp(46px, 3.8vw, 54px);
+  border: 0;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: clamp(14px, 1.15vw, 16px);
+}
+
+.auth-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #1b1f3b;
+  background: #fff;
+  cursor: pointer;
+}
+
+.auth-google:hover:not(:disabled) {
+  background: #fbfcff;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--shell-ink);
+  font-size: 15px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  flex: 1;
+  height: 1px;
+  background: #d5d9ea;
+  content: "";
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-field label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--shell-ink);
+  font-size: clamp(14px, 1.15vw, 16px);
+}
+
+.auth-field input {
+  padding: 0 20px;
+  color: var(--shell-ink);
+  background: #fff;
+}
+
+.auth-field input:focus {
+  outline: 2px solid #c9d3ff;
+}
+
+.auth-password {
+  position: relative;
+}
+
+.auth-password input {
+  padding-right: 54px;
+}
+
+/* Edge/IE draw their own reveal eye inside password inputs, which fights our toggle. */
+.auth-password input::-ms-reveal,
+.auth-password input::-ms-clear {
+  display: none;
+}
+
+.auth-password button {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.auth-password button svg {
+  width: 22px;
+  height: 22px;
+}
+
+.auth-submit {
+  margin-top: 4px;
+  color: #fff;
+  background: var(--shell-navy);
+  cursor: pointer;
+}
+
+.auth-submit:hover:not(:disabled) {
+  background: #182765;
+}
+
+.auth-google:disabled,
+.auth-submit:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.auth-error {
+  margin: 0;
+  padding: 10px 16px;
+  color: #c62f3a;
+  background: #fff0f1;
+  border-radius: var(--r);
+  font-size: 13px;
+}
+
+/* ---------- Toast clears the view switch on small screens ---------- */
+.app:has(.app-shell[data-bp="mobile"]) .toast {
+  bottom: 84px;
+}
+
+/* ==========================================================================
+   Keyframes
+   ========================================================================== */
+
+@keyframes shell-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shell-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes shell-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shell-pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; }
+}
+
+@keyframes ncard-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes ncard-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes ncard-content-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes studio-node-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes studio-node-out {
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes sn-clip {
+  from, to { overflow: hidden; }
+}
+
+/* ---------- Reduced motion ----------
+   Durations collapse to ~0 rather than `none` so animationend still fires
+   (node removal waits on it). */
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0s !important;
+  }
+
+  .toolbar-spinner,
+  .ncard-action.is-spinning svg {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+}

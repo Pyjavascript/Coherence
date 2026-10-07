@@ -6,11 +6,14 @@ import WarningIcon from "./statusbar/warning.svg";
 
 //sidebar
 import Logo from './sidebar/logo.svg';
+import ChatGpt from './sidebar/chatgpt.svg';
+
 
 export {
     AlertIcon,
     InfoIcon,
     SuccessIcon,
     WarningIcon,
-    Logo
+    Logo,
+    ChatGpt
 }

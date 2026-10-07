@@ -1,15 +1,23 @@
 import { useEffect, useId, useState } from "react";
 import { Skeleton } from "./OutputCard";
 
-export function Modal({ title, onClose, children, modalClassName = "" }) {
+// Minus-bar close glyph used by every navy dialog in the design.
+export const CloseBar = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+    <path d="M5 12h14" />
+  </svg>
+);
+
+export function Modal({ title, subtitle, onClose, children, modalClassName = "" }) {
   const titleId = useId();
   return (
     <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <section className={`modal ${modalClassName}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="modal-head">
           <h3 id={titleId}>{title}</h3>
-          <button type="button" aria-label={`Close ${title}`} onClick={onClose}>×</button>
+          <button type="button" aria-label={`Close ${title}`} onClick={onClose}><CloseBar /></button>
         </div>
+        {subtitle && <p className="modal-subtitle">{subtitle}</p>}
         {children}
       </section>
     </div>

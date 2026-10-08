@@ -6,6 +6,7 @@ import { generateNode as aiGenerateNode, describeError } from "../services/ai";
 import { Skeleton } from "./OutputCard";
 import host from "../hosts/browser";
 import { saveGeneration } from "../services/brands";
+import { useCopyFeedback } from "../hooks/useCopyFeedback";
 
 const uid = () => "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 // Vertical gap between a node and the node stacked below it.
@@ -118,6 +119,7 @@ function StudioNode({ node, expanded, onToggle, labelOf, linking, shareOpen, onF
   const cat = NODE_CATS[node.category];
   const comp = node.component || "hero";
   const [leaving, setLeaving] = useState(false);
+  const [copied, flashCopied] = useCopyFeedback();
   const bodyId = `${node.id}-body`;
 
   return (
@@ -193,7 +195,9 @@ function StudioNode({ node, expanded, onToggle, labelOf, linking, shareOpen, onF
                 {shareOpen && (
                   <div className="share-menu">
                     <div className="share-note">Copies this node's copy, then opens the tool to paste it in.</div>
-                    <button type="button" onClick={onCopy}>Copy text</button>
+                    <button type="button" onClick={async () => { if (await onCopy()) flashCopied(); }}>
+                      {copied ? "Copied ✓" : "Copy text"}
+                    </button>
                     <a href="https://www.canva.com/create/" target="_blank" rel="noopener noreferrer"
                       onClick={(e) => { e.preventDefault(); host.openExternal(e.currentTarget.href); }}>Open Canva</a>
                     <a href="https://new.express.adobe.com/" target="_blank" rel="noopener noreferrer"
@@ -540,12 +544,12 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   };
 
   const copyNode = (n) => {
-    if (!n.variants.length) return;
+    if (!n.variants.length) return Promise.resolve(false);
     const v = n.variants[n.activeIdx || 0];
     const text = v.pointers ? v.pointers.map((p) => `${p.title} — ${p.detail}`).join("\n") : `${v.headline}\n\n${v.body}`;
-    host.copyText(text)
-      .then(() => setStatus("Copied — paste it into your design tool.", "ok"))
-      .catch(() => setStatus("Couldn't copy automatically — select the text and copy manually.", "err"));
+    return host.copyText(text)
+      .then(() => { setStatus("Copied — paste it into your design tool.", "ok"); return true; })
+      .catch(() => { setStatus("Couldn't copy automatically — select the text and copy manually.", "err"); return false; });
   };
 
   const labelOf = (id) => (nodesRef.current.find((n) => n.id === id) || {}).label || "";

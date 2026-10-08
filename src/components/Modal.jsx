@@ -1,5 +1,18 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Skeleton } from "./OutputCard";
+import { useCopyFeedback } from "../hooks/useCopyFeedback";
+import { timeUntilReset } from "../lib/hookQuota";
+
+// Escape closes the dialog unless something inside (e.g. a dropdown) handled it first.
+function useEscape(onClose) {
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key === "Escape" && !event.defaultPrevented) onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+}
 
 // X-cross close glyph used by every navy dialog in the design.
 export const CloseBar = () => (
@@ -10,6 +23,7 @@ export const CloseBar = () => (
 
 export function Modal({ title, subtitle, onClose, children, modalClassName = "" }) {
   const titleId = useId();
+  useEscape(onClose);
   return (
     <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <section className={`modal ${modalClassName}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId}>
@@ -24,23 +38,42 @@ export function Modal({ title, subtitle, onClose, children, modalClassName = "" 
   );
 }
 
+// Yes/no dialog for destructive or lossy actions.
+// Destructive confirms focus Cancel, so a stray Enter never deletes anything.
+export function ConfirmModal({ title, body, confirmLabel = "Confirm", cancelLabel = "Cancel", tone = "danger", onConfirm, onClose }) {
+  const cancelRef = useRef(null);
+  const confirmRef = useRef(null);
+  useEffect(() => { (tone === "danger" ? cancelRef : confirmRef).current?.focus(); }, [tone]);
+  return (
+    <Modal title={title} onClose={onClose} modalClassName="hook-modal confirm-modal">
+      <p className="confirm-body">{body}</p>
+      <div className="confirm-actions">
+        <button type="button" ref={cancelRef} className="confirm-cancel" onClick={onClose}>{cancelLabel}</button>
+        <button
+          type="button"
+          ref={confirmRef}
+          className={"confirm-ok is-" + tone}
+          onClick={() => { onClose(); onConfirm(); }}
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export function CoherenceModal({ text, onCopy, onClose }) {
   const [prompt, setPrompt] = useState(text);
-  const [copied, setCopied] = useState(false);
+  const [copied, flashCopied] = useCopyFeedback();
+  useEscape(onClose);
 
   useEffect(() => {
     setPrompt(text);
   }, [text]);
 
-  useEffect(() => {
-    if (!copied) return undefined;
-    const timer = window.setTimeout(() => setCopied(false), 1500);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
-
   const copyPrompt = async () => {
     const succeeded = await onCopy(prompt);
-    if (succeeded) setCopied(true);
+    if (succeeded) flashCopied();
   };
 
   return (
@@ -84,20 +117,30 @@ export function CoherenceModal({ text, onCopy, onClose }) {
   );
 }
 
-export function HookModal({ aiAvailable, onGenerate, onCopy, onClose }) {
+export function HookModal({ aiAvailable, quota, onGenerate, onUsed, onCopy, onClose }) {
   const [input, setInput] = useState("");
-  const [out, setOut] = useState({ state: "idle", text: "" });
+  const usedUp = Boolean(quota) && quota.left <= 0;
+  const [out, setOut] = useState(() => (usedUp
+    ? { state: "msg", text: `You've used today's free hook. The next one unlocks in ${timeUntilReset()}.` }
+    : { state: "idle", text: "" }));
+  const [copied, flashCopied] = useCopyFeedback();
 
   const run = async () => {
     const req = input.trim();
+    if (usedUp) return setOut({ state: "msg", text: `You've used today's free hook. The next one unlocks in ${timeUntilReset()}.` });
     if (!req) return setOut({ state: "msg", text: "Describe what the hook is for first." });
     if (!aiAvailable) return setOut({ state: "msg", text: "AI generation isn't available here." });
     setOut({ state: "loading", text: "" });
     try {
       setOut({ state: "ready", text: await onGenerate(req) });
+      onUsed?.();
     } catch (e) {
       setOut({ state: "msg", text: "Couldn't generate — try again." });
     }
+  };
+
+  const copyHook = async () => {
+    if (await onCopy(out.state === "ready" ? out.text : "")) flashCopied();
   };
 
   return (
@@ -113,8 +156,8 @@ export function HookModal({ aiAvailable, onGenerate, onCopy, onClose }) {
             onChange={(event) => setInput(event.target.value)}
             placeholder="Describe the moment, audience, or idea…"
           />
-          <button className="hook-generate" type="button" onClick={run} disabled={out.state === "loading"}>
-            {out.state === "loading" ? "Generating…" : "Generate hook"}
+          <button className="hook-generate" type="button" onClick={run} disabled={out.state === "loading" || usedUp}>
+            {out.state === "loading" ? "Generating…" : usedUp ? `Next free hook in ${timeUntilReset()}` : "Generate hook"}
           </button>
           <section className="hook-result" aria-live="polite">
             <span className="hook-result-label">Your hook</span>
@@ -126,9 +169,9 @@ export function HookModal({ aiAvailable, onGenerate, onCopy, onClose }) {
           <button
             className="hook-copy"
             type="button"
-            onClick={() => onCopy(out.state === "ready" ? out.text : "")}
+            onClick={copyHook}
           >
-            Copy hook
+            {copied ? "Copied ✓" : "Copy hook"}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="8.5" y="8.5" width="12" height="12" rx="3.5" />
               <path d="M15.5 8.5V7a3.5 3.5 0 0 0-3.5-3.5H7A3.5 3.5 0 0 0 3.5 7v5A3.5 3.5 0 0 0 7 15.5h1.5" />

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { DEFAULT_BRAND } from "../lib/constants";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { LIMITS } from "../lib/clientId";
@@ -17,14 +17,27 @@ import {
 const untitled = (scope) =>
   scope === "global" ? "Untitled global brand" : "Untitled brand";
 
+// The persisted brand fields ("Message to adapt" is per-session, never saved),
+// trimmed the same way services/brands does, for unsaved-change detection.
+const SAVED_KEYS = Object.keys(DEFAULT_BRAND).filter((k) => k !== "message");
+const snapshot = (b) =>
+  JSON.stringify(SAVED_KEYS.map((k) => (typeof b[k] === "string" ? b[k].trim() : b[k] ?? "")));
+
 // Owns brand list, the active brand's form state, and its research notes.
 export function useBrandWorkspace(setStatus) {
   const [brands, setBrands] = useState([]);
   const [currentId, setCurrentId] = useState(null);
   const [scope, setScope] = useState("regular");
   const [brand, setBrand] = useState(DEFAULT_BRAND);
+  const [savedSnap, setSavedSnap] = useState(() => snapshot(DEFAULT_BRAND));
   const [notes, setNotes] = useState([]);
   const [fileLabel, setFileLabel] = useState("Untitled brand");
+  const [saving, setSaving] = useState(false);
+
+  const dirty = useMemo(
+    () => snapshot(brand) !== savedSnap || notes.some((n) => n.local),
+    [brand, savedSnap, notes],
+  );
 
   const refresh = useCallback(async () => {
     if (!isSupabaseConfigured) return [];
@@ -43,9 +56,12 @@ export function useBrandWorkspace(setStatus) {
   }, [refresh]);
 
   const setField = (key, value) => setBrand((b) => ({ ...b, [key]: value }));
+  const applyFields = (fields) => setBrand((b) => ({ ...b, ...fields }));
 
+  // "Message to adapt" carries over: it's the user's working text, not brand data.
   const fill = (d, nextScope, nextNotes) => {
-    setBrand({ ...DEFAULT_BRAND, ...d, message: "" }); // prototype clears "Message to adapt" on select
+    setBrand((prev) => ({ ...DEFAULT_BRAND, ...d, message: prev.message }));
+    setSavedSnap(snapshot({ ...DEFAULT_BRAND, ...d }));
     setNotes(nextNotes);
     setFileLabel(d.name || untitled(nextScope));
   };
@@ -80,6 +96,8 @@ export function useBrandWorkspace(setStatus) {
         `Brand limit reached (${LIMITS.brands} per browser).`,
         "err",
       );
+    if (saving) return;
+    setSaving(true);
     try {
       const payload = { ...brand, scope };
       const saved = currentId
@@ -89,6 +107,8 @@ export function useBrandWorkspace(setStatus) {
       for (const n of pending)
         await createResearchNote(saved.id, { type: n.type, text: n.text });
       setCurrentId(saved.id);
+      setBrand((prev) => ({ ...prev, ...saved }));
+      setSavedSnap(snapshot({ ...DEFAULT_BRAND, ...saved }));
       await refresh();
       if (pending.length) setNotes(await getResearchNotes(saved.id));
       setFileLabel(saved.name);
@@ -100,6 +120,8 @@ export function useBrandWorkspace(setStatus) {
           "err",
         );
       setStatus("Couldn't save brand.", "err");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -162,7 +184,10 @@ export function useBrandWorkspace(setStatus) {
     brand,
     notes,
     fileLabel,
+    dirty,
+    saving,
     setField,
+    applyFields,
     newBrand,
     selectBrand,
     save,

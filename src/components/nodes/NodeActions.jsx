@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 
 const RegenIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -12,6 +13,19 @@ const CopyIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="8.5" y="8.5" width="11" height="11" rx="3" />
     <path d="M15.5 5.6c0-1.3-.9-2.1-2.1-2.1H6.1C4.8 3.5 4 4.4 4 5.6v7.3c0 1.2.8 2.1 2 2.1h.5" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m4.5 12.5 5 5L19.5 7" />
+  </svg>
+);
+
+const EyeIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+    <circle cx="12" cy="12" r="3" />
   </svg>
 );
 
@@ -62,9 +76,30 @@ function MoreMenu({ label, onDuplicate, onDelete, disabled }) {
   );
 }
 
-export default function NodeActions({ label, busy, canCopy, regenDisabled, regenTitle, onRegenerate, onCopy, onDuplicate, onDelete }) {
+export default function NodeActions({
+  label, busy, canCopy, preview, onTogglePreview, regenDisabled, regenTitle, onRegenerate, onCopy, onDuplicate, onDelete,
+}) {
+  const [copied, flashCopied] = useCopyFeedback();
+
+  const copy = async () => {
+    if (await onCopy()) flashCopied();
+  };
+
   return (
     <div className="ncard-actions">
+      {onTogglePreview && (canCopy || preview) && (
+        <button
+          type="button"
+          className={"ncard-action" + (preview ? " is-on" : "")}
+          title={preview ? "Back to text" : `Preview ${label} in context`}
+          aria-label={preview ? `Show ${label} as text` : `Preview ${label} in context`}
+          aria-pressed={Boolean(preview)}
+          disabled={!canCopy}
+          onClick={onTogglePreview}
+        >
+          <EyeIcon />
+        </button>
+      )}
       <button
         type="button"
         className={"ncard-action" + (busy ? " is-spinning" : "")}
@@ -77,13 +112,13 @@ export default function NodeActions({ label, busy, canCopy, regenDisabled, regen
       </button>
       <button
         type="button"
-        className="ncard-action"
-        title={`Copy ${label}`}
-        aria-label={`Copy ${label}`}
+        className={"ncard-action" + (copied ? " is-copied" : "")}
+        title={copied ? "Copied" : `Copy ${label}`}
+        aria-label={copied ? `${label} copied` : `Copy ${label}`}
         disabled={!canCopy}
-        onClick={onCopy}
+        onClick={copy}
       >
-        <CopyIcon />
+        {copied ? <CheckIcon /> : <CopyIcon />}
       </button>
       <MoreMenu label={label} disabled={busy} onDuplicate={onDuplicate} onDelete={onDelete} />
     </div>

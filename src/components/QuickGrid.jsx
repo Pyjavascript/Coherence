@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import NodeCard from "./nodes/NodeCard";
+import WelcomeGuide from "./WelcomeGuide";
 import { MEDIA, MEDIA_BY_KEY } from "../lib/constants";
+import { applyEdit } from "../lib/copyItems";
 import { generateQuickGrid, regenerateOutput, describeError } from "../services/ai";
 import { saveGeneration } from "../services/brands";
 import { useFlip } from "../hooks/useFlip";
@@ -9,7 +11,8 @@ import host from "../hosts/browser";
 let seq = 0;
 const uid = () => `q${Date.now().toString(36)}${(seq++).toString(36)}`;
 
-// node = { id, type, width, status: idle|loading|ready|error, items, version, message }
+// node = { id, type, width, status: idle|loading|ready|error, items, version, message, fav }
+// `fav` is the index of the starred variant (null = none); it resets when new copy lands.
 const createNode = (type, from) => ({
   id: uid(),
   type,
@@ -18,6 +21,7 @@ const createNode = (type, from) => ({
   items: from?.status === "ready" ? from.items : [],
   version: 0,
   message: "",
+  fav: from?.status === "ready" ? from.fav ?? null : null,
 });
 const seedNodes = () => MEDIA.map((m) => createNode(m.key));
 
@@ -69,7 +73,7 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
         if (!live.has(n.id)) return n;
         const items = data[n.type] || [];
         return items.length
-          ? { ...n, status: "ready", items, version: n.version + 1, message: "" }
+          ? { ...n, status: "ready", items, version: n.version + 1, message: "", fav: null }
           : failed(n, "No copy came back for this medium. Try regenerating it.");
       }));
       await Promise.all(types.map((type) => saveGeneration({
@@ -101,7 +105,7 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     try {
       const items = await regenerateOutput({ ctx, medium: node.type, variantCount, tier });
       if (!mine()) return;
-      setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "ready", items, version: n.version + 1 } : n)));
+      setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "ready", items, version: n.version + 1, fav: null } : n)));
       await saveGeneration({ brandId, medium: node.type, inputContext: { message: ctx.brand.message }, output: items });
       onGenerated({ type: "quick", medium: node.type });
     } catch (err) {
@@ -139,6 +143,38 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
 
   const restoreDefaults = () => setNodes(seedNodes());
 
+  // Inline edit of one field of one variant; doesn't bump `version` so the copy doesn't re-animate.
+  const editItem = (id, index, field, text) => {
+    setNodes((list) => list.map((n) => (n.id !== id ? n : {
+      ...n,
+      items: n.items.map((item, i) => (i === index ? applyEdit(item, field, text) : item)),
+    })));
+  };
+
+  const toggleFav = (id, index) => {
+    setNodes((list) => list.map((n) => (n.id === id ? { ...n, fav: n.fav === index ? null : index } : n)));
+  };
+
+  // Puts copy from history back on the grid, adding the medium's node if it was removed.
+  const restore = (type, items) => {
+    if (!MEDIA_BY_KEY[type] || !items?.length) return false;
+    tokens.current.forEach((_, id) => {
+      if (nodesRef.current.find((n) => n.id === id)?.type === type) tokens.current.delete(id);
+    });
+    const existing = nodesRef.current.find((n) => n.type === type);
+    if (existing) {
+      setNodes((list) => list.map((n) => (n.id === existing.id
+        ? { ...n, status: "ready", items, version: n.version + 1, message: "", fav: null }
+        : n)));
+      setLastAdded(existing.id);
+    } else {
+      const node = { ...createNode(type), status: "ready", items, version: 1 };
+      setNodes((list) => [...list, node]);
+      setLastAdded(node.id);
+    }
+    return true;
+  };
+
   // First node of each medium, keyed by medium (used for the coherence prompt).
   const cards = useMemo(() => {
     const out = {};
@@ -146,10 +182,15 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     return out;
   }, [nodes]);
 
-  return { nodes, cards, busy, lastAdded, generateAll, regenerate, add, duplicate, remove, restoreDefaults, setStatus };
+  const hasCopy = nodes.some((n) => n.items.length > 0);
+
+  return {
+    nodes, cards, busy, lastAdded, hasCopy,
+    generateAll, regenerate, add, duplicate, remove, restoreDefaults, editItem, toggleFav, restore, setStatus,
+  };
 }
 
-export default function QuickGrid({ quick, atGenLimit }) {
+export default function QuickGrid({ quick, atGenLimit, brand, welcome }) {
   const gridRef = useRef(null);
   useFlip(gridRef, quick.nodes.map((n) => n.id).join("|"));
 
@@ -170,13 +211,16 @@ export default function QuickGrid({ quick, atGenLimit }) {
     try {
       await host.copyText(text);
       quick.setStatus("Copied — paste it into your design tool.", "ok");
+      return true;
     } catch {
       quick.setStatus("Couldn't copy automatically — select the text and copy manually.", "err");
+      return false;
     }
   };
 
   return (
-    <div className="qg">
+    <div className={"qg" + (welcome ? " has-welcome" : "")}>
+      {welcome && <WelcomeGuide {...welcome} />}
       {!quick.nodes.length && (
         <div className="qg-empty">
           <h2>No nodes on the grid</h2>
@@ -190,6 +234,9 @@ export default function QuickGrid({ quick, atGenLimit }) {
             key={n.id}
             node={n}
             meta={MEDIA_BY_KEY[n.type]}
+            brand={brand}
+            onEdit={(index, field, text) => quick.editItem(n.id, index, field, text)}
+            onToggleFav={(index) => quick.toggleFav(n.id, index)}
             regenDisabled={atGenLimit}
             regenTitle={atGenLimit ? "Daily generation limit reached" : undefined}
             onRegenerate={() => quick.regenerate(n.id)}

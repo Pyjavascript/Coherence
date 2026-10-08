@@ -93,6 +93,18 @@ export async function deleteBrand(id) {
   if (error) throw error;
 }
 
+// Most recent generations for a brand, newest first.
+export async function getGenerations(brandId, limit = 40) {
+  const { data, error } = await requireSupabase()
+    .from("generations")
+    .select("id,medium,input_context,output,created_at")
+    .eq("brand_id", brandId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
 // Best-effort history of what was generated for a saved brand.
 export async function saveGeneration({
   brandId,

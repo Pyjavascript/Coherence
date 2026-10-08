@@ -104,6 +104,7 @@ export const SPECS = {
 
 // Quick Grid node types (order, tags and placeholders match the prototype).
 // `full` nodes span the whole grid row; `color` drives the node indicator.
+// `limits` mirror SPECS (max words per field) plus inbox truncation for email.
 export const MEDIA = [
   {
     key: "packaging",
@@ -111,6 +112,7 @@ export const MEDIA = [
     tag: "2–6 words",
     color: "#f47a2c",
     placeholder: "What it is, felt instantly.",
+    limits: { headline: { label: "Pack line", words: 6 } },
   },
   {
     key: "marketing",
@@ -118,6 +120,7 @@ export const MEDIA = [
     tag: "<12 words",
     color: "#f3245c",
     placeholder: "One line. Identity over feature.",
+    limits: { headline: { label: "Campaign line", words: 12 } },
   },
   {
     key: "advertising",
@@ -125,6 +128,7 @@ export const MEDIA = [
     tag: "headline + subtext",
     color: "#f72fbd",
     placeholder: "Headline plus one-line subtext.",
+    limits: { headline: { label: "Headline", words: 8 }, sub: { label: "Subtext", words: 12 } },
   },
   {
     key: "website",
@@ -132,6 +136,7 @@ export const MEDIA = [
     tag: "hero + support",
     color: "#07b67c",
     placeholder: "Hero headline plus supporting line.",
+    limits: { headline: { label: "Hero", words: 10 }, sub: { label: "Support", words: 20 } },
   },
   {
     key: "email",
@@ -140,6 +145,7 @@ export const MEDIA = [
     color: "#2b2f8c",
     placeholder: "Subject line plus preview text.",
     full: true,
+    limits: { headline: { label: "Subject", words: 8, chars: 60 }, sub: { label: "Preview", words: 14, chars: 110 } },
   },
 ];
 export const MEDIA_BY_KEY = Object.fromEntries(MEDIA.map((m) => [m.key, m]));
@@ -238,4 +244,21 @@ export const DEFAULT_BRAND = {
   cta: "Soft",
   banned: "",
   must: "",
+};
+
+// "Try a sample brand" in the welcome guide.
+export const SAMPLE_BRAND = {
+  name: "Ember & Oak",
+  belief: "Scent is memory, not marketing — every candle should feel like a place you've been.",
+  message: "Our autumn candle collection is hand-poured in small batches with natural soy wax.",
+  industry: "retail",
+  stage: "Discovery",
+  mode: "Emotional",
+  audience: AUDIENCES[0],
+  pain: "Mass-market candles smell synthetic and burn out in a week.",
+  emo: "Comfort",
+  formality: "Conversational",
+  objection: "Worried it won't be worth the price",
+  cta: "Soft",
+  banned: "cheap, best-ever",
 };

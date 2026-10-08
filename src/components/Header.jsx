@@ -1,6 +1,61 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { MODEL_OPTIONS } from "../lib/constants";
+import { shortcut } from "../lib/shortcuts";
 import { ChatGpt } from "../assets/globalAssets";
+
+const ExportIcon = () => (
+  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M16 5v15M10 14l6 6 6-6M6 22v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3" />
+  </svg>
+);
+
+// Copy or download everything on the Quick Grid.
+function ExportMenu({ disabled, onExport }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (event) => { if (!rootRef.current?.contains(event.target)) setOpen(false); };
+    const onKey = (event) => { if (event.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const run = (kind) => () => { setOpen(false); onExport(kind); };
+
+  return (
+    <div className="toolbar-export" ref={rootRef}>
+      <button
+        type="button"
+        className={"toolbar-icon-btn" + (open ? " is-active" : "")}
+        aria-label="Export copy"
+        title={disabled ? "Generate copy first to export it" : "Export all copy"}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <ExportIcon />
+      </button>
+      {open && (
+        <div className="toolbar-export-menu" role="menu" aria-label="Export">
+          <button type="button" role="menuitem" onClick={run("copy")}>Copy all</button>
+          <button type="button" role="menuitem" onClick={run("txt")}>Download .txt</button>
+          <button type="button" role="menuitem" onClick={run("csv")}>Download .csv</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const MODEL_DESCRIPTIONS = {
   fast: "Faster for everyday tasks",
@@ -169,7 +224,11 @@ export default function Header({
   onTier,
   onGenerate,
   generating,
+  generatingDetail,
   atGenLimit,
+  showExport,
+  exportDisabled,
+  onExport,
   addOptions,
   addDisabledTitle,
   onAddNode,
@@ -252,17 +311,19 @@ export default function Header({
         )}
       </div>
       <div className="ws-topbar-end">
+        {showExport && <ExportMenu disabled={exportDisabled} onExport={onExport} />}
         <ModelSelector tier={tier} onTier={onTier} />
         <button
           type="button"
           className={"toolbar-generate" + (generating ? " is-busy" : "")}
           disabled={generating || atGenLimit}
           aria-busy={generating}
-          title={atGenLimit ? "Daily generation limit reached" : undefined}
+          title={atGenLimit ? "Daily generation limit reached" : `Generate (${shortcut("Enter")})`}
           onClick={onGenerate}
         >
           {generating && <span className="toolbar-spinner" aria-hidden="true" />}
           <span>{generating ? "Generating" : "Generate"}</span>
+          {generating && generatingDetail && <span className="toolbar-gen-detail">{generatingDetail}</span>}
         </button>
         {/* The panel toggle sits in a navy notch carved out of the workspace corner. */}
         <div className={"toolbar-panel-notch" + (hidePanelToggle ? " is-hidden" : "")}>

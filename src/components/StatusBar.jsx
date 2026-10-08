@@ -54,17 +54,36 @@ const getTone = (status, unavailable) => {
   return unavailable ? "warning" : "";
 };
 
+// Success and info toasts close themselves; errors and warnings wait for the user.
+const AUTO_CLOSE_MS = 3500;
+
 export default function StatusBar({ status, unavailable }) {
   const message = status.text || unavailable;
   const tone = getTone(status, unavailable);
   const [dismissed, setDismissed] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const autoClose = Boolean(status.text) && (tone === "success" || tone === "info");
 
   useEffect(() => {
     setDismissed(false);
   }, [message, status, tone]);
 
+  useEffect(() => {
+    if (!autoClose || dismissed || paused) return undefined;
+    const timer = window.setTimeout(() => setDismissed(true), AUTO_CLOSE_MS);
+    return () => window.clearTimeout(timer);
+  }, [autoClose, dismissed, paused, status]);
+
   return (
-    <div className={`toast toast-${tone}${!message || dismissed ? " toast-hidden" : ""}`} role="alert" aria-live="assertive">
+    <div
+      className={`toast toast-${tone}${!message || dismissed ? " toast-hidden" : ""}`}
+      role={tone === "error" || tone === "warning" ? "alert" : "status"}
+      aria-live={tone === "error" || tone === "warning" ? "assertive" : "polite"}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
       
       {/* Dynamic Tone Icons */}
       {tone === "error" && (

@@ -996,11 +996,14 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 clamp(4px, 1vw, 16px);
+  padding: clamp(12px, 1.1vw, 16px) clamp(12px, 1.1vw, 16px) clamp(12px, 1.1vw, 16px) clamp(16px, 1.5vw, 22px);
+  background: var(--shell-tint);
+  border-radius: var(--r);
 }
 
 .rsb .bp-external-section .bp-section-title {
   margin: 0;
+  color: var(--shell-ink);
 }
 
 .rsb .bp-copy {
@@ -1012,9 +1015,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  padding: 0 clamp(16px, 1.4vw, 22px);
-  color: var(--shell-ink);
-  background: #fff;
+  padding: 0 clamp(18px, 1.6vw, 24px);
+  color: #fff;
+  background: #0f55ff;
   border: 0;
   border-radius: var(--r);
   font-size: 14px;
@@ -1025,11 +1028,11 @@ body {
 .rsb .bp-copy svg {
   width: 22px;
   height: 22px;
-  color: var(--shell-ink);
+  color: #fff;
 }
 
 .rsb .bp-copy:hover {
-  background: #f4f6ff;
+  background: #0a47e0;
 }
 
 /* Generate Free Hook card */

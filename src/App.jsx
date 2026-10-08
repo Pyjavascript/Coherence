@@ -115,8 +115,11 @@ export default function App() {
     if (!ws.dirty) return proceed();
     setConfirm({
       title: "Discard unsaved changes?",
-      body: `“${ws.brand.name || "Untitled brand"}” has changes that haven't been saved. They'll be lost if you continue.`,
-      confirmLabel: "Discard changes",
+      body: <><b>{ws.brand.name || "Untitled brand"}</b> has changes that haven't been saved.</>,
+      note: "They'll be lost if you continue.",
+      icon: "warning",
+      cancelLabel: "Keep editing",
+      confirmLabel: "Discard",
       tone: "danger",
       onConfirm: proceed,
     });
@@ -146,7 +149,9 @@ export default function App() {
     if (!ws.currentId) return setStatus("This brand isn't saved yet — there's nothing to delete.", "warn");
     setConfirm({
       title: "Delete brand?",
-      body: `“${ws.brand.name || "Untitled brand"}”, its research notes and its generation history will be permanently deleted. This can't be undone.`,
+      body: <><b>{ws.brand.name || "Untitled brand"}</b>, its research notes and its generation history will be permanently deleted.</>,
+      note: "This can't be undone.",
+      icon: "delete",
       confirmLabel: "Delete brand",
       tone: "danger",
       onConfirm: async () => {

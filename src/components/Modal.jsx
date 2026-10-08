@@ -39,26 +39,59 @@ export function Modal({ title, subtitle, onClose, children, modalClassName = "" 
 }
 
 // Yes/no dialog for destructive or lossy actions.
-// Destructive confirms focus Cancel, so a stray Enter never deletes anything.
-export function ConfirmModal({ title, body, confirmLabel = "Confirm", cancelLabel = "Cancel", tone = "danger", onConfirm, onClose }) {
+const CONFIRM_ICONS = {
+  // Warning triangle — losing unsaved work.
+  warning: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10.3 4.2 2.8 17.5A2 2 0 0 0 4.5 20.5h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9.5v4.5" />
+      <path d="M12 17.2h.01" />
+    </svg>
+  ),
+  // Trash — permanent delete.
+  delete: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l.8 12.2a1.5 1.5 0 0 0 1.5 1.3h6.4a1.5 1.5 0 0 0 1.5-1.3l.8-12.2" />
+      <path d="M10 10.5v6M14 10.5v6" />
+    </svg>
+  ),
+};
+
+// Yes/no dialog. The two buttons are the only choices, so there's no ✕;
+// Esc and clicking outside still cancel. Destructive confirms focus Cancel,
+// so a stray Enter never deletes anything.
+export function ConfirmModal({
+  title, body, note, icon = "warning", confirmLabel = "Confirm", cancelLabel = "Cancel", tone = "danger", onConfirm, onClose,
+}) {
+  const titleId = useId();
+  const bodyId = useId();
   const cancelRef = useRef(null);
   const confirmRef = useRef(null);
+  useEscape(onClose);
   useEffect(() => { (tone === "danger" ? cancelRef : confirmRef).current?.focus(); }, [tone]);
+
   return (
-    <Modal title={title} onClose={onClose} modalClassName="hook-modal confirm-modal">
-      <p className="confirm-body">{body}</p>
-      <div className="confirm-actions">
-        <button type="button" ref={cancelRef} className="confirm-cancel" onClick={onClose}>{cancelLabel}</button>
-        <button
-          type="button"
-          ref={confirmRef}
-          className={"confirm-ok is-" + tone}
-          onClick={() => { onClose(); onConfirm(); }}
-        >
-          {confirmLabel}
-        </button>
-      </div>
-    </Modal>
+    <div className="overlay confirm-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className={"confirm-dialog is-" + tone} role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={bodyId}>
+        <span className="confirm-icon">{CONFIRM_ICONS[icon] || CONFIRM_ICONS.warning}</span>
+        <h2 id={titleId} className="confirm-title">{title}</h2>
+        <div id={bodyId} className="confirm-text">
+          <p className="confirm-body">{body}</p>
+          {note && <p className="confirm-note">{note}</p>}
+        </div>
+        <div className="confirm-actions">
+          <button type="button" ref={cancelRef} className="confirm-cancel" onClick={onClose}>{cancelLabel}</button>
+          <button
+            type="button"
+            ref={confirmRef}
+            className={"confirm-ok is-" + tone}
+            onClick={() => { onClose(); onConfirm(); }}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 

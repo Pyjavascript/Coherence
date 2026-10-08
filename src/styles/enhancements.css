@@ -6,9 +6,9 @@
    ========================================================================== */
 
 :root {
-  --ok: #1fae6b;
-  --warn: #d99100;
-  --danger: #e5303a;
+  --ux-ok: #1fae6b;
+  --ux-warn: #d99100;
+  --ux-danger: #e5303a;
   --serif: "Playfair Display", Georgia, "Times New Roman", serif;
 }
 
@@ -422,15 +422,15 @@
 .ncard-meter-bar i {
   display: block;
   height: 100%;
-  background: var(--ok);
+  background: var(--ux-ok);
   border-radius: inherit;
   transition: width 300ms var(--shell-ease), background-color 200ms ease;
 }
 
 .ncard-meter.is-near { color: #b07a00; }
-.ncard-meter.is-near .ncard-meter-bar i { background: var(--warn); }
+.ncard-meter.is-near .ncard-meter-bar i { background: var(--ux-warn); }
 .ncard-meter.is-over { color: #d12f3a; }
-.ncard-meter.is-over .ncard-meter-bar i { background: var(--danger); }
+.ncard-meter.is-over .ncard-meter-bar i { background: var(--ux-danger); }
 
 /* With copy on the card the label must stay readable: the meter compacts first. */
 .ncard:has(.ncard-meter) .ncard-pill {
@@ -469,7 +469,7 @@
 .ncard-action.is-copied,
 .ncard-action.is-copied:hover:not(:disabled) {
   color: #fff;
-  background: var(--ok);
+  background: var(--ux-ok);
 }
 
 .ncard-action.is-copied svg {
@@ -1040,7 +1040,7 @@
 
 .welcome-step.is-done .welcome-num {
   color: #fff;
-  background: var(--ok);
+  background: var(--ux-ok);
 }
 
 .welcome-step-text {
@@ -1061,7 +1061,7 @@
 }
 
 .welcome-step.is-done .welcome-step-text span {
-  color: var(--ok);
+  color: var(--ux-ok);
   font-weight: 500;
 }
 
@@ -1101,43 +1101,127 @@
 
 /* ---------- Confirm dialog ---------- */
 
-.confirm-modal {
-  max-width: 420px;
+/* Navy skin like the hook / research dialogs: icon, centred title, two equal buttons. */
+.confirm-overlay {
+  backdrop-filter: blur(3px);
 }
 
-/* Navy dialog skin (same as the hook / research dialogs). */
+.confirm-dialog {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 22px 22px;
+  color: #fff;
+  text-align: center;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(229, 48, 58, 0.16) 0%, transparent 60%),
+    #0a1450;
+  border-radius: 28px;
+  box-shadow: 0 24px 70px rgba(5, 12, 48, 0.45);
+  animation: confirm-in 220ms var(--shell-ease) both;
+}
+
+.confirm-dialog:not(.is-danger) {
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(23, 60, 245, 0.2) 0%, transparent 60%),
+    #0a1450;
+}
+
+@keyframes confirm-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+}
+
+.confirm-icon {
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+  color: #f32c3a;
+  background: #ffbebe;
+  border-radius: 50%;
+  box-shadow: 0 0 0 8px rgba(229, 48, 58, 0.07);
+}
+
+.confirm-dialog:not(.is-danger) .confirm-icon {
+  color: #8fa0ff;
+  background: rgba(143, 160, 255, 0.14);
+  box-shadow: 0 0 0 8px rgba(143, 160, 255, 0.07);
+}
+
+.confirm-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.confirm-title {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.confirm-text {
+  max-width: 320px;
+  margin-bottom: 22px;
+}
+
 .confirm-body {
-  margin: 0 3px 20px;
-  color: rgba(255, 255, 255, 0.86);
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 14px;
   line-height: 1.5;
 }
 
+.confirm-body b {
+  color: #fff;
+  font-weight: 600;
+}
+
+.confirm-note {
+  margin: 4px 0 0;
+  color: #ffb3b8;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.confirm-dialog:not(.is-danger) .confirm-note {
+  color: rgba(255, 255, 255, 0.6);
+}
+
 .confirm-actions {
-  display: flex;
-  justify-content: flex-end;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
 .confirm-actions button {
-  height: 46px;
-  padding: 0 20px;
+  height: 50px;
+  padding: 0 16px;
   border: 0;
   border-radius: var(--r);
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 150ms ease;
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.confirm-actions button:active {
+  transform: scale(0.98);
 }
 
 .confirm-cancel {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
+  color: #0a1450;
+  background: rgb(255, 255, 255);
 }
 
 .confirm-cancel:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .confirm-ok {
@@ -1146,7 +1230,7 @@
 }
 
 .confirm-ok.is-danger {
-  background: var(--danger);
+  background: var(--ux-danger);
 }
 
 .confirm-ok.is-danger:hover {
@@ -1324,6 +1408,7 @@
   .rsb .bp-textarea.is-invalid,
   .rsb .bp-upsell,
   .rsb-unsaved,
+  .confirm-dialog,
   .welcome,
   .pv {
     animation: none;

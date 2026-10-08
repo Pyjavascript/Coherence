@@ -8,8 +8,11 @@ const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 export default function CanvasViewport({ children }) {
   const viewportRef = useRef(null);
   const dragRef = useRef(null);
+  const pinchRef = useRef(null);
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
   const [isPanning, setIsPanning] = useState(false);
+  const viewRef = useRef(view);
+  viewRef.current = view;
 
   const zoomAt = useCallback((nextZoom, clientX, clientY) => {
     const viewport = viewportRef.current;
@@ -52,7 +55,53 @@ export default function CanvasViewport({ children }) {
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
+  // Two-finger pinch zoom (and pan) on touch screens. The surface sets
+  // touch-action: none, so the browser leaves these gestures to us.
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return undefined;
+    const measure = ([a, b]) => ({
+      dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1,
+      cx: (a.clientX + b.clientX) / 2,
+      cy: (a.clientY + b.clientY) / 2,
+    });
+    const onTouchStart = (event) => {
+      if (event.touches.length !== 2) return;
+      // The second finger turns any one-finger pan into a pinch.
+      dragRef.current = null;
+      setIsPanning(false);
+      pinchRef.current = { ...measure(event.touches), view: viewRef.current };
+    };
+    const onTouchMove = (event) => {
+      const pinch = pinchRef.current;
+      if (!pinch || event.touches.length !== 2) return;
+      event.preventDefault();
+      const now = measure(event.touches);
+      const rect = el.getBoundingClientRect();
+      const start = pinch.view;
+      const zoom = clampZoom(start.zoom * (now.dist / pinch.dist));
+      // Keep the canvas point that started under the fingers under them.
+      const worldX = (pinch.cx - rect.left - start.x) / start.zoom;
+      const worldY = (pinch.cy - rect.top - start.y) / start.zoom;
+      setView({ x: now.cx - rect.left - worldX * zoom, y: now.cy - rect.top - worldY * zoom, zoom });
+    };
+    const onTouchEnd = (event) => {
+      if (event.touches.length < 2) pinchRef.current = null;
+    };
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd);
+    el.addEventListener("touchcancel", onTouchEnd);
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, []);
+
   const onPointerDown = (event) => {
+    if (!event.isPrimary || pinchRef.current) return;
     if (event.button !== 0 || event.target.closest("button, input, textarea, select, a, .node, .nodebar, .canvas-controls")) return;
     event.preventDefault();
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, originX: view.x, originY: view.y };

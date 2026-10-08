@@ -41,6 +41,12 @@
   --tb-h: clamp(44px, 4vw, 58px);
   --tb-pad-top: clamp(12px, 1.5vw, 22px);
   --tb-pad-bottom: clamp(10px, 1.1vw, 16px);
+  /* Same as the top padding so the panel toggle's notch is even on top, left and right. */
+  --tb-pad-x: var(--tb-pad-top);
+  /* Matches the .ws-topbar-end gap: the strip of workspace left of the notch. */
+  --notch-gap: clamp(8px, 0.9vw, 14px);
+  /* Navy on either side of the panel toggle inside its notch. */
+  --notch-pad: clamp(4px, 0.45vw, 7px);
   /* Full toolbar height: Node Studio's canvas extends up under it by this much. */
   --tb-total: calc(var(--tb-pad-top) + var(--tb-h) + var(--tb-pad-bottom));
 }
@@ -1148,7 +1154,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: var(--tb-pad-top) clamp(12px, 1.6vw, 24px) var(--tb-pad-bottom);
+  padding: var(--tb-pad-top) var(--tb-pad-x) var(--tb-pad-bottom);
   /* Transparent bar floats over the node canvas: only its controls take clicks. */
   pointer-events: none;
 }
@@ -1176,9 +1182,14 @@ body {
 }
 
 .ws-topbar .toolbar-add-node {
-  gap: clamp(12px, 1.4vw, 22px);
-  padding: 0 clamp(16px, 1.6vw, 24px);
-  font-size: clamp(14px, 1.25vw, 18px);
+  /* Fixed 60px, but the negative margins keep the row at --tb-h so the
+     rest of the toolbar (and the panel toggle's notch) stays put. */
+  height: 60px;
+  margin-block: calc((var(--tb-h) - 60px) / 2);
+  gap: clamp(12px, 1.4vw, 10px);
+  /* padding: 0 clamp(16px, 1.6vw, 24px); */
+  padding: 10px clamp(12px, 1.2vw, 14px) 10px clamp(12px, 1.2vw, 14px);
+  font-size: clamp(14px, 1.25vw, 16px);
   white-space: nowrap;
 }
 
@@ -1275,10 +1286,82 @@ body {
   background: #182765;
 }
 
+/* Panel toggle notch: a navy cut-out in the workspace's top-right corner that
+   merges with the shell, with rounded inverse corners where it meets the surface. */
+.ws-topbar .toolbar-panel-notch {
+  position: relative;
+  isolation: isolate;
+  flex: none;
+  width: var(--tb-h);
+  height: var(--tb-h);
+  /* Room for the notch's left padding, so a strip of workspace stays beside Generate;
+     the negative right margin pulls the button out to the narrow right padding. */
+  margin-left: var(--notch-pad);
+  margin-right: calc(var(--notch-pad) - var(--tb-pad-x));
+  transition: width var(--shell-dur) var(--shell-ease), margin var(--shell-dur) var(--shell-ease), opacity 180ms ease;
+}
+
+.ws-topbar .toolbar-panel-notch .toolbar-panel-btn {
+  width: 100%;
+}
+
+/* No hover tint: the button blends into the notch. */
+.ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover {
+  background: var(--shell-navy);
+}
+
+/* Navy fill: narrow padding left and right; ends level with the button's bottom. */
+.ws-topbar .toolbar-panel-notch::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: calc(var(--tb-pad-top) * -1);
+  right: calc(var(--notch-pad) * -1);
+  bottom: 0;
+  left: calc(var(--notch-pad) * -1);
+  background: var(--shell-navy);
+  border-bottom-left-radius: var(--r);
+}
+
+/* Inverse corners: left of the notch along the top edge, and below it along the right edge. */
+.ws-topbar .toolbar-panel-notch::after {
+  --notch-corner: radial-gradient(circle at 0 100%, transparent var(--r), var(--shell-navy) calc(var(--r) + 0.5px));
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: calc(var(--tb-pad-top) * -1);
+  right: calc(var(--notch-pad) * -1);
+  bottom: calc(var(--r) * -1);
+  left: calc((var(--notch-pad) + var(--r)) * -1);
+  /* Each corner overlaps the fill by 1px so no seam shows where they meet. */
+  background:
+    var(--notch-corner) left top / calc(var(--r) + 1px) var(--r) no-repeat,
+    var(--notch-corner) right bottom / var(--r) calc(var(--r) + 1px) no-repeat;
+  pointer-events: none;
+}
+
+/* The workspace paints the same notch shape in its own background, so its
+   anti-aliased edges and rounded corner behind the notch blend navy into navy
+   instead of leaving a faint light outline. */
+.workspace:has(.toolbar-panel-notch:not(.is-hidden)) {
+  --notch-w: calc(var(--tb-h) + var(--notch-pad) * 2);
+  --notch-h: calc(var(--tb-pad-top) + var(--tb-h));
+  --notch-fill: linear-gradient(var(--shell-navy), var(--shell-navy));
+  --notch-corner: radial-gradient(circle at 0 100%, transparent var(--r), var(--shell-navy) calc(var(--r) + 0.5px));
+  background:
+    var(--notch-fill) right top / var(--notch-w) calc(var(--notch-h) - var(--r)) no-repeat,
+    var(--notch-fill) right top / calc(var(--notch-w) - var(--r)) var(--notch-h) no-repeat,
+    var(--notch-corner) right var(--notch-w) top 0 / var(--r) var(--r) no-repeat,
+    var(--notch-corner) right 0 top var(--notch-h) / var(--r) var(--r) no-repeat,
+    radial-gradient(ellipse at 94% 103%, rgba(93, 126, 255, 0.9), transparent 58%),
+    linear-gradient(160deg, #f6f7ff 0%, #e7ebff 45%, #b8c7ff 100%);
+}
+
 /* The panel toggle folds away while the brand panel is docked (it has its own close). */
-.ws-topbar .toolbar-panel-btn.is-hidden {
+.ws-topbar .toolbar-panel-notch.is-hidden {
   width: 0;
-  margin-left: calc(clamp(8px, 0.9vw, 14px) * -1);
+  margin-left: calc(var(--notch-gap) * -1);
+  margin-right: 0;
   opacity: 0;
   pointer-events: none;
 }
@@ -1296,8 +1379,24 @@ body {
   animation: shell-fade 160ms ease both;
 }
 
+.ws-topbar .toolbar-node-menu {
+  gap: 10px;
+}
+
 .ws-topbar .toolbar-node-menu button {
+  height: 60px;
+  gap: 10px;
+  padding: 0 15px;
   border-radius: var(--r);
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.ws-topbar .toolbar-node-menu button span {
+  width: 12px;
+  height: 12px;
+  flex-basis: 12px;
+  font-size: 11px;
 }
 
 @container ws (max-width: 1279px) {
@@ -1308,7 +1407,6 @@ body {
     max-width: calc(100cqw - 40px);
     flex-direction: row;
     align-items: center;
-    gap: 4px;
     padding: 6px;
     background: #fff;
     border: 1px solid var(--shell-line);
@@ -1317,12 +1415,6 @@ body {
     overflow-x: auto;
     overflow-y: hidden;
     animation-name: shell-pop;
-  }
-
-  .ws-topbar .toolbar-node-menu button {
-    height: 46px;
-    padding: 0 16px 0 12px;
-    font-size: 15px;
   }
 
   .ws-topbar .toolbar-node-menu button:hover {
@@ -1352,7 +1444,7 @@ body {
   }
 
   .ws-topbar .toolbar-add-node {
-    width: var(--tb-h);
+    width: 60px;
     justify-content: center;
     padding: 0;
   }
@@ -2530,8 +2622,8 @@ body {
 
 /* Auth: navy shell, light inner card (Create an Account / Welcome back!) */
 .auth-modal {
-  width: min(440px, 100%);
-  max-width: none;
+  width: 100%;
+  max-width: 480px;
   max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
@@ -2732,6 +2824,23 @@ body {
   background: #fff0f1;
   border-radius: var(--r);
   font-size: 13px;
+}
+
+.auth-notice {
+  margin: 0;
+  padding: 10px 16px;
+  color: #1f6b3a;
+  background: #eefaf2;
+  border-radius: var(--r);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.auth-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
 /* ---------- Toast clears the view switch on small screens ---------- */

@@ -160,14 +160,15 @@ function PasswordField({ id, label, value, onChange }) {
   );
 }
 
-export default function AuthModal({ onClose }) {
+export default function AuthModal({ onClose, initialMode = "login" }) {
   const { login, signup, signInWithGoogle } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(initialMode !== "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setError("");
@@ -186,12 +187,18 @@ export default function AuthModal({ onClose }) {
       return setError("Passwords do not match. Please try again.");
     }
     setLoading(true);
-    const { error: authError } = isLogin
+    const { data, error: authError } = isLogin
       ? await login(email, password)
       : await signup(email, password);
     setLoading(false);
     if (authError) {
       setError(authError.message);
+    } else if (!isLogin && !data?.session) {
+      // Supabase returns a user with no identities when the email is already registered.
+      if (data?.user && data.user.identities?.length === 0) {
+        return setError("An account with this email already exists. Please log in.");
+      }
+      setAwaitingConfirm(true);
     } else {
       onClose();
     }
@@ -200,6 +207,7 @@ export default function AuthModal({ onClose }) {
   const switchMode = () => {
     setIsLogin((v) => !v);
     setError("");
+    setAwaitingConfirm(false);
   };
 
   return (
@@ -215,6 +223,17 @@ export default function AuthModal({ onClose }) {
       modalClassName="auth-modal"
     >
       <div className="auth-card">
+        {awaitingConfirm ? (
+          <>
+            <p className="auth-notice" role="status">
+              <strong>Please confirm your email.</strong> We sent a verification link to {email}. Open it to activate your account, then log in.
+            </p>
+            <a className="auth-submit auth-link" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer">
+              Open Gmail
+            </a>
+          </>
+        ) : (
+        <>
         <button type="button" className="auth-google" onClick={handleGoogleSignIn} disabled={loading}>
           <GoogleIcon />
           Sign in with Google
@@ -236,6 +255,8 @@ export default function AuthModal({ onClose }) {
             {loading ? "Please wait..." : isLogin ? "Login" : "Create Account"}
           </button>
         </form>
+        </>
+        )}
       </div>
     </Modal>
   );

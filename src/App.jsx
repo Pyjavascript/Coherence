@@ -42,7 +42,7 @@ export default function App() {
   const [variantCount, setVariantCount] = useState(1);
   const [modal, setModal] = useState(null);
   const [lastGenerated, setLastGenerated] = useState(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false); // false | "login" | "signup"
 
   const nodeStudioRef = useRef(null);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
@@ -55,7 +55,7 @@ export default function App() {
   // Returns true when signed in; otherwise prompts for login.
   const ensureAuth = useCallback(() => {
     if (user) return true;
-    setShowAuthModal(true);
+    setShowAuthModal("login");
     return false;
   }, [user]);
 
@@ -192,7 +192,8 @@ export default function App() {
             user={user}
             usage={usage}
             model="Free"
-            onLogin={() => setShowAuthModal(true)}
+            onLogin={() => setShowAuthModal("login")}
+            onSignup={() => setShowAuthModal("signup")}
             onLogout={logout}
           />
         </LeftSidebar>
@@ -238,7 +239,7 @@ export default function App() {
       </div>
 
       {showAuthModal && (
-        <AuthModal onClose={() => setShowAuthModal(false)} />
+        <AuthModal initialMode={showAuthModal} onClose={() => setShowAuthModal(false)} />
       )}
 
       {modal === "research" && (

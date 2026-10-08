@@ -8,8 +8,17 @@ import host from "../hosts/browser";
 import { saveGeneration } from "../services/brands";
 
 const uid = () => "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+// Vertical gap between a node and the node stacked below it.
+const NODE_GAP = 40;
+// Gap under a node that still shows its "+" button (it hangs ~72px below the
+// card), so a node added from the toolbar leaves the button visible.
+const NODE_GAP_FREE = 100;
+const NODE_W = 340;
+// Where a column's first node sits, and how far above it the column title goes.
+const COL_LEFT = 40;
+const COL_TOP = 100;
+const COL_HEAD_OFFSET = 46;
 const wordCount = (v) => ((v && v.body) || "").trim().split(/\s+/).filter(Boolean).length;
-const MIN_NODE_Y = 56;
 
 // Textarea that grows with its content instead of scrolling inside the node.
 function AutoTextarea({ value, ...props }) {
@@ -254,11 +263,11 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   const [nodes, setNodes] = useState(seedNodes);
   const [linkingFrom, setLinkingFrom] = useState(null);
   const [shareId, setShareId] = useState(null);
-  const [lines, setLines] = useState([]);
   const [sizes, setSizes] = useState({});
   const [draggingId, setDraggingId] = useState(null);
 
   const nodesRef = useRef(nodes);
+  const sizesRef = useRef(sizes);
   const ctxRef = useRef(ctx);
   const lastNodeRef = useRef(null);
   const zCounter = useRef(10);
@@ -283,33 +292,46 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
 
   const patch = useCallback((id, changes) => commit((l) => l.map((n) => (n.id === id ? { ...n, ...changes } : n))), [commit]);
 
+  // Records a node's measured size. When its height changes (collapse, expand,
+  // content growing), every node stacked below it in the same column moves by
+  // the same amount, so the gaps between them stay as they were.
   const onSize = useCallback((id, w, h) => {
-    setSizes(prev => prev[id]?.w === w && prev[id]?.h === h ? prev : { ...prev, [id]: { w, h } });
-  }, []);
+    const prev = sizesRef.current[id];
+    if (prev && prev.w === w && prev.h === h) return;
+    sizesRef.current = { ...sizesRef.current, [id]: { w, h } };
+    setSizes(sizesRef.current);
 
-  /* ----- curved bezier lines drawing ----- */
-  const draw = useCallback(() => {
-    const out = [];
-    nodesRef.current.forEach((n) => {
-      n.connections.forEach((tid) => {
-        const b = nodesRef.current.find(x => x.id === tid);
-        if (!b) return;
-        
-        const s1 = sizes[n.id] || { w: 340, h: 46 };
-        const s2 = sizes[b.id] || { w: 340, h: 46 };
-        
-        const x1 = n.x + s1.w / 2;
-        const y1 = n.y + s1.h; // Bottom of Parent
-        const x2 = b.x + s2.w / 2;
-        const y2 = b.y; // Top of Child
-        
-        out.push({ key: n.id + tid, x1, y1, x2, y2 });
+    const delta = prev ? h - prev.h : 0;
+    const self = nodesRef.current.find((n) => n.id === id);
+    if (!delta || !self) return;
+    const oldBottom = self.y + prev.h;
+    const left = self.x;
+    const right = self.x + (prev.w || w);
+    const isBelow = (n) => {
+      const nw = sizesRef.current[n.id]?.w || NODE_W;
+      return n.id !== id && n.y >= oldBottom - 1 && n.x < right && n.x + nw > left;
+    };
+    if (!nodesRef.current.some(isBelow)) return;
+    commit((list) => list.map((n) => (isBelow(n) ? { ...n, y: n.y + delta } : n)));
+  }, [commit]);
+
+  /* ----- curved bezier lines: derived from node positions and sizes ----- */
+  const lines = [];
+  nodes.forEach((n) => {
+    n.connections.forEach((tid) => {
+      const b = nodes.find((x) => x.id === tid);
+      if (!b) return;
+      const s1 = sizes[n.id] || { w: NODE_W, h: 46 };
+      const s2 = sizes[b.id] || { w: NODE_W, h: 46 };
+      lines.push({
+        key: n.id + tid,
+        x1: n.x + s1.w / 2,
+        y1: n.y + s1.h, // Bottom of parent
+        x2: b.x + s2.w / 2,
+        y2: b.y, // Top of child
       });
     });
-    setLines((prev) => (JSON.stringify(prev) === JSON.stringify(out) ? prev : out));
-  }, [sizes]);
-
-  useLayoutEffect(() => { if (active) draw(); }, [active, nodes, draw]);
+  });
 
   useEffect(() => {
     const close = (e) => {
@@ -322,9 +344,12 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   /* ----- drag interaction handler ----- */
   const handlePointerDown = (e, node) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    // A second finger is the start of a pinch, which the canvas handles.
+    if (!e.isPrimary) return;
     if (e.target.closest("input, textarea, select, button, .sn-out, .sn-vtabs, .sn-head-actions")) return;
     e.stopPropagation();
 
+    const pointerId = e.pointerId;
     const startX = e.clientX;
     const startY = e.clientY;
     const originX = node.x;
@@ -336,6 +361,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     const scale = canvasWorld ? (canvasWorld.getBoundingClientRect().width / canvasWorld.offsetWidth) : 1;
 
     const onMove = (moveEvt) => {
+      if (moveEvt.pointerId !== pointerId) return;
       const dx = (moveEvt.clientX - startX) / (scale || 1);
       const dy = (moveEvt.clientY - startY) / (scale || 1);
       
@@ -347,17 +373,18 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
         patch(node.id, { z: zCounter.current });
       }
       
-      // Keep the column header (drawn 46px above the top node) on the canvas.
-      patch(node.id, {
-        x: Math.max(0, originX + dx),
-        y: Math.max(MIN_NODE_Y, originY + dy)
-      });
+      // Nodes can go anywhere on the canvas, including left of / above where they start.
+      patch(node.id, { x: originX + dx, y: originY + dy });
     };
 
-    const onUp = () => {
+    const onUp = (upEvt) => {
+      // Ends on this finger lifting, or on a different finger landing (a pinch).
+      const ends = upEvt.type === "pointerdown" ? upEvt.pointerId !== pointerId : upEvt.pointerId === pointerId;
+      if (!ends) return;
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("pointerdown", onUp);
       if (moved) {
         dragGuard.current = true;
         setTimeout(() => { dragGuard.current = false; }, 60);
@@ -368,6 +395,8 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
+    // A second finger landing anywhere turns this gesture into a pinch: stop dragging.
+    window.addEventListener("pointerdown", onUp);
   };
 
   const handleClickCapture = (e) => {
@@ -396,9 +425,9 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
       let maxY = 100;
       if (catNodes.length > 0) {
         const last = catNodes[catNodes.length - 1];
-        const lastSize = sizes[last.id] || { h: 300 };
+        const lastSize = sizesRef.current[last.id] || { h: 300 };
         startX = last.x;
-        maxY = last.y + lastSize.h + 80;
+        maxY = last.y + lastSize.h + NODE_GAP_FREE;
       }
 
       for (let i = 0; i < n; i++) {
@@ -419,11 +448,12 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
       if (parentIndex === -1) return list;
        
       const parent = list[parentIndex];
-      const pSize = sizes[parentId] || { h: 300 };
+      const pSize = sizesRef.current[parentId] || { h: 300 };
       const next = [...list];
-       
-      // Spawn directly below
-      const newNode = makeNode(category, next, parent.x, parent.y + pSize.h + 80);
+
+      // Spawn directly below. The parent grows a row for its link tag right
+      // after this; onSize then pushes this node down to keep the gap.
+      const newNode = makeNode(category, next, parent.x, parent.y + pSize.h + NODE_GAP);
       next.push(newNode);
        
       // Auto-connect line
@@ -553,8 +583,9 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
           })}
         </svg>
 
-        {/* Visual column headers for empty states only (nodes are absolutely positioned) */}
-        <div className="nodecols" style={{ pointerEvents: 'none', position: 'absolute', top: 0, left: 0, display: 'flex', gap: '40px' }}>
+        {/* Visual column headers for empty states only (nodes are absolutely positioned).
+            Lined up with where a column's title sits when it has nodes. */}
+        <div className="nodecols" style={{ pointerEvents: 'none', position: 'absolute', top: COL_TOP - COL_HEAD_OFFSET, left: COL_LEFT, display: 'flex', gap: '40px' }}>
           {COL_ORDER.map((key) => {
             const cat = NODE_CATS[key];
             const list = nodes.filter((n) => n.category === key);
@@ -600,10 +631,10 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
               onAddChild={() => handleAddChild(n.id, n.category)}
             >
               {topInfo && (
-                <header className="sn-col-head" style={{ "--cat": NODE_CATS[n.category].color, position: 'absolute', top: '-46px', left: 0, right: 0, width: '340px', cursor: 'grab' }}>
+                <header className="sn-col-head" style={{ "--cat": NODE_CATS[n.category].color, position: 'absolute', top: -COL_HEAD_OFFSET, left: 0, right: 0, width: '340px', cursor: 'grab' }}>
                   <span className="sn-col-dot" aria-hidden="true" />
                   <h2>{NODE_CATS[n.category].label}</h2>
-                 
+                
                   {!NODE_CATS[n.category].comingSoon && <span className="sn-count" aria-label={`${topInfo.total} nodes`}>{topInfo.total}</span>}
                 </header>
               )}

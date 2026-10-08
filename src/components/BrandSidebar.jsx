@@ -23,7 +23,7 @@ const ProfileIcon = () => (
 );
 
 export default function BrandSidebar({
-  open, drawer, onToggle, onExpand, brands, currentId, onSelect, onNew, user, onLogin, onLogout, usage, model,
+  open, drawer, onToggle, onExpand, brands, currentId, onSelect, onNew, user, onLogin, onSignup, onLogout, usage, model,
 }) {
   const [popover, setPopover] = useState(null); // null | "profile" | "usage"
   const footerRef = useRef(null);
@@ -123,7 +123,7 @@ export default function BrandSidebar({
             <button type="button" className="rail-logout" onClick={onLogout}>Log out</button>
           </div>
         )}
-        {popover === "usage" && (
+        {popover === "usage" && user && (
           <div className="rail-usage-card" role="dialog" aria-label="Credits">
             <div className="rail-usage-heading">
               <strong>{generationsLeft}/{LIMITS.generations}</strong>
@@ -174,7 +174,7 @@ export default function BrandSidebar({
           aria-expanded={popover === "usage"}
           aria-label={`Credits used: ${usagePercent}%`}
           title={tip(`Credits used: ${usagePercent}%`)}
-          onClick={() => togglePopover("usage")}
+          onClick={() => (user ? togglePopover("usage") : onSignup?.())}
           icon={
             <span
               className="rail-credits-meter"

@@ -706,7 +706,7 @@ option[disabled] {
   background: var(--panel);
   border-radius: 24px;
   border: 1px solid var(--border);
-  max-width: 460px;
+  max-width: 480px;
   width: 100%;
   max-height: 80vh;
   display: flex;
@@ -2119,7 +2119,9 @@ body {
 .toolbar-add-spark i {
   width: 13px;
   height: 13px;
-  display: block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   border-radius: 24px;
   background: #ff7b2c;
 }
@@ -4486,7 +4488,9 @@ body {
   list-style: none;
   background: #fff;
   border-radius: 24px;
-  box-shadow: 0 0 0 1px rgba(10, 20, 80, 0.04), 0 12px 32px rgba(10, 20, 80, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap:15px;
   animation: model-menu-pop 140ms ease-out;
 }
 
@@ -4536,6 +4540,7 @@ body {
   font-size: 20px;
 }
 
+.model-selector-option:hover .model-selector-option-icon,
 .model-selector-option[aria-selected="true"] .model-selector-option-icon {
   background: #fff;
 }
@@ -4707,7 +4712,8 @@ body {
 }
 
 .research-modal {
-  width: min(480px, calc(100vw - 32px));
+  width: 100%;
+  max-width: 480px;
   height: min(720px, calc(100dvh - 32px));
   max-height: calc(100dvh - 32px);
   padding: 18px 16px 16px;

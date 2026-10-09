@@ -1414,3 +1414,102 @@
     animation: none;
   }
 }
+
+/* ---------- Coherence AI workspace refresh ----------
+   A quiet, editorial canvas gives the generation surface more presence without
+   changing the product's navy, indigo, gold, and white identity. */
+.app-shell {
+  background:
+    radial-gradient(circle at 58% 12%, rgba(110, 121, 255, 0.18), transparent 32%),
+    linear-gradient(135deg, #0c174f 0%, #111b5a 52%, #0c174f 100%);
+}
+
+.workspace {
+  position: relative;
+  overflow: hidden;
+  background: rgba(247, 248, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 28px;
+  box-shadow: 0 24px 70px rgba(4, 10, 48, 0.28);
+}
+
+.workspace::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  background-image: linear-gradient(rgba(70, 83, 255, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 83, 255, 0.045) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, black, transparent 78%);
+}
+
+.ws-stage {
+  position: relative;
+  isolation: isolate;
+}
+
+.workspace > *:not(.ws-stage) {
+  position: relative;
+  z-index: 2;
+}
+
+.ws-stage,
+.ws-view {
+  position: relative;
+}
+
+.topbar {
+  margin: clamp(10px, 1.2vw, 18px) clamp(10px, 1.2vw, 18px) 0;
+  height: 58px;
+  padding: 0 12px 0 16px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(13, 20, 69, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.tb-mark {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(145deg, var(--accent), #7881ff);
+  box-shadow: 0 6px 16px rgba(70, 83, 255, 0.3);
+}
+
+.tb-product {
+  color: var(--accent);
+  letter-spacing: 0.14em;
+}
+
+.btn-generate {
+  padding: 0.68rem 1.1rem;
+  background: linear-gradient(135deg, var(--accent), #6670ff);
+  box-shadow: 0 8px 18px rgba(70, 83, 255, 0.22);
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.btn-generate:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+  box-shadow: 0 10px 24px rgba(70, 83, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.rsb {
+  background: linear-gradient(180deg, rgba(12, 23, 79, 0.98), rgba(17, 27, 90, 0.98));
+  box-shadow: -18px 0 48px rgba(4, 10, 48, 0.18);
+}
+
+.rsb .bp-card {
+  box-shadow: 0 12px 30px rgba(13, 20, 69, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.74);
+}
+
+@media (max-width: 767px) {
+  .workspace {
+    border-radius: 22px;
+  }
+  .topbar {
+    margin: 8px 8px 0;
+  }
+}

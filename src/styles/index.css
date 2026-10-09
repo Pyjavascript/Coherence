@@ -13,6 +13,7 @@ img {
 }
 
 :root {
+  /* Semantic surface system: calm neutrals keep the indigo AI controls in focus. */
   --canvas: #ececef;
   --dot: rgba(20, 20, 26, 0.1);
   --panel: #ffffff;
@@ -30,6 +31,8 @@ img {
   --ok: #15854b;
   --warn: #b4590a;
   --danger: #d63a4a;
+  --surface-glass: rgba(255, 255, 255, 0.78);
+  --shadow-soft: 0 18px 50px rgba(10, 20, 75, 0.12);
   color-scheme: light;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);

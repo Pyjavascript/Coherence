@@ -9,6 +9,7 @@ import ResearchNotes from "./components/ResearchNotes";
 import HistoryModal from "./components/HistoryModal";
 import { CoherenceModal, ConfirmModal, HookModal } from "./components/Modal";
 import AuthModal from "./components/AuthModal";
+import TourModal from "./components/TourModal";
 import CanvasViewport from "./components/CanvasViewport";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightSidebar from "./components/layout/RightSidebar";
@@ -31,9 +32,10 @@ const STUDIO_ADD_OPTIONS = Object.entries(NODE_CATS)
   .filter(([, c]) => !c.comingSoon)
   .map(([type, c]) => ({ type, label: c.label, color: c.color }));
 
-const WELCOME_KEY = "coherence.welcome.dismissed";
-const readWelcomeDismissed = () => {
-  try { return localStorage.getItem(WELCOME_KEY) === "1"; } catch { return false; }
+// The tour opens by itself once per browser; the "?" button reopens it.
+const TOUR_KEY = "coherence.tour.seen";
+const readTourSeen = () => {
+  try { return localStorage.getItem(TOUR_KEY) === "1"; } catch { return false; }
 };
 
 export default function App() {
@@ -54,7 +56,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false); // false | "login" | "signup"
   const [panelFocus, setPanelFocus] = useState(null); // { target, flag } — new object per request
   const [hookQuota, setHookQuota] = useState(readHookQuota);
-  const [welcomeDismissed, setWelcomeDismissed] = useState(readWelcomeDismissed);
+  const [showTour, setShowTour] = useState(() => !readTourSeen());
 
   const nodeStudioRef = useRef(null);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
@@ -232,7 +234,7 @@ export default function App() {
   // Keyboard shortcuts: Ctrl/⌘+Enter generates, Ctrl/⌘+S saves the brand.
   const shortcutsRef = useRef(null);
   shortcutsRef.current = {
-    blocked: Boolean(modal || confirm || showAuthModal),
+    blocked: Boolean(modal || confirm || showAuthModal || showTour),
     generate: () => { if (!isGeneratingAll && !quick.busy && !atGenLimit) requireLogin(handleGenerate)(); },
     save: () => { if (!ws.saving) requireLogin(handleSaveBrand)(); },
   };
@@ -253,25 +255,16 @@ export default function App() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // First-run guide: shown until dismissed, until copy exists, or once the user has brands.
-  const dismissWelcome = () => {
-    setWelcomeDismissed(true);
-    try { localStorage.setItem(WELCOME_KEY, "1"); } catch { /* not remembered */ }
+  const closeTour = () => {
+    setShowTour(false);
+    try { localStorage.setItem(TOUR_KEY, "1"); } catch { /* not remembered */ }
   };
-  const showWelcome = !welcomeDismissed && ws.brands.length === 0 && !quick.hasCopy;
-  const welcome = showWelcome ? {
-    steps: [
-      { label: "Name your brand", hint: "Who's speaking?", done: Boolean(ws.brand.name.trim()), onClick: () => focusPanelField("bp-name") },
-      { label: "Write your message", hint: "What should every medium say?", done: Boolean(ws.brand.message.trim()), onClick: () => focusPanelField("bp-message") },
-      { label: "Generate", hint: "Copy for 5 mediums at once", done: quick.hasCopy, onClick: requireLogin(handleGenerate), disabled: isGeneratingAll || quick.busy },
-    ],
-    onSample: () => {
-      ws.applyFields(SAMPLE_BRAND);
-      layout.open("right");
-      setStatus("Sample brand loaded — press Generate to see it in action.", "ok");
-    },
-    onDismiss: dismissWelcome,
-  } : null;
+
+  const loadSampleBrand = () => {
+    ws.applyFields(SAMPLE_BRAND);
+    layout.open("right");
+    setStatus("Sample brand loaded — press Generate to see it in action.", "ok");
+  };
 
   const generatingMediums = new Set(quick.nodes.map((n) => n.type)).size;
   const generatingDetail = layout.view === "quick" && generatingMediums > 0
@@ -279,7 +272,7 @@ export default function App() {
     : "";
 
   const views = {
-    quick: <QuickGrid quick={quick} atGenLimit={atGenLimit} brand={ws.brand} welcome={welcome} />,
+    quick: <QuickGrid quick={quick} atGenLimit={atGenLimit} brand={ws.brand} />,
     nodes: (
       <CanvasViewport>
         <NodeStudio
@@ -338,6 +331,7 @@ export default function App() {
           view={layout.view}
           onViewChange={layout.setView}
           views={views}
+          onHelp={() => setShowTour(true)}
           toolbar={
             <Header
               tier={tier}
@@ -384,6 +378,10 @@ export default function App() {
 
         <div className="shell-scrim" data-visible={Boolean(layout.drawer)} onClick={layout.closeDrawer} aria-hidden="true" />
       </div>
+
+      {showTour && (
+        <TourModal onClose={closeTour} onSample={loadSampleBrand} />
+      )}
 
       {showAuthModal && (
         <AuthModal initialMode={showAuthModal} onClose={() => setShowAuthModal(false)} />

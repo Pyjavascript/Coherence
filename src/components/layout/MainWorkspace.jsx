@@ -1,12 +1,14 @@
 import ViewSwitch, { VIEWS } from "./ViewSwitch";
+import { TourButton } from "../TourModal";
 
 // Toolbar on top, both views stacked in the stage (kept mounted so switching
-// never loses or regenerates content), view switch floating at the bottom.
-export default function MainWorkspace({ toolbar, view, onViewChange, views, inert }) {
+// never loses or regenerates content), view switch floating at the bottom
+// and the tour "?" in the bottom-right corner.
+export default function MainWorkspace({ toolbar, view, onViewChange, views, inert, onHelp }) {
   return (
     <main className="workspace" inert={inert ? "" : undefined}>
       {toolbar}
-      <div className="ws-stage">
+      <div className="ws-stage" data-view={view}>
         {VIEWS.map((v) => (
           <section
             key={v.key}
@@ -21,6 +23,7 @@ export default function MainWorkspace({ toolbar, view, onViewChange, views, iner
           </section>
         ))}
         <ViewSwitch view={view} onChange={onViewChange} />
+        {onHelp && <TourButton onClick={onHelp} />}
       </div>
     </main>
   );

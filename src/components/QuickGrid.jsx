@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import NodeCard from "./nodes/NodeCard";
-import WelcomeGuide from "./WelcomeGuide";
 import { MEDIA, MEDIA_BY_KEY } from "../lib/constants";
 import { applyEdit } from "../lib/copyItems";
 import { generateQuickGrid, regenerateOutput, describeError } from "../services/ai";
@@ -190,7 +189,7 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
   };
 }
 
-export default function QuickGrid({ quick, atGenLimit, brand, welcome }) {
+export default function QuickGrid({ quick, atGenLimit, brand }) {
   const gridRef = useRef(null);
   useFlip(gridRef, quick.nodes.map((n) => n.id).join("|"));
 
@@ -219,8 +218,7 @@ export default function QuickGrid({ quick, atGenLimit, brand, welcome }) {
   };
 
   return (
-    <div className={"qg" + (welcome ? " has-welcome" : "")}>
-      {welcome && <WelcomeGuide {...welcome} />}
+    <div className="qg">
       {!quick.nodes.length && (
         <div className="qg-empty">
           <h2>No nodes on the grid</h2>

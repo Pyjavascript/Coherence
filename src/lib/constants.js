@@ -246,7 +246,7 @@ export const DEFAULT_BRAND = {
   must: "",
 };
 
-// "Try a sample brand" in the welcome guide.
+// "Try a sample brand" on the last step of the product tour.
 export const SAMPLE_BRAND = {
   name: "Ember & Oak",
   belief: "Scent is memory, not marketing — every candle should feel like a place you've been.",

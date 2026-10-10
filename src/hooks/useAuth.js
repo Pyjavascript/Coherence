@@ -74,5 +74,23 @@ export function useAuth() {
     return { error };
   };
 
-  return { user, loading, login, signup, logout, signInWithGoogle };
+  // Name and photo live in user_metadata; onAuthStateChange (USER_UPDATED)
+  // pushes the new user to every useAuth() instance.
+  const updateProfile = (fields) => {
+    if (!supabase) return Promise.resolve({ error: new Error("Supabase is not configured.") });
+    return supabase.auth.updateUser({ data: fields });
+  };
+
+  // The browser can't delete an auth user with the anon key, so this calls
+  // public.delete_own_account() (supabase/migrations/20261010000000_delete_account.sql).
+  const deleteAccount = async () => {
+    if (!supabase) return { error: new Error("Supabase is not configured.") };
+    const { error } = await supabase.rpc("delete_own_account");
+    if (error) return { error };
+    // The session's user is gone server-side; just drop it locally.
+    await supabase.auth.signOut({ scope: "local" });
+    return { error: null };
+  };
+
+  return { user, loading, login, signup, logout, signInWithGoogle, updateProfile, deleteAccount };
 }

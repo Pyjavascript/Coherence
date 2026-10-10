@@ -45,10 +45,12 @@ function toRow(b) {
   };
 }
 
-export async function getBrands() {
+// Only the signed-in user's brands, even if a table policy is still open.
+export async function getBrands(userId) {
   const { data, error } = await requireSupabase()
     .from("brands")
     .select(COLS)
+    .eq("user_id", userId)
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data.map(fromRow);

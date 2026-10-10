@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { useDialogBehavior, useOverlayDismiss } from "./Modal";
 
 // Product tour: a centred card with an illustration, copy, step dots and
 // Skip / Continue. Opens by itself on a browser's first visit and from the
@@ -120,6 +121,8 @@ export default function TourModal({ onClose, onSample }) {
   const titleId = useId();
   const bodyId = useId();
   const primaryRef = useRef(null);
+  const panelRef = useDialogBehavior(onClose, primaryRef);
+  const dismiss = useOverlayDismiss(onClose);
   const last = step === TOUR_STEPS.length - 1;
   const { Art } = TOUR_STEPS[step];
 
@@ -135,8 +138,7 @@ export default function TourModal({ onClose, onSample }) {
     const onKey = (event) => {
       const k = keysRef.current;
       if (event.defaultPrevented) return;
-      if (event.key === "Escape") k.onClose();
-      else if (event.key === "ArrowRight" && !k.last) k.next();
+      if (event.key === "ArrowRight" && !k.last) k.next();
       else if (event.key === "ArrowLeft") k.back();
     };
     document.addEventListener("keydown", onKey);
@@ -144,8 +146,8 @@ export default function TourModal({ onClose, onSample }) {
   }, []);
 
   return (
-    <div className="overlay tour-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <section className="tour" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={bodyId}>
+    <div className="overlay tour-overlay" {...dismiss}>
+      <section ref={panelRef} className="tour" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={bodyId}>
         <div className="tour-art" key={step} aria-hidden="true">
           <Art />
         </div>

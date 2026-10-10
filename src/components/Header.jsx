@@ -232,21 +232,23 @@ export default function Header({
   addOptions,
   addDisabledTitle,
   onAddNode,
+  hideAdd = false,
   showNavToggle,
   navOpen,
   onToggleNav,
   panelOpen,
   hidePanelToggle,
   onTogglePanel,
+  onAtLimit,
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const addMenuRef = useRef(null);
   const canAdd = addOptions.length > 0;
 
-  // Close the menu if the options run out (e.g. the grid just became full).
+  // Close the menu if the options run out or the button collapses away.
   useEffect(() => {
-    if (!canAdd) setAddMenuOpen(false);
-  }, [canAdd]);
+    if (!canAdd || hideAdd) setAddMenuOpen(false);
+  }, [canAdd, hideAdd]);
 
   useEffect(() => {
     if (!addMenuOpen) return undefined;
@@ -276,9 +278,12 @@ export default function Header({
             <MenuIcon />
           </button>
         )}
+        {/* Stays mounted when hidden so it can shrink away / grow back smoothly. */}
         <button
           type="button"
-          className="toolbar-add-node"
+          className={"toolbar-add-node" + (hideAdd ? " is-hidden" : "")}
+          inert={hideAdd ? "" : undefined}
+          aria-hidden={hideAdd || undefined}
           aria-haspopup="menu"
           aria-expanded={addMenuOpen}
           aria-label="Add node"
@@ -286,12 +291,12 @@ export default function Header({
           title={canAdd ? undefined : addDisabledTitle}
           onClick={() => setAddMenuOpen((open) => !open)}
         >
-          <span className="toolbar-add-label">Add Node</span>
+          <span className="toolbar-add-label"><span className="tb-label-full">Add Node</span><span className="tb-label-short">Add</span></span>
           <span className="toolbar-add-spark" aria-hidden="true">
             <i>+</i><i>+</i><i>+</i><i>+</i>
           </span>
         </button>
-        {addMenuOpen && canAdd && (
+        {addMenuOpen && canAdd && !hideAdd && (
           <div className="toolbar-node-menu" role="menu" aria-label="Add a node">
             {addOptions.map((option) => (
               <button
@@ -315,14 +320,16 @@ export default function Header({
         <ModelSelector tier={tier} onTier={onTier} />
         <button
           type="button"
-          className={"toolbar-generate" + (generating ? " is-busy" : "")}
-          disabled={generating || atGenLimit}
+          className={"toolbar-generate" + (generating ? " is-busy" : "") + (atGenLimit ? " is-limited" : "")}
+          disabled={generating}
           aria-busy={generating}
+          aria-disabled={atGenLimit || undefined}
           title={atGenLimit ? "Daily generation limit reached" : `Generate (${shortcut("Enter")})`}
-          onClick={onGenerate}
+          onClick={() => (atGenLimit ? onAtLimit?.() : onGenerate())}
         >
           {generating && <span className="toolbar-spinner" aria-hidden="true" />}
-          <span>{generating ? "Generating" : "Generate"}</span>
+          <span className="tb-label-full">{generating ? "Generating" : "Generate"}</span>
+          <span className="tb-label-short">{generating ? "…" : "Generate"}</span>
           {generating && generatingDetail && <span className="toolbar-gen-detail">{generatingDetail}</span>}
         </button>
         {/* The panel toggle sits in a navy notch carved out of the workspace corner. */}

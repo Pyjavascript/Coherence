@@ -238,6 +238,7 @@ export default function QuickGrid({ quick, atGenLimit, brand }) {
             regenDisabled={atGenLimit}
             regenTitle={atGenLimit ? "Daily generation limit reached" : undefined}
             onRegenerate={() => quick.regenerate(n.id)}
+            onBlocked={() => quick.setStatus("Daily generation limit reached.", "warn")}
             onCopy={copyOutput}
             onDuplicate={() => quick.duplicate(n.id)}
             onDelete={() => quick.remove(n.id)}

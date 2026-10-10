@@ -15,7 +15,7 @@ const StarIcon = ({ filled }) => (
 
 // node = { id, type, status, items, version, message, width, fav }
 export default function NodeCard({
-  node, meta, brand, regenDisabled, regenTitle, onRegenerate, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
+  node, meta, brand, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
 }) {
   const [idx, setIdx] = useState(0);
   const [leaving, setLeaving] = useState(false);
@@ -58,6 +58,7 @@ export default function NodeCard({
           regenDisabled={regenDisabled || leaving}
           regenTitle={regenTitle}
           onRegenerate={onRegenerate}
+          onBlocked={onBlocked}
           onCopy={() => onCopy([item.headline, item.sub].filter(Boolean).join("\n"))}
           onDuplicate={onDuplicate}
           onDelete={() => setLeaving(true)}

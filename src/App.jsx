@@ -9,6 +9,7 @@ import ResearchNotes from "./components/ResearchNotes";
 import HistoryModal from "./components/HistoryModal";
 import { CoherenceModal, ConfirmModal, HookModal } from "./components/Modal";
 import AuthModal from "./components/AuthModal";
+import ProfileModal from "./components/ProfileModal";
 import TourModal from "./components/TourModal";
 import CanvasViewport from "./components/CanvasViewport";
 import LeftSidebar from "./components/layout/LeftSidebar";
@@ -40,7 +41,7 @@ const readTourSeen = () => {
 
 export default function App() {
   const { user, loading: authLoading, logout } = useAuth();
-  const { usage, refresh: refreshUsage, atGenLimit } = useUsage();
+  const { usage, refresh: refreshUsage, atGenLimit } = useUsage(user?.id);
   const layout = useLayoutState();
 
   const [status, setStatusState] = useState({ text: "", cls: "" });
@@ -54,15 +55,17 @@ export default function App() {
   const [confirm, setConfirm] = useState(null); // { title, body, confirmLabel, tone, onConfirm }
   const [lastGenerated, setLastGenerated] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false); // false | "login" | "signup"
+  const [showProfile, setShowProfile] = useState(false);
   const [panelFocus, setPanelFocus] = useState(null); // { target, flag } — new object per request
   const [hookQuota, setHookQuota] = useState(readHookQuota);
   const [showTour, setShowTour] = useState(() => !readTourSeen());
 
   const nodeStudioRef = useRef(null);
+  const pendingAuthRef = useRef(null);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const generatingRef = useRef(false); // blocks double-clicks before state re-renders
 
-  const ws = useBrandWorkspace(setStatus);
+  const ws = useBrandWorkspace(setStatus, user?.id);
   const ctx = { brand: ws.brand, notes: ws.notes, stylePack };
   const aiAvailable = isSupabaseConfigured;
 
@@ -73,7 +76,19 @@ export default function App() {
     return false;
   }, [user]);
 
-  const requireLogin = (actionFn) => (...args) => (ensureAuth() ? actionFn(...args) : undefined);
+  const requireLogin = (actionFn) => (...args) => {
+    if (ensureAuth()) return actionFn(...args);
+    pendingAuthRef.current = () => actionFn(...args);
+    return undefined;
+  };
+
+  // After a successful login, run the action that asked for it.
+  useEffect(() => {
+    if (!user || showAuthModal || !pendingAuthRef.current) return;
+    const run = pendingAuthRef.current;
+    pendingAuthRef.current = null;
+    run();
+  }, [user, showAuthModal]);
 
   const focusPanelField = useCallback((target, flag = false) => {
     layout.open("right");
@@ -234,8 +249,11 @@ export default function App() {
   // Keyboard shortcuts: Ctrl/⌘+Enter generates, Ctrl/⌘+S saves the brand.
   const shortcutsRef = useRef(null);
   shortcutsRef.current = {
-    blocked: Boolean(modal || confirm || showAuthModal || showTour),
-    generate: () => { if (!isGeneratingAll && !quick.busy && !atGenLimit) requireLogin(handleGenerate)(); },
+    blocked: Boolean(modal || confirm || showAuthModal || showProfile || showTour),
+    generate: () => {
+      if (atGenLimit) return setStatus("Daily generation limit reached.", "warn");
+      if (!isGeneratingAll && !quick.busy) requireLogin(handleGenerate)();
+    },
     save: () => { if (!ws.saving) requireLogin(handleSaveBrand)(); },
   };
   useEffect(() => {
@@ -322,7 +340,7 @@ export default function App() {
             model="Free"
             onLogin={() => setShowAuthModal("login")}
             onSignup={() => setShowAuthModal("signup")}
-            onLogout={logout}
+            onProfile={() => setShowProfile(true)}
           />
         </LeftSidebar>
 
@@ -340,12 +358,14 @@ export default function App() {
               generating={isGeneratingAll || quick.busy}
               generatingDetail={generatingDetail}
               atGenLimit={atGenLimit}
+              onAtLimit={() => setStatus("Daily generation limit reached.", "warn")}
               showExport={layout.view === "quick"}
               exportDisabled={!quick.hasCopy}
               onExport={handleExport}
               addOptions={layout.view === "quick" ? quickAddOptions : STUDIO_ADD_OPTIONS}
               addDisabledTitle={layout.view === "quick" ? "The grid already has every medium" : undefined}
               onAddNode={handleAddNode}
+              hideAdd={layout.view === "quick"}
               showNavToggle={layout.bp === "mobile"}
               navOpen={layout.leftOpen}
               onToggleNav={() => layout.toggle("left")}
@@ -384,7 +404,21 @@ export default function App() {
       )}
 
       {showAuthModal && (
-        <AuthModal initialMode={showAuthModal} onClose={() => setShowAuthModal(false)} />
+        <AuthModal
+          initialMode={showAuthModal}
+          onClose={() => { pendingAuthRef.current = null; setShowAuthModal(false); }}
+          onSuccess={() => setShowAuthModal(false)}
+        />
+      )}
+
+      {showProfile && user && (
+        <ProfileModal
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onLogout={() => { setShowProfile(false); logout(); }}
+          onSaved={() => setStatus("Profile updated.", "ok")}
+          onDeleted={() => { setShowProfile(false); setStatus("Your account has been deleted.", "ok"); }}
+        />
       )}
 
       {confirm && (

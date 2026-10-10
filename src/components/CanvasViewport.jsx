@@ -10,6 +10,35 @@ export default function CanvasViewport({ children }) {
   const dragRef = useRef(null);
   const pinchRef = useRef(null);
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
+
+  // On a phone, keep the first column fitted until the user pans or zooms.
+  const autoZoom = useRef(null);
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return undefined;
+    const mq = window.matchMedia("(max-width: 767.98px)");
+    const fit = () => {
+      if (el.clientWidth < 80) return;
+      setView((current) => {
+        if (autoZoom.current != null && Math.abs(current.zoom - autoZoom.current) > 0.02) return current;
+        if (!mq.matches) {
+          autoZoom.current = 1;
+          return current.zoom === 1 && current.x === 0 && current.y === 0 ? current : { x: 0, y: 0, zoom: 1 };
+        }
+        const zoom = clampZoom((el.clientWidth - 24) / 400);
+        autoZoom.current = zoom;
+        return { x: 8, y: 0, zoom };
+      });
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    mq.addEventListener("change", fit);
+    return () => {
+      observer.disconnect();
+      mq.removeEventListener("change", fit);
+    };
+  }, []);
   const [isPanning, setIsPanning] = useState(false);
   const viewRef = useRef(view);
   viewRef.current = view;

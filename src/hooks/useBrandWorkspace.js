@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { DEFAULT_BRAND } from "../lib/constants";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { LIMITS } from "../lib/clientId";
@@ -24,7 +24,9 @@ const snapshot = (b) =>
   JSON.stringify(SAVED_KEYS.map((k) => (typeof b[k] === "string" ? b[k].trim() : b[k] ?? "")));
 
 // Owns brand list, the active brand's form state, and its research notes.
-export function useBrandWorkspace(setStatus) {
+// The list follows the signed-in user: it reloads on sign-in, sign-out and
+// account deletion, and is empty while signed out.
+export function useBrandWorkspace(setStatus, userId) {
   const [brands, setBrands] = useState([]);
   const [currentId, setCurrentId] = useState(null);
   const [scope, setScope] = useState("regular");
@@ -39,21 +41,33 @@ export function useBrandWorkspace(setStatus) {
     [brand, savedSnap, notes],
   );
 
+  // Read the user through a ref: a save that was queued behind the login
+  // prompt runs with an older closure, and must still reload the new user's list.
+  // Each load gets a number so a slow response for a previous account can't
+  // overwrite the list of the account that's signed in now.
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+  const loadSeq = useRef(0);
   const refresh = useCallback(async () => {
-    if (!isSupabaseConfigured) return [];
+    const seq = ++loadSeq.current;
+    const uid = userIdRef.current;
+    if (!isSupabaseConfigured || !uid) {
+      setBrands([]);
+      return [];
+    }
     try {
-      const list = await getBrands();
-      setBrands(list);
+      const list = await getBrands(uid);
+      if (seq === loadSeq.current) setBrands(list);
       return list;
     } catch {
-      setStatus("Couldn't load brands.", "err");
+      if (seq === loadSeq.current) setStatus("Couldn't load brands.", "err");
       return [];
     }
   }, [setStatus]);
 
   useEffect(() => {
     refresh();
-  }, [refresh]);
+  }, [refresh, userId]);
 
   const setField = (key, value) => setBrand((b) => ({ ...b, [key]: value }));
   const applyFields = (fields) => setBrand((b) => ({ ...b, ...fields }));
@@ -65,6 +79,19 @@ export function useBrandWorkspace(setStatus) {
     setNotes(nextNotes);
     setFileLabel(d.name || untitled(nextScope));
   };
+
+  // Signing in keeps the form as it is (a save may be waiting on that login).
+  // Signing out, deleting the account or switching accounts clears it, since
+  // the open brand belonged to the previous account.
+  const prevUserId = useRef(userId);
+  useEffect(() => {
+    const prev = prevUserId.current;
+    prevUserId.current = userId;
+    if (!prev || prev === userId) return;
+    setCurrentId(null);
+    setScope("regular");
+    fill({}, "regular", []);
+  }, [userId]);
 
   const newBrand = (nextScope) => {
     setScope(nextScope);

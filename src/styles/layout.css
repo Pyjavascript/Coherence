@@ -141,7 +141,11 @@ body {
 
 /* Mobile: off-canvas drawer. */
 .app-shell[data-bp="mobile"] {
-  padding: 8px;
+  padding:
+    max(8px, env(safe-area-inset-top))
+    max(8px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
 }
 
 .app-shell[data-bp="mobile"] .shell-left {
@@ -397,6 +401,16 @@ body {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.lnav-profile {
+  overflow: hidden;
+}
+
+.lnav-profile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .lnav .rail-credits {
@@ -1194,6 +1208,44 @@ body {
   padding: 10px clamp(12px, 1.2vw, 14px) 10px clamp(12px, 1.2vw, 14px);
   font-size: clamp(14px, 1.25vw, 16px);
   white-space: nowrap;
+  /* max-width + overflow let it collapse smoothly in Quick Grid (see .is-hidden). */
+  max-width: 16rem;
+  overflow: hidden;
+  transition:
+    background-color 180ms ease,
+    transform 120ms ease,
+    opacity 220ms ease,
+    scale var(--shell-dur) var(--shell-ease),
+    max-width var(--shell-dur) var(--shell-ease),
+    padding var(--shell-dur) var(--shell-ease),
+    width var(--shell-dur) var(--shell-ease),
+    visibility 0s linear 0s;
+}
+
+/* Quick Grid has no free-form nodes: shrink and fade the button away, then
+   drop it from hit-testing / focus once the collapse finishes. */
+.ws-topbar .toolbar-add-node.is-hidden {
+  max-width: 0;
+  padding-inline: 0;
+  opacity: 0;
+  scale: 0.85;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    background-color 180ms ease,
+    opacity 180ms ease,
+    scale var(--shell-dur) var(--shell-ease),
+    max-width var(--shell-dur) var(--shell-ease),
+    padding var(--shell-dur) var(--shell-ease),
+    width var(--shell-dur) var(--shell-ease),
+    visibility 0s linear var(--shell-dur);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-topbar .toolbar-add-node,
+  .ws-topbar .toolbar-add-node.is-hidden {
+    transition: none;
+  }
 }
 
 .ws-topbar .toolbar-add-node[aria-expanded="true"] {
@@ -1254,6 +1306,15 @@ body {
 .ws-topbar .toolbar-generate.is-busy:disabled {
   opacity: 0.85;
   cursor: progress;
+}
+
+.ws-topbar .toolbar-generate.is-limited {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tb-label-short {
+  display: none;
 }
 
 .toolbar-spinner {
@@ -1427,12 +1488,38 @@ body {
 
 @container ws (max-width: 760px) {
   .ws-topbar {
+    flex-wrap: nowrap;
     gap: 8px;
   }
 
   .ws-topbar-start,
   .ws-topbar-end {
+    flex: 0 0 auto;
     gap: 8px;
+  }
+
+  .ws-topbar .toolbar-generate {
+    min-width: 0;
+    padding-inline: 12px;
+    font-size: 14px;
+  }
+
+  /* Match the other toolbar buttons instead of the fixed 60px desktop size. */
+  .ws-topbar .toolbar-add-node {
+    height: var(--tb-h);
+    margin-block: 0;
+  }
+
+  .ws-topbar .tb-label-full {
+    display: none;
+  }
+
+  .ws-topbar .tb-label-short {
+    display: inline;
+  }
+
+  .ws-topbar .toolbar-gen-detail {
+    display: none;
   }
 }
 
@@ -1447,7 +1534,7 @@ body {
   }
 
   .ws-topbar .toolbar-add-node {
-    width: 60px;
+    width: var(--tb-h);
     justify-content: center;
     padding: 0;
   }
@@ -1584,7 +1671,7 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0 clamp(12px, 1.6vw, 24px) clamp(12px, 1.6vw, 24px);
-  background-image: radial-gradient(rgba(49, 62, 149, 0.13) 0.75px, transparent 0.9px);
+  background-image: radial-gradient(#fff 0.75px, transparent 0.9px);
   background-size: 18px 18px;
   background-attachment: local;
 }
@@ -1983,7 +2070,7 @@ body {
   height: auto;
   border-radius: var(--r);
   background-color: transparent;
-  background-image: radial-gradient(rgba(49, 62, 149, 0.13) 0.75px, transparent 0.9px);
+  background-image: radial-gradient(#fff 0.75px, transparent 0.9px);
   background-size: var(--canvas-dot-size) var(--canvas-dot-size);
   background-position: var(--canvas-dot-x) var(--canvas-dot-y);
 }
@@ -2246,6 +2333,12 @@ body {
   border-radius: var(--r);
   cursor: pointer;
   transition: background-color 150ms ease, color 150ms ease;
+}
+
+.app-shell[data-bp="mobile"] .sn-mini,
+.app-shell[data-bp="mobile"] .sn-toggle {
+  width: 44px;
+  height: 44px;
 }
 
 .sn-mini svg {
@@ -2553,7 +2646,8 @@ body {
   border: 0;
   border-radius: var(--r);
   cursor: pointer;
-  transition: background-color 150ms ease, scale 150ms ease;
+  /* Slow, eased grow on hover; the press shrinks quicker so clicks feel crisp. */
+  transition: background-color 260ms ease, scale var(--shell-dur) var(--shell-ease);
 }
 
 .sn-add svg {
@@ -2564,7 +2658,20 @@ body {
 
 .sn-add:hover {
   background: var(--shell-indigo);
-  scale: 1.04;
+  scale: 1.06;
+}
+
+.sn-add:active {
+  scale: 0.96;
+  transition-duration: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sn-add,
+  .sn-add:hover,
+  .sn-add:active {
+    scale: none;
+  }
 }
 
 /* "+" under a node: spawns a connected child. */
@@ -2574,7 +2681,10 @@ body {
   bottom: -16px;
   left: 50%;
   margin: 0;
-  transform: translate(-50%, 100%);
+  /* `translate`, not `transform`: `scale` is applied on top of `transform`,
+     so the hover scale also stretched this offset and the button drifted
+     down-left while growing. With `translate` it grows in place. */
+  translate: -50% 100%;
 }
 
 /* "+" in an empty column. */
@@ -2623,71 +2733,89 @@ body {
   overflow-y: auto;
 }
 
-/* Auth: navy shell, light inner card (Create an Account / Welcome back!) */
+/* Auth: same skin as the product tour — white card, tinted header that fades
+   to white, ink copy, tour Back / Continue buttons. */
+.auth-overlay {
+  backdrop-filter: blur(3px);
+}
+
 .auth-modal {
   width: 100%;
-  max-width: 480px;
+  max-width: 460px;
   max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: clamp(20px, 2.2vw, 30px) clamp(14px, 1.6vw, 20px) clamp(14px, 1.6vw, 20px);
-  color: #fff;
-  background: var(--shell-navy);
+  padding: 0;
+  color: var(--shell-ink);
+  background:
+    radial-gradient(70% 90% at 50% 0%, rgba(23, 60, 245, 0.16) 0%, transparent 70%) top / 100% clamp(170px, 30vh, 214px) no-repeat,
+    linear-gradient(180deg, #dfe5ff 0%, #f3f6ff 58%, #fff 100%) top / 100% clamp(170px, 30vh, 214px) no-repeat,
+    #fff;
   border: 0;
-  border-radius: var(--r);
+  border-radius: 24px;
+  box-shadow: 0 24px 70px rgba(5, 12, 48, 0.35);
+  animation: confirm-in 260ms var(--shell-ease) both;
 }
 
 .auth-modal .modal-head {
   position: relative;
   justify-content: center;
   margin: 0;
-  padding: 0 48px;
+  padding: clamp(28px, 4vh, 38px) 56px 0;
 }
 
 .auth-modal .modal-head h3 {
   margin: 0;
-  color: #fff;
-  font-size: clamp(24px, 2.4vw, 34px);
-  font-weight: 500;
-  letter-spacing: -0.04em;
+  color: var(--shell-ink);
+  font-size: clamp(22px, 2.2vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
   text-align: center;
 }
 
 .auth-modal .modal-head button {
   position: absolute;
-  top: 50%;
-  right: 0;
+  top: 14px;
+  right: 14px;
   width: 40px;
   height: 40px;
   display: grid;
   place-items: center;
   padding: 0;
-  color: #fff;
+  color: var(--shell-ink);
   background: transparent;
   border: 0;
-  border-radius: var(--r);
-  transform: translateY(-50%);
+  border-radius: 50%;
   cursor: pointer;
+  transition: background-color 150ms ease;
 }
 
 .auth-modal .modal-head button:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.auth-modal .modal-head button svg {
+  width: 20px;
+  height: 20px;
 }
 
 .modal-subtitle {
-  margin: 10px 0 clamp(16px, 1.8vw, 24px);
-  color: rgba(255, 255, 255, 0.86);
-  font-size: clamp(14px, 1.2vw, 17px);
+  margin: 8px clamp(20px, 5vw, 30px) 0;
+  color: #5d6280;
+  font-size: 14.5px;
+  line-height: 1.6;
   text-align: center;
 }
 
 .auth-switch {
   padding: 0;
-  color: #fff;
+  color: var(--shell-blue);
   background: none;
   border: 0;
   font: inherit;
+  font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
@@ -2697,50 +2825,52 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: clamp(14px, 1.6vw, 20px);
+  padding: 22px clamp(18px, 5vw, 26px) clamp(18px, 5vw, 26px);
   color: var(--shell-ink);
-  background: var(--shell-tint);
-  border-radius: var(--r);
 }
 
 .auth-google,
 .auth-field input,
 .auth-submit {
   width: 100%;
-  height: clamp(46px, 3.8vw, 54px);
-  border: 0;
+  height: 50px;
   border-radius: var(--r);
   font: inherit;
-  font-size: clamp(14px, 1.15vw, 16px);
+  font-size: 15px;
 }
 
+/* Google = tour "Back" button. */
 .auth-google {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: #1b1f3b;
+  color: var(--shell-ink);
   background: #fff;
+  border: 1px solid #dfe3f2;
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
 }
 
 .auth-google:hover:not(:disabled) {
-  background: #fbfcff;
+  background: var(--shell-tint);
+  border-color: var(--shell-tint-2);
 }
 
 .auth-divider {
   display: flex;
   align-items: center;
   gap: 14px;
-  color: var(--shell-ink);
-  font-size: 15px;
+  color: #70748d;
+  font-size: 13px;
 }
 
 .auth-divider::before,
 .auth-divider::after {
   flex: 1;
   height: 1px;
-  background: #d5d9ea;
+  background: #dfe3f2;
   content: "";
 }
 
@@ -2754,17 +2884,33 @@ body {
   display: block;
   margin-bottom: 8px;
   color: var(--shell-ink);
-  font-size: clamp(14px, 1.15vw, 16px);
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .auth-field input {
   padding: 0 20px;
   color: var(--shell-ink);
-  background: #fff;
+  background: var(--shell-tint);
+  border: 1px solid transparent;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.auth-field input::placeholder {
+  color: #a3a8c3;
+  opacity: 1;
+}
+
+/* Bullet placeholders read small at body size, so give them more weight and spacing. */
+.auth-password input[type="password"]::placeholder {
+  font-size: 18px;
+  letter-spacing: 0.12em;
 }
 
 .auth-field input:focus {
-  outline: 2px solid #c9d3ff;
+  background: #fff;
+  border-color: #8fa0ff;
+  outline: none;
 }
 
 .auth-password {
@@ -2784,34 +2930,62 @@ body {
 .auth-password button {
   position: absolute;
   top: 50%;
-  right: 10px;
+  right: 8px;
   width: 36px;
   height: 36px;
   display: grid;
   place-items: center;
   padding: 0;
-  color: var(--shell-ink);
+  color: #70748d;
   background: transparent;
   border: 0;
-  border-radius: var(--r);
+  border-radius: 50%;
   transform: translateY(-50%);
   cursor: pointer;
 }
 
-.auth-password button svg {
-  width: 22px;
-  height: 22px;
+.auth-password button:hover {
+  color: var(--shell-ink);
 }
 
+.auth-password button svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Submit = tour "Continue" button. */
 .auth-submit {
+  position: relative;
+  isolation: isolate;
   margin-top: 4px;
   color: #fff;
-  background: var(--shell-navy);
+  background: var(--shell-blue) linear-gradient(135deg, #3a5bff 0%, var(--shell-blue) 100%);
+  border: 0;
+  box-shadow: 0 8px 20px rgba(23, 60, 245, 0.28);
+  font-weight: 500;
   cursor: pointer;
+  transition: transform 120ms ease;
 }
 
-.auth-submit:hover:not(:disabled) {
-  background: #182765;
+/* Gradients can't transition, so the hover colour fades in as an overlay. */
+.auth-submit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--shell-blue-hover);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.auth-submit:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.auth-google:active:not(:disabled),
+.auth-submit:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .auth-google:disabled,
@@ -2820,21 +2994,30 @@ body {
   opacity: 0.7;
 }
 
+.auth-modal .modal-head button:focus-visible,
+.auth-switch:focus-visible,
+.auth-google:focus-visible,
+.auth-submit:focus-visible,
+.auth-password button:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
 .auth-error {
   margin: 0;
   padding: 10px 16px;
   color: #c62f3a;
   background: #fff0f1;
-  border-radius: var(--r);
+  border-radius: 14px;
   font-size: 13px;
 }
 
 .auth-notice {
   margin: 0;
-  padding: 10px 16px;
+  padding: 12px 16px;
   color: #1f6b3a;
   background: #eefaf2;
-  border-radius: var(--r);
+  border-radius: 14px;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -2844,6 +3027,12 @@ body {
   align-items: center;
   justify-content: center;
   text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-modal {
+    animation: none;
+  }
 }
 
 /* ---------- Toast clears the view switch on small screens ---------- */

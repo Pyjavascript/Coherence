@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LIMITS } from "../lib/clientId";
 import { Logo } from "../assets/globalAssets";
+import { profileOf } from "./ProfileModal";
 
 // Every row is [fixed 40px icon slot][label]. The icon slot never moves, so
 // only the labels fade/slide when the sidebar expands or collapses.
@@ -13,19 +14,23 @@ function Row({ as: Tag = "button", className = "", icon, label, ...rest }) {
   );
 }
 
-const ProfileIcon = () => (
+const ProfileIcon = ({ src }) => (
   <span className="lnav-icon lnav-profile">
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="8" r="3.25" />
-      <path d="M4.5 20c.8-3.5 3.5-5.5 7.5-5.5s6.7 2 7.5 5.5" />
-    </svg>
+    {src ? (
+      <img src={src} alt="" referrerPolicy="no-referrer" />
+    ) : (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="8" r="3.25" />
+        <path d="M4.5 20c.8-3.5 3.5-5.5 7.5-5.5s6.7 2 7.5 5.5" />
+      </svg>
+    )}
   </span>
 );
 
 export default function BrandSidebar({
-  open, drawer, onToggle, onExpand, brands, currentId, onSelect, onNew, user, onLogin, onSignup, onLogout, usage, model,
+  open, drawer, onToggle, onExpand, brands, currentId, onSelect, onNew, user, onLogin, onSignup, onProfile, usage, model,
 }) {
-  const [popover, setPopover] = useState(null); // null | "profile" | "usage"
+  const [popover, setPopover] = useState(null); // null | "usage"
   const footerRef = useRef(null);
 
   // The cards are sized to the expanded panel; never leave one open on a collapsed rail.
@@ -53,6 +58,7 @@ export default function BrandSidebar({
     setPopover((current) => (current === name ? null : name));
   };
   const tip = (text) => (open ? undefined : text);
+  const profile = user ? profileOf(user) : null;
 
   return (
     <aside className="lnav" data-open={open} aria-label="Workspace navigation">
@@ -115,14 +121,6 @@ export default function BrandSidebar({
       </nav>
 
       <div className="lnav-footer" ref={footerRef}>
-        {popover === "profile" && user && (
-          <div className="rail-account-card" role="dialog" aria-label="Account">
-            <p className="rail-card-caption">Signed in as</p>
-            <p className="rail-card-email" title={user.email}>{user.email}</p>
-            <hr className="rail-card-divider" />
-            <button type="button" className="rail-logout" onClick={onLogout}>Log out</button>
-          </div>
-        )}
         {popover === "usage" && user && (
           <div className="rail-usage-card" role="dialog" aria-label="Credits">
             <div className="rail-usage-heading">
@@ -160,10 +158,10 @@ export default function BrandSidebar({
 
         {user ? (
           <Row
-            title={tip(user.email)}
-            aria-expanded={popover === "profile"}
-            onClick={() => togglePopover("profile")}
-            icon={<ProfileIcon />}
+            title={tip(profile.displayName || user.email)}
+            aria-haspopup="dialog"
+            onClick={() => { setPopover(null); onProfile(); }}
+            icon={<ProfileIcon src={profile.avatar} />}
             label="Profile"
           />
         ) : (

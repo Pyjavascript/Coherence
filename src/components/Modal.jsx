@@ -3,15 +3,72 @@ import { Skeleton } from "./OutputCard";
 import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { timeUntilReset } from "../lib/hookQuota";
 
-// Escape closes the dialog unless something inside (e.g. a dropdown) handled it first.
-function useEscape(onClose) {
+const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function focusableIn(root) {
+  if (!root) return [];
+  return [...root.querySelectorAll(FOCUSABLE)].filter((el) => !el.closest("[inert]"));
+}
+
+// Move focus into the dialog, keep Tab inside it, and restore focus on close.
+// Escape closes unless something inside (e.g. a dropdown) already handled it.
+export function useDialogBehavior(onClose, focusRef) {
+  const panelRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
+    const opener = document.activeElement;
+    const root = panelRef.current;
+    const items = focusableIn(root);
+    (focusRef?.current || items[0])?.focus();
+
     const onKey = (event) => {
-      if (event.key === "Escape" && !event.defaultPrevented) onClose();
+      if (event.key === "Escape") {
+        if (event.defaultPrevented) return;
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !root) return;
+      const list = focusableIn(root);
+      if (!list.length) {
+        event.preventDefault();
+        return;
+      }
+      const first = list[0];
+      const last = list[list.length - 1];
+      const active = document.activeElement;
+      const inside = root.contains(active);
+      if (event.shiftKey && (!inside || active === first)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (!inside || active === last)) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      if (opener instanceof HTMLElement && document.contains(opener)) opener.focus();
+    };
+  }, [focusRef]);
+
+  return panelRef;
+}
+
+// Dismiss only when the pointer starts and ends on the overlay, so dragging
+// a text selection out of a field does not close the dialog.
+export function useOverlayDismiss(onClose) {
+  const armed = useRef(false);
+  return {
+    onPointerDown: (event) => { armed.current = event.target === event.currentTarget; },
+    onPointerUp: (event) => {
+      if (armed.current && event.target === event.currentTarget) onClose();
+      armed.current = false;
+    },
+  };
 }
 
 // X-cross close glyph used by every navy dialog in the design.
@@ -21,12 +78,13 @@ export const CloseBar = () => (
   </svg>
 );
 
-export function Modal({ title, subtitle, onClose, children, modalClassName = "" }) {
+export function Modal({ title, subtitle, onClose, children, modalClassName = "", overlayClassName = "" }) {
   const titleId = useId();
-  useEscape(onClose);
+  const panelRef = useDialogBehavior(onClose);
+  const dismiss = useOverlayDismiss(onClose);
   return (
-    <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <section className={`modal ${modalClassName}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <div className={`overlay ${overlayClassName}`.trim()} {...dismiss}>
+      <section ref={panelRef} className={`modal ${modalClassName}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="modal-head">
           <h3 id={titleId}>{title}</h3>
           <button type="button" aria-label={`Close ${title}`} onClick={onClose}><CloseBar /></button>
@@ -67,12 +125,13 @@ export function ConfirmModal({
   const bodyId = useId();
   const cancelRef = useRef(null);
   const confirmRef = useRef(null);
-  useEscape(onClose);
-  useEffect(() => { (tone === "danger" ? cancelRef : confirmRef).current?.focus(); }, [tone]);
+  const focusRef = tone === "danger" ? cancelRef : confirmRef;
+  const panelRef = useDialogBehavior(onClose, focusRef);
+  const dismiss = useOverlayDismiss(onClose);
 
   return (
-    <div className="overlay confirm-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <section className={"confirm-dialog is-" + tone} role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={bodyId}>
+    <div className="overlay confirm-overlay" {...dismiss}>
+      <section ref={panelRef} className={"confirm-dialog is-" + tone} role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={bodyId}>
         <span className="confirm-icon">{CONFIRM_ICONS[icon] || CONFIRM_ICONS.warning}</span>
         <h2 id={titleId} className="confirm-title">{title}</h2>
         <div id={bodyId} className="confirm-text">
@@ -98,7 +157,8 @@ export function ConfirmModal({
 export function CoherenceModal({ text, onCopy, onClose }) {
   const [prompt, setPrompt] = useState(text);
   const [copied, flashCopied] = useCopyFeedback();
-  useEscape(onClose);
+  const panelRef = useDialogBehavior(onClose);
+  const dismiss = useOverlayDismiss(onClose);
 
   useEffect(() => {
     setPrompt(text);
@@ -110,8 +170,9 @@ export function CoherenceModal({ text, onCopy, onClose }) {
   };
 
   return (
-    <div className="overlay coherence-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="overlay coherence-overlay" {...dismiss}>
       <section
+        ref={panelRef}
         className="coherence-modal"
         role="dialog"
         aria-modal="true"
@@ -121,7 +182,7 @@ export function CoherenceModal({ text, onCopy, onClose }) {
         <header className="coherence-header">
           <h2 id="coherence-title">Coherence Prompt</h2>
           <div className="coherence-header-actions">
-            <button className="coherence-close" type="button" aria-label="Close coherence prompt" onClick={onClose}>×</button>
+            <button className="coherence-close" type="button" aria-label="Close coherence prompt" onClick={onClose}><CloseBar /></button>
           </div>
         </header>
         <div className="coherence-content" id="coherence-content">

@@ -242,8 +242,13 @@ export default function BrandPanel({
           className="rsb-history"
           aria-label="Generation history"
           title={isSaved ? "Generation history" : "Save the brand to keep a generation history"}
-          disabled={!isSaved}
-          onClick={onHistory}
+          onClick={() => {
+            if (!isSaved) {
+              onStatus("Save the brand to keep a generation history.", "warn");
+              return;
+            }
+            onHistory();
+          }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" />
@@ -284,7 +289,7 @@ export default function BrandPanel({
               id="bp-message"
               className={"bp-textarea" + (showMessageError ? " is-invalid" : "")}
               rows={2}
-              placeholder="Questions about cooperation, you will need to fill ...."
+              placeholder="Questions about cooperation, you will need to fill"
               aria-required="true"
               aria-invalid={showMessageError || undefined}
               aria-describedby={showMessageError ? "bp-message-error" : undefined}

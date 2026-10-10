@@ -77,7 +77,7 @@ function MoreMenu({ label, onDuplicate, onDelete, disabled }) {
 }
 
 export default function NodeActions({
-  label, busy, canCopy, preview, onTogglePreview, regenDisabled, regenTitle, onRegenerate, onCopy, onDuplicate, onDelete,
+  label, busy, canCopy, preview, onTogglePreview, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete,
 }) {
   const [copied, flashCopied] = useCopyFeedback();
 
@@ -105,8 +105,15 @@ export default function NodeActions({
         className={"ncard-action" + (busy ? " is-spinning" : "")}
         title={regenTitle || `Regenerate ${label}`}
         aria-label={`Regenerate ${label}`}
-        disabled={busy || regenDisabled}
-        onClick={onRegenerate}
+        disabled={busy}
+        aria-disabled={regenDisabled || undefined}
+        onClick={() => {
+          if (regenDisabled) {
+            onBlocked?.();
+            return;
+          }
+          onRegenerate();
+        }}
       >
         <RegenIcon />
       </button>

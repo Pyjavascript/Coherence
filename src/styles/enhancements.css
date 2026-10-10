@@ -1338,7 +1338,7 @@
 
 /* ---------- Confirm dialog ---------- */
 
-/* Navy skin like the hook / research dialogs: icon, centred title, two equal buttons. */
+/* Icon, centred title, two equal buttons. Colours come from the popup skin below. */
 .confirm-overlay {
   backdrop-filter: blur(3px);
 }
@@ -1638,7 +1638,889 @@
   text-align: center;
 }
 
+/* ---------- Popup skin ---------- */
+
+/* Every dialog wears the tour's look: white card with a blue tint fading in
+   from the top, ink copy, tinted panels holding white fields, and the tour's
+   Continue (blue gradient) / Back (white, outlined) buttons. Overrides the
+   older navy rules in index.css, which load first. */
+.overlay,
+.coherence-overlay {
+  background: rgba(9, 17, 61, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.hook-modal,
+.research-modal,
+.coherence-modal,
+.confirm-dialog,
+.confirm-dialog:not(.is-danger) {
+  width: 100%;
+  max-width: 460px;
+  color: var(--shell-ink);
+  background:
+    radial-gradient(70% 90% at 50% 0%, rgba(23, 60, 245, 0.16) 0%, transparent 70%) top / 100% clamp(170px, 30vh, 214px) no-repeat,
+    linear-gradient(180deg, #dfe5ff 0%, #f3f6ff 58%, #fff 100%) top / 100% clamp(170px, 30vh, 214px) no-repeat,
+    #fff;
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 24px 70px rgba(5, 12, 48, 0.35);
+  animation: confirm-in 260ms var(--shell-ease) both;
+}
+
+/* Same box as the sign-up popup (460 × 570): one region per dialog — hook
+   result, prompt, notes list, history list — grows to fill the height. */
+.hook-modal,
+.research-modal,
+.coherence-modal {
+  height: min(570px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: clamp(28px, 4vh, 38px) clamp(18px, 5vw, 26px) clamp(18px, 5vw, 26px);
+}
+
+/* Centred title with the close button pinned to the right, as in sign-up. */
+.hook-modal .modal-head,
+.research-modal .modal-head,
+.coherence-header {
+  position: relative;
+  justify-content: center;
+  margin: 0;
+  padding: 0 44px;
+}
+
+.hook-modal .modal-head h3,
+.research-modal .modal-head h3,
+.coherence-header h2 {
+  margin: 0;
+  color: var(--shell-ink);
+  font-size: clamp(22px, 2.2vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+
+.hook-modal .modal-head button,
+.research-modal .modal-head button,
+.coherence-header-actions {
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  transform: translateY(-50%);
+}
+
+.hook-modal .modal-head button,
+.research-modal .modal-head button,
+.coherence-close {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.hook-modal .modal-head button svg,
+.research-modal .modal-head button svg,
+.coherence-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.hook-modal .modal-head button:hover,
+.research-modal .modal-head button:hover,
+.coherence-close:hover,
+.coherence-close:active {
+  background: rgba(13, 20, 69, 0.06);
+}
+
+.hook-modal .modal-head button:active,
+.research-modal .modal-head button:active {
+  transform: translateY(-50%) scale(0.94);
+}
+
+.hook-description,
+.research-description,
+.coherence-description,
+.history-modal .hook-description {
+  flex: none;
+  max-width: 380px;
+  margin: 6px auto 20px;
+  text-wrap: balance;
+  color: #70748d;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+/* No inner panel: fields sit straight on the card, edge to edge like sign-up. */
+.hook-modal-content,
+.research-modal-content,
+.coherence-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: visible;
+}
+
+.hook-panel,
+.research-panel,
+.coherence-panel {
+  min-height: 0;
+  flex: 1 1 auto;
+  gap: 14px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.hook-label {
+  margin: 0 0 -6px;
+  color: var(--shell-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Inputs = sign-up inputs: soft tint, turning white with a blue edge on focus. */
+.hook-brief,
+.research-field,
+.research-select-trigger {
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border: 1px solid transparent;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.hook-brief {
+  min-height: 96px;
+  padding: 14px 20px;
+  font-size: 14px;
+  resize: none;
+}
+
+/* Research Notes has no description, so give the title its own breathing room. */
+.research-modal-content {
+  margin-top: 22px;
+}
+
+.research-select-trigger {
+  height: 50px;
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+.research-field textarea {
+  padding: 14px 20px;
+  color: var(--shell-ink);
+  font-size: 14px;
+}
+
+.hook-brief:focus,
+.research-field:focus-within,
+.research-select-trigger:focus-visible,
+.research-select.is-open .research-select-trigger {
+  background: #fff;
+  border-color: #8fa0ff;
+  outline: none;
+}
+
+/* Read-only surfaces = white cards with the "Back" button's outline. */
+.coherence-prompt,
+.hook-result,
+.research-note-card,
+.research-empty,
+.history-entry {
+  background: #fff;
+  border: 1px solid #dfe3f2;
+}
+
+.coherence-prompt:focus {
+  border-color: #8fa0ff;
+  outline: none;
+}
+
+.hook-result {
+  min-height: 90px;
+  flex: 1 1 auto;
+  padding: 14px 18px;
+}
+
+.hook-result-text {
+  color: var(--shell-ink);
+}
+
+.coherence-prompt {
+  min-height: 0;
+  height: auto;
+  padding: 16px 18px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.research-notes-list,
+.history-list.research-panel {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.history-list.research-panel {
+  gap: 10px;
+}
+
+.history-filters {
+  justify-content: center;
+  margin: 0 0 14px;
+}
+
+.hook-brief::placeholder,
+.research-field textarea::placeholder {
+  color: #a3a8c3;
+  opacity: 1;
+}
+
+.research-select-list {
+  border: 1px solid #dfe3f2;
+}
+
+.research-select-option {
+  color: var(--shell-ink);
+}
+
+.research-select-option:hover,
+.research-select-option:focus-visible,
+.research-select-option[aria-selected="true"] {
+  background: var(--shell-tint);
+}
+
+.hook-result-label {
+  color: #70748d;
+  font-weight: 600;
+}
+
+.hook-result-message,
+.research-empty {
+  color: #8a8fa8;
+}
+
+.research-note-body h3 {
+  color: var(--shell-ink);
+  font-weight: 600;
+}
+
+.research-note-body p {
+  color: #5d6280;
+}
+
+.research-note-card > button {
+  color: #70748d;
+}
+
+.research-note-card > button:hover {
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+}
+
+/* Primary actions = tour "Continue". */
+.hook-generate,
+.research-add,
+.coherence-copy,
+.confirm-ok:not(.is-danger) {
+  position: relative;
+  isolation: isolate;
+  min-height: 50px;
+  height: 50px;
+  color: #fff;
+  background: var(--shell-blue) linear-gradient(135deg, #3a5bff 0%, var(--shell-blue) 100%);
+  border: 0;
+  border-radius: var(--r);
+  box-shadow: 0 8px 20px rgba(23, 60, 245, 0.28);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Gradients can't transition, so the hover colour fades in as an overlay. */
+.hook-generate::before,
+.research-add::before,
+.coherence-copy::before,
+.confirm-ok:not(.is-danger)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--shell-blue-hover);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.hook-generate:hover:not(:disabled),
+.research-add:hover:not(:disabled),
+.coherence-copy:hover,
+.coherence-copy:active,
+.confirm-ok:not(.is-danger):hover {
+  background: var(--shell-blue) linear-gradient(135deg, #3a5bff 0%, var(--shell-blue) 100%);
+}
+
+.hook-generate:hover:not(:disabled)::before,
+.research-add:hover:not(:disabled)::before,
+.coherence-copy:hover::before,
+.confirm-ok:not(.is-danger):hover::before {
+  opacity: 1;
+}
+
+/* Secondary actions = tour "Back". */
+.hook-copy,
+.confirm-cancel {
+  min-height: 50px;
+  height: 50px;
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid #dfe3f2;
+  border-radius: var(--r);
+  font-size: 15px;
+  font-weight: 500;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+}
+
+.hook-copy:hover,
+.confirm-cancel:hover {
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border-color: var(--shell-tint-2);
+}
+
+.coherence-copy:active,
+.confirm-actions button:active {
+  transform: scale(0.98);
+}
+
+/* Confirm: blue icon by default, red only for destructive actions. */
+.confirm-title {
+  color: var(--shell-ink);
+}
+
+.confirm-icon {
+  color: #e5303a;
+  background: #fff0f1;
+  box-shadow: 0 0 0 8px rgba(229, 48, 58, 0.06);
+}
+
+.confirm-dialog:not(.is-danger) .confirm-icon {
+  color: var(--shell-blue);
+  background: #eef0ff;
+  box-shadow: 0 0 0 8px rgba(23, 60, 245, 0.06);
+}
+
+.confirm-body {
+  color: #5d6280;
+}
+
+.confirm-body b {
+  color: var(--shell-ink);
+}
+
+.confirm-note {
+  color: #c62f3a;
+}
+
+.confirm-dialog:not(.is-danger) .confirm-note {
+  color: #70748d;
+}
+
+/* History: outlined filter pills, active one in tour blue. */
+.history-filters button {
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid #dfe3f2;
+}
+
+.history-filters button:hover {
+  background: var(--shell-tint);
+}
+
+.history-filters button.on {
+  color: #fff;
+  background: var(--shell-blue);
+  border-color: var(--shell-blue);
+}
+
+.hook-modal .modal-head button:focus-visible,
+.research-modal .modal-head button:focus-visible,
+.coherence-close:focus-visible,
+.coherence-copy:focus-visible,
+.hook-generate:focus-visible,
+.hook-copy:focus-visible,
+.research-add:focus-visible,
+.confirm-actions button:focus-visible,
+.history-filters button:focus-visible,
+.history-actions button:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
+/* ---------- Profile dialog ---------- */
+
+/* Same skin as sign-up: white card with the blue tint fading in from the top.
+   Avatar overlaps the tinted band; labelled rows; delete left, cancel/save right. */
+.profile-modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100dvh - 32px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: var(--shell-ink);
+  background:
+    radial-gradient(70% 90% at 50% 0%, rgba(23, 60, 245, 0.16) 0%, transparent 70%) top / 100% 150px no-repeat,
+    linear-gradient(180deg, #dfe5ff 0%, #f3f6ff 58%, #fff 100%) top / 100% 150px no-repeat,
+    #fff;
+  border-radius: 24px;
+  animation: confirm-in 260ms var(--shell-ease) both;
+}
+
+.profile-banner {
+  position: relative;
+  height: 104px;
+}
+
+.profile-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.profile-close:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.profile-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.profile-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -52px;
+  padding: 0 clamp(18px, 5vw, 26px);
+}
+
+.profile-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  color: var(--shell-blue);
+  background: #eef0ff;
+  border-radius: 50%;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar.is-lg {
+  width: 85px;
+  height: 85px;
+  border: 4px solid #fff;
+  font-size: 32px;
+}
+
+.profile-photo-trigger {
+  position: relative;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.profile-photo-badge {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--shell-blue) linear-gradient(135deg, #3a5bff 0%, var(--shell-blue) 100%);
+  border: 3px solid #fff;
+  border-radius: 50%;
+  transition: transform 150ms var(--shell-ease);
+}
+
+.profile-photo-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.profile-photo-trigger:hover .profile-photo-badge {
+  transform: scale(1.08);
+}
+
+/* Small outlined button = tour "Back" at pill size. */
+.profile-pill {
+  height: 38px;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding: 0 15px;
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid #dfe3f2;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+}
+
+.profile-pill:hover {
+  background: var(--shell-tint);
+  border-color: var(--shell-tint-2);
+}
+
+.profile-pill svg {
+  width: 16px;
+  height: 16px;
+}
+
+.profile-id {
+  min-width: 0;
+  padding: 14px clamp(18px, 5vw, 26px) 0;
+}
+
+.profile-id h2 {
+  margin: 0;
+  overflow: hidden;
+  font-size: clamp(20px, 2vw, 23px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-id p {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: #70748d;
+  font-size: 13.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-rows {
+  margin: 18px clamp(18px, 5vw, 26px) 0;
+  border-top: 1px solid #e8ebf6;
+}
+
+.profile-row {
+  display: grid;
+  grid-template-columns: 102px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #e8ebf6;
+}
+
+.profile-row-label {
+  color: var(--shell-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.profile-name-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Inputs = sign-up inputs: soft tint, turning white with a blue edge on focus. */
+.profile-input {
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  padding: 0 18px;
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: 14.5px;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.profile-input::placeholder {
+  color: #a3a8c3;
+  opacity: 1;
+}
+
+.profile-input:focus {
+  background: #fff;
+  border-color: #8fa0ff;
+  outline: none;
+}
+
+.profile-input[readonly] {
+  color: #5d6280;
+  cursor: default;
+}
+
+.profile-input-icon {
+  position: relative;
+}
+
+.profile-input-icon svg {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  width: 18px;
+  height: 18px;
+  color: #70748d;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.profile-input-icon .profile-input {
+  padding-left: 44px;
+}
+
+.profile-error {
+  margin: 14px clamp(18px, 5vw, 26px) 0;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 20px clamp(18px, 5vw, 26px) clamp(18px, 5vw, 26px);
+}
+
+.profile-actions-end {
+  display: flex;
+  gap: 10px;
+}
+
+.profile-delete,
+.profile-cancel,
+.profile-save {
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease, opacity 150ms ease;
+}
+
+.profile-delete {
+  color: #c62f3a;
+  background: #fff0f1;
+  border: 1px solid transparent;
+}
+
+.profile-delete:hover:not(:disabled) {
+  background: #ffe1e4;
+}
+
+.profile-delete svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Cancel = tour "Back". */
+.profile-cancel {
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid #dfe3f2;
+}
+
+.profile-cancel:hover:not(:disabled) {
+  background: var(--shell-tint);
+  border-color: var(--shell-tint-2);
+}
+
+/* Save = tour "Continue"; the hover colour fades in as an overlay. */
+.profile-save {
+  position: relative;
+  isolation: isolate;
+  color: #fff;
+  background: var(--shell-blue) linear-gradient(135deg, #3a5bff 0%, var(--shell-blue) 100%);
+  border: 0;
+}
+
+.profile-save::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--shell-blue-hover);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.profile-save:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.profile-pill:active,
+.profile-delete:active:not(:disabled),
+.profile-cancel:active:not(:disabled),
+.profile-save:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.profile-delete:disabled,
+.profile-cancel:disabled,
+.profile-save:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Delete step: the confirm dialog's layout inside the same card. */
+.profile-modal.profile-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 22px 22px;
+  text-align: center;
+}
+
+.profile-confirm .confirm-body b {
+  overflow-wrap: anywhere;
+}
+
+.profile-confirm-error {
+  width: 100%;
+  margin: -8px 0 14px;
+}
+
+.profile-close:focus-visible,
+.profile-photo-trigger:focus-visible,
+.profile-pill:focus-visible,
+.profile-delete:focus-visible,
+.profile-cancel:focus-visible,
+.profile-save:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 519.98px) {
+  .profile-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .profile-delete {
+    width: 100%;
+    order: 1;
+  }
+
+  .profile-actions-end {
+    flex: 1 1 100%;
+  }
+
+  .profile-actions-end > * {
+    flex: 1;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .profile-modal {
+    max-height: calc(100svh - 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-modal {
+    animation: none;
+  }
+}
+
 /* ---------- Reduced motion ---------- */
+
+.rsb-scroll,
+.research-notes-list,
+.history-list.research-panel {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(23, 60, 245, 0.4) transparent;
+}
+
+.rsb-scroll::-webkit-scrollbar,
+.research-notes-list::-webkit-scrollbar,
+.history-list.research-panel::-webkit-scrollbar {
+  display: block !important;
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.rsb-scroll::-webkit-scrollbar-thumb,
+.research-notes-list::-webkit-scrollbar-thumb,
+.history-list.research-panel::-webkit-scrollbar-thumb {
+  background: rgba(23, 60, 245, 0.4);
+  border-radius: 24px;
+}
+
+@media (max-width: 767.98px) {
+  .overlay {
+    overflow-y: auto;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .hook-modal,
+  .research-modal,
+  .auth-modal,
+  .coherence-modal,
+  .confirm-dialog,
+  .tour {
+    max-height: calc(100svh - 24px);
+  }
+}
+
+.ncard-action[aria-disabled="true"] {
+  opacity: 0.45;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ncard.is-fresh,
@@ -1646,10 +2528,279 @@
   .rsb .bp-upsell,
   .rsb-unsaved,
   .confirm-dialog,
+  .hook-modal,
+  .research-modal,
+  .coherence-modal,
   .tour,
   .tour-art > *,
   .tour-copy[data-active="true"],
   .pv {
     animation: none;
   }
+}
+
+/* ==========================================================================
+   Hover system — one hover treatment per kind of control, for the whole app.
+   Loaded last, so these rules replace the per-component hovers above and in
+   index.css / layout.css. To change how hover looks, change the tokens here.
+
+   Primary (blue fill)        -> --hover-primary
+   Solid (navy / indigo fill) -> --hover-solid
+   Light (white, clear, tint) -> --hover-light fill, ink text, matching border
+   On dark (clear on navy)    -> --hover-on-dark white wash
+   Danger                     -> --hover-danger-* (soft) / --hover-danger-solid
+
+   Hover only changes colour: no lifts, scales, shadows or brightness filters.
+   ========================================================================== */
+
+:root {
+  --hover-dur: 150ms;
+  --hover-primary: var(--shell-blue-hover);
+  --hover-solid: #182765;
+  --hover-light: var(--shell-tint-2);
+  --hover-ink: var(--shell-ink);
+  --hover-on-dark: rgba(255, 255, 255, 0.12);
+  --hover-danger: var(--ux-danger);
+  --hover-danger-bg: #ffe1e4;
+  --hover-danger-solid: #c9252f;
+  --hover-success-solid: #00b350;
+  --hover-transition:
+    background-color var(--hover-dur) ease,
+    color var(--hover-dur) ease,
+    border-color var(--hover-dur) ease;
+}
+
+/* Controls that had no transition of their own. */
+.qg-empty button,
+.ncard-retry,
+.ncard-menu button,
+.toolbar-export-menu button,
+.share-menu a,
+.share-menu button,
+.canvas-controls button,
+.history-filters button,
+.history-actions button,
+.sn-vtab,
+.sn-col-gen,
+.ws-view-nodes .sn-title,
+.ws-switch-btn,
+.toast-close,
+.auth-password button,
+.auth-switch,
+.bp-addimg,
+.bp-dd-opt,
+.model-selector-option,
+.research-select-option,
+.research-note-card > button,
+.rsb .bp-upsell button,
+.rsb .bp-copy,
+.rsb .bp-card-hook .bp-gen-btn {
+  transition: var(--hover-transition);
+}
+
+.rsb .bp-del,
+.rsb .bp-save,
+.sn-add,
+.tour-launch,
+.toolbar-node-menu button,
+.model-selector-trigger {
+  transition: var(--hover-transition), transform 120ms ease, scale 120ms ease;
+}
+
+/* ---------- Primary: blue fill ---------- */
+
+.ws-topbar .toolbar-generate:hover:not(:disabled),
+.history-actions button.is-primary:hover,
+.rsb .bp-copy:hover {
+  background: var(--hover-primary);
+}
+
+/* Gradient buttons fade the same colour in as an overlay (gradients can't transition). */
+.tour-primary::before,
+.auth-submit::before,
+.profile-save::before,
+.hook-generate::before,
+.research-add::before,
+.coherence-copy::before,
+.confirm-ok:not(.is-danger)::before {
+  background: var(--hover-primary);
+  transition: opacity var(--hover-dur) ease;
+}
+
+/* Keep the resting shadow: older rules swapped in a different one on hover. */
+.hook-generate:hover:not(:disabled),
+.research-add:hover:not(:disabled),
+.coherence-copy:hover {
+  box-shadow: 0 8px 20px rgba(23, 60, 245, 0.28);
+}
+
+/* The camera badge is a primary-blue chip: it darkens instead of growing. */
+.profile-photo-badge {
+  transition: background-color var(--hover-dur) ease;
+}
+
+.profile-photo-trigger:hover .profile-photo-badge {
+  background: var(--hover-primary);
+  transform: none;
+}
+
+/* ---------- Solid: navy / indigo fill ---------- */
+
+.toolbar-icon-btn:hover,
+.ws-topbar .toolbar-add-node:hover,
+.sn-gen:hover:not(:disabled),
+.sn-round.active:hover,
+.sn-add:hover,
+.qg-empty button:hover,
+.ncard-retry:hover {
+  background: var(--hover-solid);
+}
+
+.sn-add:hover {
+  scale: none;
+}
+
+/* Variant / filter chips that are switched on stay put; hovering them does nothing. */
+.ncard-vtab.on:hover,
+.sn-vtab.on:hover {
+  background: var(--shell-ink);
+}
+
+/* Node-coloured "on" action: darken its own colour rather than brighten it. */
+.ncard-action.is-on:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--node-color, var(--shell-ink)) 85%, #000);
+  filter: none;
+}
+
+/* ---------- Light: white, clear or tinted controls ---------- */
+
+/* Outlined buttons (tour "Back" family). */
+.tour-secondary:hover,
+.auth-google:hover:not(:disabled),
+.hook-copy:hover,
+.confirm-cancel:hover,
+.profile-pill:hover,
+.profile-cancel:hover:not(:disabled),
+.history-filters button:not(.on):hover {
+  color: var(--hover-ink);
+  background: var(--hover-light);
+  border-color: var(--hover-light);
+  box-shadow: none;
+}
+
+/* Filled-white and tinted buttons, icon buttons, chips. */
+.ncard-action:not(.is-on):not(.is-copied):hover:not(:disabled),
+.ncard-fav:not(.on):hover,
+.ncard-vtab:not(.on):hover,
+.sn-vtab:not(.on):hover,
+.sn-mini:hover,
+.sn-toggle:hover,
+.sn-round:not(.active):hover,
+.sn-col-gen:hover,
+.history-actions button:not(.is-primary):hover:not(:disabled),
+.canvas-controls button:hover,
+.tour-launch:hover,
+.ws-switch-btn:not(.on):hover,
+.rsb .bp-card-hook .bp-gen-btn:hover,
+.rsb .bp-research-field:hover,
+.rsb .bp-upsell button:hover {
+  background: var(--hover-light);
+  filter: none;
+}
+
+.tour-launch:hover {
+  color: var(--shell-indigo);
+}
+
+.model-selector-trigger:hover {
+  background: var(--hover-light);
+  box-shadow: 0 1px 2px rgba(10, 20, 80, 0.06), 0 4px 14px rgba(10, 20, 80, 0.06);
+}
+
+/* Close buttons on light dialogs. */
+.hook-modal .modal-head button:hover,
+.research-modal .modal-head button:hover,
+.auth-modal .modal-head button:hover,
+.coherence-close:hover,
+.profile-close:hover,
+.auth-password button:hover {
+  color: var(--hover-ink);
+  background: var(--hover-light);
+}
+
+/* Menu and dropdown rows. Selected rows keep their lighter tint. */
+.ncard-menu button:not(.danger):hover,
+.toolbar-export-menu button:hover,
+.toolbar-node-menu button:hover,
+.share-menu a:hover,
+.share-menu button:hover,
+.model-selector-option:hover,
+.research-select-option:hover,
+.bp-dd-opt:hover {
+  background: var(--hover-light);
+  transform: none;
+}
+
+/* Inline-editable text. */
+.ws-view-nodes .sn-title:hover,
+.ncard-copy .is-editable:hover {
+  background: var(--hover-light);
+  box-shadow: none;
+}
+
+/* Text links. */
+.auth-switch:hover,
+.rsb .bp-name-input .bp-addimg:hover {
+  color: var(--hover-primary);
+}
+
+/* ---------- On dark: clear controls on the navy rail and panels ---------- */
+
+.lnav-row:not(.lnav-toggle):not(.is-active):hover,
+.rsb .rsb-head button:not(:disabled):hover,
+.toast-close:hover {
+  background: var(--hover-on-dark);
+}
+
+.lnav-toggle:hover .lnav-slot,
+.rsb .bp-section-toggle:hover .bp-chevron-slot {
+  background: var(--hover-on-dark);
+}
+
+.toast-close {
+  border-radius: 50%;
+}
+
+/* Collapsed rail: "+" washes like every other rail row. Open rail: it's a
+   white pill, so it hovers like any other white control. */
+.lnav[data-open="false"] .lnav-add:hover,
+.lnav[data-open="false"] .lnav-add:active {
+  color: #fff;
+  background: var(--hover-on-dark);
+}
+
+.lnav[data-open="true"] .lnav-add:hover {
+  background: var(--hover-light);
+}
+
+/* ---------- Danger ---------- */
+
+.sn-mini.danger:hover,
+.ncard-menu button.danger:hover,
+.research-note-card > button:hover,
+.profile-delete:hover:not(:disabled) {
+  color: var(--hover-danger);
+  background: var(--hover-danger-bg);
+}
+
+.confirm-ok.is-danger:hover,
+.rsb .bp-del:hover:not(:disabled) {
+  background: var(--hover-danger-solid);
+  filter: none;
+}
+
+/* Save is the one green button; it darkens the same way the others do. */
+.rsb .bp-save:hover:not(:disabled) {
+  background: var(--hover-success-solid);
+  filter: none;
 }

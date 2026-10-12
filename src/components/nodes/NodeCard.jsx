@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import NodeHeader from "./NodeHeader";
 import NodeActions from "./NodeActions";
 import NodeContent from "./NodeContent";
-import NodeSettings from "./NodeSettings";
+import NodeComponentSelect from "./NodeComponentSelect";
 import { toDisplay, measure, cardLimits } from "../../lib/copyItems";
 
 // Kept for existing imports; the helper now lives in lib/copyItems.
@@ -17,11 +17,10 @@ const StarIcon = ({ filled }) => (
 // node = { id, type, status, items, version, message, width, fav, words, brief, requirements, component, pointerCount }
 export default function NodeCard({
   node, meta, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
-  onWordsChange, onSetting, onResetSettings,
+  onWordsChange, onSetting,
 }) {
   const [idx, setIdx] = useState(0);
   const [leaving, setLeaving] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [fresh, setFresh] = useState(false);
   const firstVersion = useRef(node.version);
 
@@ -41,8 +40,6 @@ export default function NodeCard({
   const canCopy = !busy && Boolean(item);
   const limits = cardLimits(node.type, node);
   const cardMeta = { ...meta, limits };
-  const customised = node.words != null || Boolean(node.brief?.trim() || node.requirements?.trim())
-    || (node.type === "website" && node.component && node.component !== "hero");
   // Keep measuring the current copy while it regenerates, so the header doesn't shift.
   const meter = measure(item, limits);
 
@@ -55,14 +52,24 @@ export default function NodeCard({
       aria-label={`${meta.label} node`}
       onAnimationEnd={(e) => { if (leaving && e.animationName === "ncard-out") onDelete(); }}
     >
-      <NodeHeader meta={meta} meter={meter} limits={limits} custom={node.words != null} onWordsChange={onWordsChange}>
+      <NodeHeader
+        meta={meta}
+        meter={meter}
+        limits={limits}
+        custom={node.words != null}
+        onWordsChange={onWordsChange}
+        picker={node.type === "website" && onSetting && (
+          <NodeComponentSelect
+            value={node.component}
+            label={meta.label}
+            onChange={(value) => onSetting("component", value)}
+          />
+        )}
+      >
         <NodeActions
           label={meta.label}
           busy={busy}
           canCopy={canCopy}
-          settingsOpen={settingsOpen}
-          customised={customised}
-          onToggleSettings={onSetting ? () => setSettingsOpen((open) => !open) : undefined}
           regenDisabled={regenDisabled || leaving}
           regenTitle={regenTitle}
           onRegenerate={onRegenerate}
@@ -72,28 +79,16 @@ export default function NodeCard({
           onDelete={() => setLeaving(true)}
         />
       </NodeHeader>
-      {settingsOpen ? (
-        <NodeSettings
-          node={node}
-          meta={meta}
-          limits={limits}
-          onSetting={onSetting}
-          onWordsChange={onWordsChange}
-          onReset={onResetSettings}
-          onDone={() => setSettingsOpen(false)}
-        />
-      ) : (
-        <NodeContent
-          meta={cardMeta}
-          status={node.status}
-          item={item}
-          version={node.version}
-          message={node.message}
-          onRetry={onRegenerate}
-          onEdit={onEdit ? (field, text) => onEdit(shown, field, text) : undefined}
-        />
-      )}
-      {!settingsOpen && !busy && node.items.length > 1 && (
+      <NodeContent
+        meta={cardMeta}
+        status={node.status}
+        item={item}
+        version={node.version}
+        message={node.message}
+        onRetry={onRegenerate}
+        onEdit={onEdit ? (field, text) => onEdit(shown, field, text) : undefined}
+      />
+      {!busy && node.items.length > 1 && (
         <div className="ncard-vtabs">
           <div className="ncard-vtabs-list" role="tablist" aria-label={`${meta.label} variants`}>
             {node.items.map((_, i) => (

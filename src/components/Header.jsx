@@ -226,9 +226,9 @@ const SidebarIcon = () => (
 
 const PanelIcon = () => (
   <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M5 8H27" />
-    <path d="M5 16H23" />
-    <path d="M5 24H17" />
+    <path d="M6 8.5H26" />
+    <path d="M6 16H26" />
+    <path d="M6 23.5H26" />
   </svg>
 );
 
@@ -347,7 +347,7 @@ export default function Header({
           <span className="tb-label-short">{generating ? "…" : "Generate"}</span>
           {generating && generatingDetail && <span className="toolbar-gen-detail">{generatingDetail}</span>}
         </button>
-        {/* The panel toggle sits in a navy notch carved out of the workspace corner. */}
+        {/* The panel toggle: a navy rounded box at the end of the toolbar. */}
         <div className={"toolbar-panel-notch" + (hidePanelToggle ? " is-hidden" : "")}>
           <button
             type="button"

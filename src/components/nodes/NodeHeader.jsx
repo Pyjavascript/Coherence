@@ -2,11 +2,7 @@ import { useEffect, useState } from "react";
 import { defaultWords, minWordsFor, MAX_WORDS } from "../../lib/copyItems";
 
 
-
-// Type pill (colour indicator + label), editable length meter and the action slot.
-// meter = { words, maxWords, level: ok|near|over, details } (see lib/copyItems measure)
-// limits = the node's effective field limits; custom = the user changed the length.
-export default function NodeHeader({ meta, meter, limits, custom, onWordsChange, children }) {
+export default function NodeHeader({ meta, meter, limits, custom, onWordsChange, picker, children }) {
   const counted = meter && meter.words > 0;
   const maxWords = defaultWords(limits);
   const fill = counted ? Math.min(100, Math.round((meter.words / meter.maxWords) * 100)) : 0;
@@ -21,6 +17,7 @@ export default function NodeHeader({ meta, meter, limits, custom, onWordsChange,
         <span className="ncard-dot" aria-hidden="true" />
         <span className="ncard-pill-label">{meta.label}</span>
       </h2>
+      {picker}
       <span className={"ncard-meter" + (counted ? " is-" + meter.level : "")} title={title}>
         {/* Count, limit and unit sit in one group so hiding parts of it never moves the box. */}
         {/* <span className="ncard-meter-value">

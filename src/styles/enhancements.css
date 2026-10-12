@@ -531,6 +531,114 @@
   }
 }
 
+/* ---------- Node card: header dropdown (Website component) ---------- */
+
+/* Each card is its own stacking context (container queries), so the card with
+   the open list is lifted above the cards after it; otherwise, in the one-column
+   mobile grid, the next card covers the list and takes its taps. */
+.ncard:has(.ncard-select.is-open) {
+  position: relative;
+  z-index: 20;
+}
+
+.ncard-select {
+  position: relative;
+  z-index: 5;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.ncard-select-trigger {
+  max-width: 100%;
+  height: clamp(30px, 2.4vw, 36px);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 14px;
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: clamp(11px, 0.9vw, 13px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.ncard-select-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ncard-select-chevron {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  transition: transform 180ms ease;
+}
+
+.ncard-select.is-open .ncard-select-chevron {
+  transform: rotate(180deg);
+}
+
+.ncard-select-trigger:focus-visible,
+.ncard-select.is-open .ncard-select-trigger {
+  background: #fff;
+  border-color: color-mix(in srgb, var(--node-color, var(--shell-ink)) 55%, #fff);
+  outline: none;
+}
+
+.ncard-select-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: max-content;
+  min-width: 100%;
+  max-width: min(280px, 80vw);
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #dfe3f2;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(10, 20, 80, 0.14);
+}
+
+.ncard-select-option {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ncard-select-option:focus-visible,
+.ncard-select-option[aria-selected="true"] {
+  background: var(--shell-tint);
+  outline: none;
+}
+
+.ncard-select-option svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
 /* ---------- Node card: settings (Node Studio's fields) ---------- */
 
 /* Replaces the copy in the same box, so the card keeps its size; scrolls if tall. */
@@ -3278,13 +3386,22 @@
   --focus-ring: #e5a52b;
 }
 
+.rsb .bp-section-premium .bp-dd:not(.open) .bp-dd-trigger:hover:not(:disabled) {
+  background: #fffcf6;
+}
+
+.rsb .bp-section-premium .bp-dd-menu {
+  background: #fff;
+  scrollbar-color: #f3e2c2 transparent;
+}
+
 .rsb .bp-section-premium .bp-dd-opt:hover,
 .rsb .bp-section-premium .bp-dd-opt:focus-visible {
-  background: #fdf3e1;
+  background: #fff8ec;
 }
 
 .rsb .bp-section-premium .bp-dd-opt.selected {
-  background: #fbeccd;
+  background: #fdf3e1;
 }
 
 /* ---------- Reduced motion ---------- */
@@ -3588,7 +3705,8 @@
 
 /* Dropdown triggers. Open ones keep their open look. */
 .rsb .bp-dd:not(.open) .bp-dd-trigger:hover:not(:disabled),
-.research-select:not(.is-open) .research-select-trigger:hover {
+.research-select:not(.is-open) .research-select-trigger:hover,
+.ncard-select:not(.is-open) .ncard-select-trigger:hover {
   background: var(--hover-light);
 }
 
@@ -3614,6 +3732,7 @@
 .share-menu button:hover,
 .model-selector-option:hover,
 .research-select-option:hover,
+.ncard-select-option:hover,
 .bp-dd-opt:hover {
   background: var(--hover-light);
   transform: none;

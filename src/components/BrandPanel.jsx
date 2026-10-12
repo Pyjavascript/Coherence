@@ -33,8 +33,9 @@ function LockedField({ locked, onLocked, as: Tag = "input", className = "", ...p
   );
 }
 
-// premium: lock + centred value (Style & Output). locked: lock + left-aligned value,
-// and clicking calls onLocked instead of opening (Advanced Behaviour).
+// premium: lock + centred value (Style & Output). locked: lock + left-aligned value;
+// the menu still opens so the options can be browsed, but picking one calls
+// onLocked instead of onChange (Advanced Behaviour).
 function BrandSelect({ value, onChange, options, label, premium = false, muted = false, locked = false, onLocked }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -90,12 +91,11 @@ function BrandSelect({ value, onChange, options, label, premium = false, muted =
         aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() => (locked ? onLocked?.() : setOpen((isOpen) => !isOpen))}
+        onClick={() => setOpen((isOpen) => !isOpen)}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" && !open) {
             event.preventDefault();
-            if (locked) onLocked?.();
-            else setOpen(true);
+            setOpen(true);
           }
         }}
       >
@@ -118,13 +118,14 @@ function BrandSelect({ value, onChange, options, label, premium = false, muted =
                 role="option"
                 aria-selected={option.value === value}
                 onClick={() => {
-                  onChange(option.value);
+                  if (!locked) onChange(option.value);
+                  else if (option.value !== value) onLocked?.();
                   setOpen(false);
                   triggerRef.current?.focus();
                 }}
               >
                 <span className="bp-dd-opt-label">
-                  {option.locked && <LockIcon className="bp-dd-opt-lock" />}
+                  {(option.locked || (locked && option.value !== value)) && <LockIcon className="bp-dd-opt-lock" />}
                   <span>{option.label}</span>
                 </span>
                 {option.value === value && (

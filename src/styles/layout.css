@@ -1569,9 +1569,62 @@ body {
     padding: 0;
   }
 
+  /* Phones: smaller Add Node dots (whole-pixel sizes keep the "+" bars centred). */
+  .ws-topbar .toolbar-add-spark {
+    grid-template-columns: repeat(2, 12px);
+    gap: 3px;
+  }
+
+  .ws-topbar .toolbar-add-spark i {
+    width: 12px;
+    height: 12px;
+  }
+
+  .ws-topbar .toolbar-add-spark i::before {
+    width: 6px;
+  }
+
+  .ws-topbar .toolbar-add-spark i::after {
+    height: 6px;
+  }
+
+  /* Phones: the menu drops down as one white card with the options stacked. */
+  .ws-topbar .toolbar-node-menu {
+    top: calc(100% + 8px);
+    left: 0;
+    width: max-content;
+    min-width: 168px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid var(--shell-line);
+    border-radius: var(--r);
+    box-shadow: 0 14px 30px rgba(14, 28, 89, 0.16);
+    overflow: visible;
+  }
+
+  .ws-topbar .toolbar-node-menu button {
+    height: 46px;
+    justify-content: flex-start;
+    padding: 0 16px 0 12px;
+  }
+
+  .ws-topbar .toolbar-node-menu button:hover {
+    background: #eef1ff;
+    scale: none;
+  }
+
   .ws-topbar .model-selector-trigger {
     gap: 4px;
     padding: 0 8px 0 6px;
+  }
+
+  /* Phones: a narrower model menu (under 260px it switches to its compact
+     rows, see index.css); Header.jsx still lines it up with Generate. */
+  .ws-topbar .model-selector-menu {
+    width: 256px;
   }
 }
 

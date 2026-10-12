@@ -3261,6 +3261,21 @@
   outline-offset: -1px;
 }
 
+/* Premium sections (Style & Output, Advanced Behaviour) use a gold ring and
+   gold-tinted option rows to match their lock icons and cream cards. */
+.rsb .bp-section-premium {
+  --focus-ring: #e5a52b;
+}
+
+.rsb .bp-section-premium .bp-dd-opt:hover,
+.rsb .bp-section-premium .bp-dd-opt:focus-visible {
+  background: #fdf3e1;
+}
+
+.rsb .bp-section-premium .bp-dd-opt.selected {
+  background: #fbeccd;
+}
+
 /* ---------- Reduced motion ---------- */
 
 /* The brand panel scrolls without a visible scrollbar. */

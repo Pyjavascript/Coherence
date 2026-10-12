@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import {
-  INDUSTRY_LAYERS, STYLE_PACKS, FUNNEL_STAGES, TONE_MODES, AUDIENCES, EMOTIONS, FORMALITIES, CTA_LEVELS,
+  INDUSTRY_LAYERS, STYLE_PACKS, FUNNEL_STAGES, TONE_MODES, AUDIENCES, EMOTIONS, FORMALITIES, CTA_LEVELS, LANGUAGES,
 } from "../lib/constants";
 import { resizeImageFile } from "../lib/image";
 import { shortcut } from "../lib/shortcuts";
@@ -432,6 +432,16 @@ export default function BrandPanel({
         </button>
         {advOpen && (
           <div className="bp-card bp-card-cream" id="bp-advanced">
+            <div className="bp-row2">
+              <div className="bp-field">
+                <label className="bp-label" htmlFor="bp-location">Location</label>
+                <LockedField locked={advLocked} onLocked={lockAdvanced} id="bp-location" className="bp-input" type="text" placeholder="e.g. Mumbai, India" {...bind("location")} />
+              </div>
+              <div className="bp-field">
+                <span className="bp-label">Output Language</span>
+                <BrandSelect label="Output language" locked={advLocked} onLocked={lockAdvanced} value={brand.language || "English"} onChange={(value) => onField("language", value)} options={opts(LANGUAGES)} />
+              </div>
+            </div>
             <div className="bp-field">
               <label className="bp-label" htmlFor="bp-pain">Customer Pain Points</label>
               <LockedField locked={advLocked} onLocked={lockAdvanced} id="bp-pain" className="bp-input" type="text" placeholder="What's bothering them right before this moment?" {...bind("pain")} />
@@ -478,7 +488,7 @@ export default function BrandPanel({
             {renderUpsell(
               "advanced",
               "Advanced behaviour is Premium.",
-              "Premium unlocks pain points, emotions, objections, CTA intensity, avoid words and research notes.",
+              "Premium unlocks location, output language, pain points, emotions, objections, CTA intensity, avoid words and research notes.",
             )}
           </div>
         )}

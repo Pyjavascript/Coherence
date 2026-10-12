@@ -49,6 +49,14 @@
   --tb-total: calc(var(--tb-pad-top) + var(--tb-h) + var(--tb-pad-bottom));
 }
 
+/* Phones (same cut-off as data-bp="mobile"): tighter corners. Set on :root so
+   --shell-radius and the dialogs / toasts outside the shell follow too. */
+@media (max-width: 767.98px) {
+  :root {
+    --r: 18px;
+  }
+}
+
 html,
 body,
 #root {
@@ -138,12 +146,14 @@ body {
 }
 
 /* Mobile: off-canvas drawer. */
+/* Phones: an equal navy frame on all four sides (the right panel reuses it). */
 .app-shell[data-bp="mobile"] {
+  --mobile-pad: 15px;
   padding:
-    max(8px, env(safe-area-inset-top))
-    max(8px, env(safe-area-inset-right))
-    max(8px, env(safe-area-inset-bottom))
-    max(8px, env(safe-area-inset-left));
+    max(var(--mobile-pad), env(safe-area-inset-top))
+    max(var(--mobile-pad), env(safe-area-inset-right))
+    max(var(--mobile-pad), env(safe-area-inset-bottom))
+    max(var(--mobile-pad), env(safe-area-inset-left));
 }
 
 .app-shell[data-bp="mobile"] .shell-left {
@@ -574,20 +584,20 @@ body {
   transform: translateX(calc(100% + var(--gap) * 2));
 }
 
-/* Mobile: the panel fills the screen edge to edge, with the shell's 8px navy
-   frame as padding, and the scrim stays clear behind it. Square corners on
-   purpose: a rounded panel over the rounded workspace let the workspace's
-   corner peek out as a thin curved stroke. */
+/* Mobile: the panel fills the screen edge to edge, with the shell's navy
+   frame (--mobile-pad) as padding, and the scrim stays clear behind it. Square
+   corners on purpose: a rounded panel over the rounded workspace let the
+   workspace's corner peek out as a thin curved stroke. */
 .app-shell[data-bp="mobile"] .rsb {
   top: 0;
   right: 0;
   bottom: 0;
   width: 100vw;
   padding:
-    max(8px, env(safe-area-inset-top))
-    max(8px, env(safe-area-inset-right))
-    max(8px, env(safe-area-inset-bottom))
-    max(8px, env(safe-area-inset-left));
+    max(var(--mobile-pad), env(safe-area-inset-top))
+    max(var(--mobile-pad), env(safe-area-inset-right))
+    max(var(--mobile-pad), env(safe-area-inset-bottom))
+    max(var(--mobile-pad), env(safe-area-inset-left));
   border-radius: 0;
 }
 
@@ -1521,14 +1531,14 @@ body {
     white-space: nowrap;
   }
 
-  /* Phones: Add Node is an icon-only navy circle, the 2x2 dots centred in it
-     with plenty of navy around them (the dot grid is ~55% of the circle). */
+  /* Phones: Add Node is an icon-only navy square with --r corners (18px on
+     phones), the 2x2 dots centred in it (the dot grid is ~55% of the button). */
   .ws-topbar .toolbar-add-node {
     width: var(--tb-h);
     flex: none;
     justify-content: center;
     padding: 0;
-    border-radius: 50%;
+    border-radius: var(--r);
   }
 
   .ws-topbar .toolbar-add-spark {

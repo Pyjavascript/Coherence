@@ -28,8 +28,17 @@ function clean(ctx) {
     cta: b.cta,
     banned: t(b.banned),
     must: t(b.must),
+    location: t(b.location),
+    language: t(b.language) || "English",
   };
 }
+
+// Market + output language. JSON keys stay English so the response still parses.
+const localeBlock = (c) =>
+  (c.location
+    ? `\nTarget location/market: ${c.location}. Use spelling, currency, units, references and cultural cues natural to this market.`
+    : "") +
+  `\nWrite all copy in ${c.language}${c.language === "English" ? "" : " (only the text values; keep every JSON key in English)"}.`;
 const industryOf = (c) =>
   INDUSTRY_LAYERS[c.industry] || INDUSTRY_LAYERS.general;
 const packOf = (ctx) => STYLE_PACKS[ctx.stylePack] || STYLE_PACKS.classic;
@@ -50,6 +59,7 @@ function sharedExtras(ctx, c) {
   if (c.objection) extra += `\nObjection to pre-empt: ${c.objection}`;
   if (c.banned) extra += `\nNever use these words/claims: ${c.banned}`;
   if (c.must) extra += `\nTry to naturally include: ${c.must}`;
+  extra += localeBlock(c);
   extra += researchBlock(ctx.notes);
   return extra;
 }
@@ -139,6 +149,7 @@ Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience
   if (c.objection) p += `\nObjection to pre-empt: ${c.objection}`;
   if (c.banned) p += `\nNever use these words/claims: ${c.banned}`;
   if (c.must) p += `\nTry to naturally include: ${c.must}`;
+  p += localeBlock(c);
   p += researchBlock(ctx.notes);
   p += `\n\nThis node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
@@ -247,7 +258,7 @@ Brand: ${c.name || "the brand"}
 Core belief: ${c.belief || "(not set)"}
 Industry — Pixels Intelligence Layer (${industryOf(c).label}): ${industryOf(c).rules}
 Style pack — ${packOf(ctx).label}: ${packOf(ctx).rules}
-Desired emotional response: ${c.emo}. Formality: ${c.formality}.
+Desired emotional response: ${c.emo}. Formality: ${c.formality}.${localeBlock(c)}
 Brief: ${requirement}
 
 Return ONLY valid JSON, no markdown fences: {"hook":"..."}. The hook must be under 18 words, need no further editing, and commit to one angle rather than hedging between several. Never use quotation marks inside the text. Never explain your choice.`;

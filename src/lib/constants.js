@@ -232,6 +232,24 @@ export const EMOTIONS = [
 ];
 export const FORMALITIES = ["Conversational", "Casual", "Formal", "Technical"];
 export const CTA_LEVELS = ["Soft", "Direct", "Urgent"];
+// The language the generated copy is written in (Advanced Behaviour).
+export const LANGUAGES = [
+  "English",
+  "Hindi",
+  "Hinglish",
+  "Spanish",
+  "French",
+  "German",
+  "Portuguese",
+  "Italian",
+  "Dutch",
+  "Arabic",
+  "Japanese",
+  "Korean",
+  "Chinese (Simplified)",
+  "Indonesian",
+  "Turkish",
+];
 export const NOTE_TYPES = [
   "Competitor example",
   "Customer quote",
@@ -255,6 +273,8 @@ export const DEFAULT_BRAND = {
   cta: "Soft",
   banned: "",
   must: "",
+  location: "",
+  language: "English",
 };
 
 // "Try a sample brand" on the last step of the product tour.

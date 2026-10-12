@@ -1,7 +1,34 @@
 import { requireSupabase } from "../lib/supabase";
 
-const COLS =
+const BASE_COLS =
   "id,name,logo,scope,belief,message,industry,stage,mode,audience,pain,emo,formality,objection,cta,banned,must_include";
+// Added by the 20261012 migration. Until it has run on a database, brands load
+// and save without them (location / language fall back to their defaults).
+const LOCALE_COLS = ["location", "language"];
+let hasLocaleCols = true;
+const cols = () => (hasLocaleCols ? `${BASE_COLS},${LOCALE_COLS.join(",")}` : BASE_COLS);
+
+// Postgres "undefined column" (select) or PostgREST "column not in schema cache" (insert/update).
+const isMissingLocaleCol = (error) =>
+  hasLocaleCols &&
+  (error?.code === "42703" || error?.code === "PGRST204") &&
+  LOCALE_COLS.some((c) => (error.message || "").includes(c));
+
+// Runs a query built from the current columns; if the locale columns are
+// missing, remembers that and runs it once more without them.
+async function withCols(run) {
+  const result = await run(cols());
+  if (!isMissingLocaleCol(result.error)) return result;
+  hasLocaleCols = false;
+  console.warn("brands.location / brands.language are missing: run supabase/migrations/20261012000000_brand_location_language.sql");
+  return run(cols());
+}
+
+const rowFor = (b) => {
+  const row = toRow(b);
+  if (!hasLocaleCols) LOCALE_COLS.forEach((c) => delete row[c]);
+  return row;
+};
 
 function fromRow(r) {
   return {
@@ -22,6 +49,8 @@ function fromRow(r) {
     cta: r.cta,
     banned: r.banned || "",
     must: r.must_include || "",
+    location: r.location || "",
+    language: r.language || "English",
   };
 }
 
@@ -44,47 +73,49 @@ function toRow(b) {
     cta: t(b.cta),
     banned: t(b.banned),
     must_include: t(b.must),
+    location: t(b.location),
+    language: t(b.language) || "English",
   };
 }
 
 // Only the signed-in user's brands, even if a table policy is still open.
 export async function getBrands(userId) {
-  const { data, error } = await requireSupabase()
+  const { data, error } = await withCols((c) => requireSupabase()
     .from("brands")
-    .select(COLS)
+    .select(c)
     .eq("user_id", userId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true }));
   if (error) throw error;
   return data.map(fromRow);
 }
 
 export async function getBrand(id) {
-  const { data, error } = await requireSupabase()
+  const { data, error } = await withCols((c) => requireSupabase()
     .from("brands")
-    .select(COLS)
+    .select(c)
     .eq("id", id)
-    .single();
+    .single());
   if (error) throw error;
   return fromRow(data);
 }
 
 export async function createBrand(brand) {
-  const { data, error } = await requireSupabase()
+  const { data, error } = await withCols((c) => requireSupabase()
     .from("brands")
-    .insert(toRow(brand))
-    .select(COLS)
-    .single();
+    .insert(rowFor(brand))
+    .select(c)
+    .single());
   if (error) throw error;
   return fromRow(data);
 }
 
 export async function updateBrand(id, brand) {
-  const { data, error } = await requireSupabase()
+  const { data, error } = await withCols((c) => requireSupabase()
     .from("brands")
-    .update(toRow(brand))
+    .update(rowFor(brand))
     .eq("id", id)
-    .select(COLS)
-    .single();
+    .select(c)
+    .single());
   if (error) throw error;
   return fromRow(data);
 }

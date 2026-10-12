@@ -370,10 +370,10 @@ body {
   object-fit: contain;
 }
 
-.lnav-avatar-fallback {
-  color: var(--brand-color);
-  font-size: clamp(13px, 1.1vw, 16px);
-  font-weight: 700;
+.lnav-avatar-fallback svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* Footer: profile + credits, popovers stay inside the panel. */

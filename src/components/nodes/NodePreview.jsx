@@ -1,13 +1,14 @@
+import BrandMark from "../BrandMark";
+
 // Shows a Quick Grid item the way it would appear in the real world:
 // an inbox row, a website hero, a sponsored post, a poster, a product label.
 const domainOf = (name) =>
   (String(name || "yourbrand").toLowerCase().replace(/[^a-z0-9]+/g, "") || "yourbrand") + ".com";
 
 function Avatar({ brand, size = "md" }) {
-  const name = brand?.name?.trim() || "Your brand";
   return (
-    <span className={"pv-avatar pv-avatar-" + size} aria-hidden="true">
-      {brand?.logo ? <img src={brand.logo} alt="" /> : name.charAt(0).toUpperCase()}
+    <span className={"pv-avatar pv-avatar-" + size + (brand?.logo ? "" : " pv-avatar-mark")} aria-hidden="true">
+      {brand?.logo ? <img src={brand.logo} alt="" /> : <BrandMark brand={brand} />}
     </span>
   );
 }

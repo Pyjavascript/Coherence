@@ -1,6 +1,7 @@
 import { LIMITS } from "../lib/clientId";
 import { Logo } from "../assets/globalAssets";
 import { profileOf } from "./ProfileModal";
+import BrandMark from "./BrandMark";
 
 // Every row is [fixed 40px icon slot][label]. The icon slot never moves, so
 // only the labels fade/slide when the sidebar expands or collapses.
@@ -83,9 +84,7 @@ export default function BrandSidebar({
               brand.logo ? (
                 <span className="lnav-avatar"><img src={brand.logo} alt="" /></span>
               ) : (
-                <span className="lnav-avatar lnav-avatar-fallback" style={{ "--brand-color": brand.color || "#373c9b" }}>
-                  {(brand.name || "B").trim().charAt(0).toUpperCase()}
-                </span>
+                <span className="lnav-avatar lnav-avatar-fallback"><BrandMark brand={brand} /></span>
               )
             }
             label={brand.name || "Untitled"}

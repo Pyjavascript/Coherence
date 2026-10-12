@@ -4468,16 +4468,17 @@ body {
   z-index: 50;
   top: calc(100% + 8px);
   left: 0;
-  width: 300px;
+  width: 320px;
   max-width: calc(100vw - 32px);
   margin: 0;
-  padding: 8px;
+  padding: 6px;
   list-style: none;
   background: #fff;
   border-radius: 24px;
   display: flex;
   flex-direction: column;
-  gap:15px;
+  gap: 4px;
+  container: model-menu / inline-size;
   animation: model-menu-pop 140ms ease-out;
 }
 
@@ -4491,16 +4492,17 @@ body {
   bottom: calc(100% + 8px);
 }
 
+/* Rows nest inside the menu's 24px corner: 24px - 6px menu padding = 18px. */
 .model-selector-option {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 9px 13px 9px 9px;
+  gap: 12px;
+  padding: 8px 14px 8px 8px;
   color: #0a1450;
   background: transparent;
   border: 0;
-  border-radius: 24px;
+  border-radius: 18px;
   text-align: left;
   cursor: pointer;
 }
@@ -4516,15 +4518,14 @@ body {
 }
 
 .model-selector-option-icon {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   display: grid;
-  flex: 0 0 42px;
+  flex: 0 0 36px;
   place-items: center;
   color: #0a1450;
   background: #f4f7ff;
-  border-radius: 24px;
-  font-size: 20px;
+  border-radius: 50%;
 }
 
 .model-selector-option:hover .model-selector-option-icon,
@@ -4541,19 +4542,53 @@ body {
 }
 
 .model-selector-option-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.3;
 }
 
+/* The menu spans the model button + Generate (set in Header.jsx), so its
+   width follows the toolbar; on narrow toolbars a description wraps rather
+   than being cut off. */
 .model-selector-option-description {
   color: #80828f;
-  font-size: 11px;
+  font-size: 11.5px;
+  line-height: 1.35;
 }
 
 .model-selector-check {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   flex: none;
+  color: var(--shell-blue);
+}
+
+/* Narrow toolbars squeeze the menu (it spans model button + Generate):
+   tighter rows and a smaller icon leave the text room to breathe. */
+@container model-menu (max-width: 259px) {
+  .model-selector-option {
+    gap: 8px;
+    padding: 7px 10px 7px 6px;
+  }
+
+  .model-selector-option-icon {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+  }
+
+  .model-selector-option-name {
+    font-size: 13px;
+  }
+
+  .model-selector-option-description {
+    font-size: 11px;
+  }
+
+  .model-selector-check {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 @keyframes model-menu-pop {

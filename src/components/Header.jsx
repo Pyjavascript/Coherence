@@ -58,6 +58,10 @@ function ExportMenu({ disabled, onExport }) {
   );
 }
 
+// Narrowest the model menu gets (it switches to compact rows below 260px, see
+// index.css). Narrower than this, as on phones, it keeps its own width instead.
+const MODEL_MENU_MIN_WIDTH = 200;
+
 function ModelSelector({ tier, onTier }) {
   const [open, setOpen] = useState(false);
   // offset / width in px keep the menu inside the workspace; null = CSS defaults.
@@ -83,12 +87,20 @@ function ModelSelector({ tier, onTier }) {
     // Horizontal room: the workspace (or the viewport), less an 8px margin each side.
     const minX = Math.max(8, (surfaceRect?.left ?? 0) + 8);
     const maxX = Math.min(window.innerWidth - 8, (surfaceRect?.right ?? window.innerWidth) - 8);
-    // Start under the trigger, slide left until it fits, and shrink if even that isn't enough.
-    const width = Math.min(menuRect.width, maxX - minX);
-    const left = Math.max(minX, Math.min(triggerRect.left, maxX - width));
+    // Span from the model button's left edge to the Generate button's right edge.
+    // On small toolbars that span is too narrow for the rows, so keep the menu's
+    // own width and line its right edge up with Generate's instead.
+    const generateRight = rootRef.current.parentElement?.querySelector(".toolbar-generate")?.getBoundingClientRect().right;
+    const spanWidth = generateRight ? generateRight - triggerRect.left : 0;
+    const spans = spanWidth >= MODEL_MENU_MIN_WIDTH;
+    const wanted = spans ? spanWidth : menuRect.width;
+    // Place it, slide left until it fits, and shrink if even that isn't enough.
+    const width = Math.min(wanted, maxX - minX);
+    const preferredLeft = spans || !generateRight ? triggerRect.left : generateRight - width;
+    const left = Math.max(minX, Math.min(preferredLeft, maxX - width));
     setPlacement({
       offset: Math.round(left - triggerRect.left),
-      width: width < menuRect.width ? Math.floor(width) : null,
+      width: width !== menuRect.width ? Math.round(width) : null,
       up: triggerRect.bottom + menuRect.height > window.innerHeight - 8 && triggerRect.top - menuRect.height >= 8,
     });
   }, [open]);

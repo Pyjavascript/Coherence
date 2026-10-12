@@ -30,12 +30,15 @@
 
   --gap: clamp(8px, 0.75vw, 12px);
   --ui-icon: clamp(50px, 3.4vw, 50px);
+  --shell-pad: 25px;
   --lnav-pad: clamp(12px, 1.35vw, 20px);
-  --lnav-closed: calc(var(--ui-icon) + var(--lnav-pad) * 2);
+  /* The shell's left padding sits before the icons, so the rail only adds the
+     same amount after them: equal navy on both sides of the icon column. */
+  --lnav-closed: calc(var(--ui-icon) + var(--shell-pad));
   --lnav-open: clamp(236px, 19vw, 290px);
   --lnav-row-gap: clamp(10px, 1.2vw, 18px);
-  
-  --lnav-label-w: calc(var(--lnav-open) - var(--lnav-pad) * 2 - var(--ui-icon) - var(--lnav-row-gap));
+
+  --lnav-label-w: calc(var(--lnav-open) - var(--shell-pad) - var(--ui-icon) - var(--lnav-row-gap));
   --rsb-w: clamp(320px, 28vw, 420px);
   --tb-h: clamp(44px, 4vw, 58px);
   --notch-gap: clamp(8px, 0.9vw, 14px);
@@ -84,7 +87,7 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
-  padding:25px;
+  padding: var(--shell-pad);
   background: var(--shell-navy);
   overflow: hidden;
 }
@@ -118,7 +121,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: clamp(6px, 0.7vw, 10px);
-  padding: clamp(16px, 2vw, 30px) var(--lnav-pad) clamp(16px, 2vw, 30px);
+  padding: clamp(16px, 2vw, 30px) var(--shell-pad) clamp(16px, 2vw, 30px) 0;
   color: #fff;
   background: var(--shell-navy);
   transition:
@@ -154,6 +157,7 @@ body {
   top: 0;
   bottom: 0;
   width: min(300px, 86vw);
+  padding-inline: var(--lnav-pad);
   border-radius: var(--r);
   transform: translateX(-100%);
 }
@@ -586,20 +590,29 @@ body {
 /* The whole panel scrolls, title included (nothing is pinned). Rules are
    scoped to .rsb so they win over the older .bp-* rules in index.css. */
 .rsb-scroll {
+  --rsb-pad-x: clamp(12px, 1.1vw, 16px);
   flex: 1 1 auto;
   min-height: 0;
-  padding: clamp(14px, 1.3vw, 20px) clamp(12px, 1.1vw, 16px) clamp(16px, 1.6vw, 22px);
+  padding: clamp(14px, 1.3vw, 20px) var(--rsb-pad-x) clamp(16px, 1.6vw, 22px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   color: #fff;
 }
 
+/* Desktop: the panel's navy runs into the shell's, so the visible gap is
+   --gap + padding on the left (from the workspace) but padding + the shell's
+   own padding on the right (to the window edge). Trim the right padding so the
+   cards sit the same distance from both. */
+.app-shell[data-bp="desktop"] .rsb-scroll {
+  padding-right: max(0px, calc(var(--gap) + var(--rsb-pad-x) - var(--shell-pad)));
+}
+
 .rsb .rsb-head {
   min-height: 48px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   margin: 0 0 clamp(12px, 1.2vw, 18px);
   padding: 0 0 0 2px;
   color: #fff;
@@ -1244,20 +1257,46 @@ body {
 }
 
 .ws-topbar .toolbar-add-spark {
-  grid-template-columns: repeat(2, clamp(13px, 1.15vw, 17px));
+  grid-template-columns: repeat(2, 16px);
   gap: 3px;
 }
 
 .ws-topbar .toolbar-add-spark i {
-  width: clamp(13px, 1.15vw, 17px);
-  height: clamp(13px, 1.15vw, 17px);
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: clamp(10px, 0.85vw, 13px);
+  width: 16px;
+  height: 16px;
+  display: block;
   font-style: normal;
-  font-weight: 700;
-  line-height: 1;
+}
+
+/* The "+" in the Add Node dots and the menu dots is drawn as two bars: the
+   font's "+" glyph sits off-centre (low and to one side) in such small circles.
+   Whole-pixel sizes (even dot, 8px x 2px bars) keep the bars on the pixel grid,
+   so they stay crisp and exactly centred. font-size 0 hides the text "+". */
+.ws-topbar .toolbar-add-spark i,
+.ws-topbar .toolbar-node-menu button span {
+  position: relative;
+  font-size: 0;
+}
+
+/* inset 0 + margin auto centres each fixed-size bar in its dot. */
+.ws-topbar .toolbar-add-spark i::before,
+.ws-topbar .toolbar-add-spark i::after,
+.ws-topbar .toolbar-node-menu button span::before,
+.ws-topbar .toolbar-node-menu button span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 8px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+}
+
+.ws-topbar .toolbar-add-spark i::after,
+.ws-topbar .toolbar-node-menu button span::after {
+  width: 2px;
+  height: 8px;
 }
 
 .ws-topbar .model-selector-trigger {
@@ -1444,24 +1483,28 @@ body {
 }
 
 .ws-topbar .toolbar-node-menu button span {
-  width: 12px;
-  height: 12px;
-  flex-basis: 12px;
-  font-size: 11px;
+  width: 14px;
+  height: 14px;
+  flex-basis: 14px;
+  display: block;
 }
 
+/* Narrow workspaces: the menu drops below the button but keeps the same
+   separate white pills as the wide layout, with no white tray behind them.
+   The padding leaves room for the hover grow inside the scroll box; the
+   negative left offset keeps the first pill level with the button. */
 @container ws (max-width: 1279px) {
   .ws-topbar .toolbar-node-menu {
-    top: calc(100% + 8px);
-    left: 0;
+    top: calc(100% + 4px);
+    left: -6px;
     width: max-content;
-    max-width: calc(100cqw - 40px);
+    max-width: calc(100cqw - 28px);
     flex-direction: row;
     align-items: center;
     padding: 6px;
-    background: #fff;
-    border: 1px solid var(--shell-line);
-    border-radius: var(--r);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
     transform: none;
     overflow-x: auto;
     overflow-y: hidden;
@@ -2248,10 +2291,13 @@ body {
   min-height: clamp(56px, 4.6vw, 68px);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   padding: 10px 12px;
 }
-
+.hook-brief{
+  background: #fff;
+  border:1px solid #dfe3f2;
+}
 .sn-icon {
   width: clamp(36px, 2.9vw, 44px);
   height: clamp(36px, 2.9vw, 44px);

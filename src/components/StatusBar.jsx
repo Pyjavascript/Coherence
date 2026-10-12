@@ -54,7 +54,7 @@ const getTone = (status, unavailable) => {
   return unavailable ? "warning" : "";
 };
 
-// Success and info toasts close themselves; errors and warnings wait for the user.
+// Every toast closes itself after this long (hovering or focusing it pauses the countdown).
 const AUTO_CLOSE_MS = 3500;
 
 export default function StatusBar({ status, unavailable }) {
@@ -62,17 +62,20 @@ export default function StatusBar({ status, unavailable }) {
   const tone = getTone(status, unavailable);
   const [dismissed, setDismissed] = useState(false);
   const [paused, setPaused] = useState(false);
-  const autoClose = Boolean(status.text) && (tone === "success" || tone === "info");
 
+  // A new toast starts fresh. Clearing `paused` matters: a toast that hides
+  // under a still cursor (or with focus inside) never gets its mouseleave/blur,
+  // which used to leave the next toast paused forever.
   useEffect(() => {
     setDismissed(false);
+    setPaused(false);
   }, [message, status, tone]);
 
   useEffect(() => {
-    if (!autoClose || dismissed || paused) return undefined;
+    if (!message || dismissed || paused) return undefined;
     const timer = window.setTimeout(() => setDismissed(true), AUTO_CLOSE_MS);
     return () => window.clearTimeout(timer);
-  }, [autoClose, dismissed, paused, status]);
+  }, [message, dismissed, paused, status]);
 
   return (
     <div

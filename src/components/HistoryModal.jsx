@@ -60,6 +60,14 @@ function Entry({ entry, onCopy, onRestore }) {
   );
 }
 
+// The filter row scrolls sideways with no scrollbar; a plain mouse wheel only
+// scrolls vertically, so map that onto the row while it overflows.
+const scrollSideways = (e) => {
+  const row = e.currentTarget;
+  if (row.scrollWidth <= row.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+  row.scrollLeft += e.deltaY;
+};
+
 export default function HistoryModal({ brandId, brandName, onCopy, onRestore, onClose }) {
   const [state, setState] = useState({ status: "loading", rows: [] });
   const [filter, setFilter] = useState("all");
@@ -79,14 +87,17 @@ export default function HistoryModal({ brandId, brandName, onCopy, onRestore, on
     <Modal title="History" onClose={onClose} modalClassName="research-modal history-modal">
       <p className="hook-description">Everything generated for {brandName || "this brand"}, newest first.</p>
       {mediums.length > 1 && (
-        <div className="history-filters" role="group" aria-label="Filter by medium">
+        <div className="history-filters" role="group" aria-label="Filter by medium" onWheel={scrollSideways}>
           {["all", ...mediums].map((m) => (
             <button
               key={m}
               type="button"
               aria-pressed={filter === m}
               className={filter === m ? "on" : ""}
-              onClick={() => setFilter(m)}
+              onClick={(e) => {
+                setFilter(m);
+                e.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+              }}
             >
               {m === "all" ? "All" : mediumMeta(m).label}
             </button>

@@ -59,7 +59,7 @@ export default function BrandSidebar({
             </svg>
           )
         }
-        label="Close"
+        label="Minimize"
       />
 
       <Row

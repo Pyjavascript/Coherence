@@ -331,6 +331,15 @@
   flex: none;
 }
 
+/* The download glyph fills its whole viewBox, so at the toolbar's 55% icon
+   size it looked oversized next to the other buttons. A slightly heavier
+   stroke keeps the smaller glyph crisp. */
+.toolbar-export .toolbar-icon-btn svg {
+  width: 40%;
+  height: 40%;
+  stroke-width: 2.4;
+}
+
 .ws-topbar .toolbar-icon-btn:disabled {
   cursor: not-allowed;
   opacity: 0.45;
@@ -1973,9 +1982,12 @@
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 
+/* The hook brief sits on a white card, so it's white with a light outline. */
 .hook-brief {
   min-height: 96px;
   padding: 14px 20px;
+  background: #fff;
+  border-color: #dfe3f2;
   font-size: 14px;
   resize: none;
 }
@@ -2050,9 +2062,39 @@
   gap: 10px;
 }
 
+/* One row of filter pills that scrolls sideways when it doesn't fit. Centred
+   with auto margins on the end pills rather than justify-content, which would
+   push the first pills out of reach on the left once the row overflows. The
+   small padding keeps the focus ring from being clipped by the scroll box.
+   flex: none: as a scroll box it could otherwise shrink, and the modal's
+   column squashed it to a sliver to make room for the list. */
 .history-filters {
-  justify-content: center;
-  margin: 0 0 14px;
+  flex: none;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  margin: 0 0 12px;
+  padding: 4px 4px 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none !important;
+}
+
+.history-filters::-webkit-scrollbar {
+  display: none !important;
+}
+
+.history-filters button {
+  flex: none;
+  white-space: nowrap;
+}
+
+.history-filters button:first-child {
+  margin-left: auto;
+}
+
+.history-filters button:last-child {
+  margin-right: auto;
 }
 
 .hook-brief::placeholder,
@@ -3042,103 +3084,109 @@
   gap: 10px;
 }
 
+/* Model cards: round icon chip, tag above the name, radio top-right. The
+   picked card fills with the soft tint; its icon chip and tag turn white and
+   the radio becomes a solid blue check. (The tag sits after the name in the
+   markup so screen readers hear the name first; `order` lifts it above.) */
 .usage-model {
   position: relative;
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 5px;
-  padding: 14px 12px 13px;
+  gap: 0;
+  padding: 16px 14px 14px;
   color: var(--shell-ink);
   text-align: left;
   background: #fff;
-  border: 1.5px solid var(--usage-line);
+  border: 1px solid var(--usage-line);
   border-radius: 18px;
   font: inherit;
   cursor: pointer;
-  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 200ms ease;
+  transition: border-color 150ms ease, background-color 150ms ease;
 }
 
-.usage-model:hover {
-  background: #fafbff;
-  border-color: #c9d3ff;
-}
-
-/* Picked: gradient border, tinted shadow, gradient icon chip and check. */
 .usage-model.is-on {
-  background:
-    linear-gradient(#fff, #fff) padding-box,
-    var(--usage-grad) border-box;
-  border-color: transparent;
-  box-shadow: 0 12px 26px rgba(23, 60, 245, 0.16);
+  background: var(--shell-tint);
+  border-color: var(--shell-tint);
 }
 
 .usage-model-icon {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 14px;
   color: var(--shell-navy);
   background: var(--shell-tint);
-  border-radius: 12px;
-  transition: background-color 150ms ease, color 150ms ease;
+  border-radius: 50%;
+  transition: background-color 150ms ease;
 }
 
 .usage-model.is-on .usage-model-icon {
-  color: #fff;
-  background: var(--usage-grad);
+  background: #fff;
+}
+
+.usage-model-tag {
+  order: 1;
+  margin-bottom: 6px;
+  padding: 3px 7px;
+  color: var(--shell-ink);
+  background: #f1f2f6;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background-color 150ms ease;
+}
+
+.usage-model.is-on .usage-model-tag {
+  background: #fff;
 }
 
 .usage-model-name {
+  order: 2;
   max-width: 100%;
   overflow: hidden;
-  font-size: 14.5px;
-  font-weight: 650;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.usage-model-tag {
-  padding: 2px 8px;
-  color: var(--shell-blue);
-  background: #eef1ff;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 .usage-model-desc {
-  color: var(--usage-muted);
-  font-size: 12px;
+  order: 3;
+  margin-top: 3px;
+  color: #8a8fa8;
+  font-size: 11.5px;
   line-height: 1.35;
 }
 
 .usage-model-check {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 20px;
-  height: 20px;
+  top: 12px;
+  right: 12px;
+  width: 16px;
+  height: 16px;
   display: grid;
   place-items: center;
   color: transparent;
-  border: 1.5px solid #d5daee;
+  border: 1.5px solid #c4c8d6;
   border-radius: 50%;
-  transition: background-color 150ms ease, border-color 150ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 .usage-model-check svg {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
 .usage-model.is-on .usage-model-check {
   color: #fff;
-  background: var(--usage-grad);
-  border-color: transparent;
+  background: var(--shell-blue);
+  border-color: var(--shell-blue);
 }
 
 .usage-model:focus-visible {
@@ -3189,6 +3237,30 @@
 }
 
 
+/* ---------- Brand panel focus: one ring for everything ----------
+   Every focused control in the right panel looks like a focused field: a 1px
+   light-blue ring on its own edge, no offset glow. Fields and dropdown
+   triggers already have a 1px border, so it recolours that; buttons, toggles
+   and options draw the same ring with an inset outline. */
+
+:root {
+  --focus-ring: #c9d2ff;
+}
+
+.rsb .bp-input:focus,
+.rsb .bp-textarea:not(.is-invalid):focus,
+.rsb .bp-input.is-locked:focus,
+.rsb .bp-dd-trigger:focus-visible,
+.rsb .bp-dd.open .bp-dd-trigger {
+  border-color: var(--focus-ring);
+  outline: none;
+}
+
+.rsb :is(button, a, [tabindex]):not(.bp-dd-trigger):focus-visible {
+  outline: 1px solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
 /* ---------- Reduced motion ---------- */
 
 /* The brand panel scrolls without a visible scrollbar. */
@@ -3200,23 +3272,29 @@
   display: none !important;
 }
 
-.research-notes-list,
-.history-list.research-panel {
+.research-notes-list {
   scrollbar-width: thin !important;
   scrollbar-color: rgba(23, 60, 245, 0.4) transparent;
 }
 
-.research-notes-list::-webkit-scrollbar,
-.history-list.research-panel::-webkit-scrollbar {
+.research-notes-list::-webkit-scrollbar {
   display: block !important;
   width: 8px !important;
   height: 8px !important;
 }
 
-.research-notes-list::-webkit-scrollbar-thumb,
-.history-list.research-panel::-webkit-scrollbar-thumb {
+.research-notes-list::-webkit-scrollbar-thumb {
   background: rgba(23, 60, 245, 0.4);
   border-radius: 24px;
+}
+
+/* The history list scrolls without a visible scrollbar, like the brand panel. */
+.history-list.research-panel {
+  scrollbar-width: none !important;
+}
+
+.history-list.research-panel::-webkit-scrollbar {
+  display: none !important;
 }
 
 @media (max-width: 767.98px) {
@@ -3268,11 +3346,14 @@
    On dark (clear on navy)    -> --hover-on-dark white wash
    Danger                     -> --hover-danger-* (soft) / --hover-danger-solid
 
-   Hover only changes colour: no lifts, scales, shadows or brightness filters.
+   Grow (white add buttons)   -> stay white, scale to --hover-grow
+
+   Otherwise hover only changes colour: no lifts, scales, shadows or brightness filters.
    ========================================================================== */
 
 :root {
   --hover-dur: 150ms;
+  --hover-grow: 1.06;
   --hover-primary: var(--shell-blue-hover);
   --hover-solid: #182765;
   --hover-light: var(--shell-tint-2);
@@ -3312,16 +3393,15 @@
 .research-note-card > button,
 .rsb .bp-upsell button,
 .rsb .bp-copy,
-.rsb .bp-card-hook .bp-gen-btn {
+.rsb .bp-card-hook .bp-gen-btn,
+.bp-dd-trigger,
+.tour-sample button {
   transition: var(--hover-transition);
 }
 
 .rsb .bp-del,
 .rsb .bp-save,
-.sn-add,
-.tour-launch,
-.toolbar-node-menu button,
-.model-selector-trigger {
+.tour-launch {
   transition: var(--hover-transition), transform 120ms ease, scale 120ms ease;
 }
 
@@ -3377,10 +3457,51 @@
   background: var(--hover-solid);
 }
 
-/* The "+" is a white chip with a navy icon, so it hovers like a light control. */
+/* White toolbar buttons (the add-node menu pills and the model picker) stay
+   white and grow a little instead of tinting. Slow, eased grow; the press
+   shrinks quicker so clicks feel crisp. The .ws-topbar selector outranks the
+   toolbar's own transition list, which has no `scale`. */
+.sn-add,
+.toolbar-node-menu button,
+.model-selector-trigger,
+.ws-topbar .model-selector-trigger {
+  transition: var(--hover-transition), transform 120ms ease, scale var(--shell-dur) var(--shell-ease);
+}
+
+.sn-add:hover,
+.toolbar-node-menu button:hover,
+.model-selector-trigger:hover {
+  background: #fff;
+  transform: none;
+  scale: var(--hover-grow);
+}
+
+/* Keep the model picker's resting shadow; index.css deepens it on hover. */
+.model-selector-trigger:hover {
+  box-shadow: 0 1px 2px rgba(10, 20, 80, 0.06), 0 4px 14px rgba(10, 20, 80, 0.06);
+}
+
+/* Node Studio's "+" fills with the Generate button's blue instead of growing. */
 .sn-add:hover {
-  background: var(--hover-light);
+  color: #fff;
+  background: var(--shell-blue);
   scale: none;
+}
+
+.sn-add:active,
+.toolbar-node-menu button:active,
+.model-selector-trigger:active {
+  transform: none;
+  scale: 0.96;
+  transition-duration: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sn-add:hover,
+  .toolbar-node-menu button:hover,
+  .model-selector-trigger:hover {
+    scale: none;
+  }
 }
 
 /* Variant / filter chips that are switched on stay put; hovering them does nothing. */
@@ -3404,11 +3525,19 @@
 .confirm-cancel:hover,
 .profile-pill:hover,
 .profile-cancel:hover:not(:disabled),
-.history-filters button:not(.on):hover {
+.history-filters button:not(.on):hover,
+.ncard-settings-reset:hover:not(:disabled),
+.usage-key-btn:not(.is-open):hover {
   color: var(--hover-ink);
   background: var(--hover-light);
   border-color: var(--hover-light);
   box-shadow: none;
+}
+
+/* Model cards: a tint fill would read as "selected" (the picked card is
+   tinted), so hover only firms up the outline. */
+.usage-model:not(.is-on):hover {
+  border-color: #c9d3ff;
 }
 
 /* Filled-white and tinted buttons, icon buttons, chips. */
@@ -3431,13 +3560,14 @@
   filter: none;
 }
 
-.tour-launch:hover {
-  color: var(--shell-indigo);
+/* Dropdown triggers. Open ones keep their open look. */
+.rsb .bp-dd:not(.open) .bp-dd-trigger:hover:not(:disabled),
+.research-select:not(.is-open) .research-select-trigger:hover {
+  background: var(--hover-light);
 }
 
-.model-selector-trigger:hover {
-  background: var(--hover-light);
-  box-shadow: 0 1px 2px rgba(10, 20, 80, 0.06), 0 4px 14px rgba(10, 20, 80, 0.06);
+.tour-launch:hover {
+  color: var(--shell-indigo);
 }
 
 /* Close buttons on light dialogs. */
@@ -3454,7 +3584,6 @@
 /* Menu and dropdown rows. Selected rows keep their lighter tint. */
 .ncard-menu button:not(.danger):hover,
 .toolbar-export-menu button:hover,
-.toolbar-node-menu button:hover,
 .share-menu a:hover,
 .share-menu button:hover,
 .model-selector-option:hover,
@@ -3473,7 +3602,8 @@
 
 /* Text links. */
 .auth-switch:hover,
-.rsb .bp-name-input .bp-addimg:hover {
+.rsb .bp-name-input .bp-addimg:hover,
+.tour-sample button:hover {
   color: var(--hover-primary);
 }
 

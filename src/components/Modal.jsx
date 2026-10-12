@@ -187,7 +187,7 @@ export function CoherenceModal({ text, onCopy, onClose }) {
         </header>
         <div className="coherence-content" id="coherence-content">
           <p className="coherence-description" id="coherence-description">
-            Paste this into ChatGPT, Gemini, or any LLM to check whether your latest generation’s CTA and body copy actually align.
+            Paste into any LLM to check CTA and body copy alignment.
           </p>
           <div className="coherence-panel">
             <textarea
@@ -240,7 +240,7 @@ export function HookModal({ aiAvailable, quota, onGenerate, onUsed, onCopy, onCl
   return (
     <Modal title="Hook Generator" onClose={onClose} modalClassName="hook-modal">
       <div className="hook-modal-content">
-        <p className="hook-description">Describe the moment this hook is for. It analyses your brief against the brand core and gives you one decisive line.</p>
+        <p className="hook-description">Describe the moment. Get one decisive hook aligned with your brand core.</p>
         <div className="hook-panel">
           <label className="hook-label" htmlFor="hook-brief">What should this hook be about?</label>
           <textarea

@@ -1586,27 +1586,14 @@
   opacity: 1;
 }
 
-/* Bottom-row controls (view switch, "?", zoom pill) share one height. It comes
-   from the view switch (layout.css): its tab height + 6px padding each side,
-   at its 0.95 scale. The scale shrinks the switch about its centre, so the
-   others' bottom is lifted by half the difference to sit on the same line.
-   The zoom pill is two square buttons + a wider % button (see below). */
-.ws-stage {
-  --ctl-switch-h: calc(clamp(40px, 3.8vw, 56px) + 12px);
-  --ctl-size: calc(var(--ctl-switch-h) * 0.95);
-  --ctl-right: clamp(10px, 1.4vw, 22px);
-  --ctl-bottom: calc(clamp(10px, 1.4vw, 35px) + (var(--ctl-switch-h) - var(--ctl-size)) / 2);
-  --zoom-w: calc(var(--ctl-size) * 3.1 - 8px);
-}
-
 /* "?" in the workspace corner — same white pill language as the zoom controls. */
 .tour-launch {
   position: absolute;
   z-index: 15;
-  right: var(--ctl-right);
-  bottom: var(--ctl-bottom);
-  width: var(--ctl-size);
-  height: var(--ctl-size);
+  right: clamp(10px, 1.4vw, 22px);
+  bottom: clamp(10px, 1.4vw, 22px);
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -1629,41 +1616,15 @@
 }
 
 .tour-launch svg {
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
 }
 
 /* Node Studio: sit just left of the zoom controls (they lift above the view switch
    when narrow). Phones hide the zoom controls, so there it keeps the corner. */
 @container ws (min-width: 641px) {
   .app-shell:not([data-bp="mobile"]) .ws-stage[data-view="nodes"] .tour-launch {
-    right: calc(var(--ctl-right) + var(--zoom-w) + 10px);
-  }
-
-  /* Zoom pill: same height and bottom line as the "?" and the view switch.
-     Width = 6px padding x2 + two (size - 12px) squares + a 1.1 x size % button
-     + two 2px gaps = 3.1 x size - 8px (--zoom-w). */
-  .ws-view-nodes .canvas-controls {
-    right: var(--ctl-right);
-    bottom: var(--ctl-bottom);
-    box-sizing: border-box;
-    width: var(--zoom-w);
-    height: var(--ctl-size);
-    gap: 2px;
-    padding: 0 6px;
-    border-radius: 999px;
-  }
-
-  .ws-view-nodes .canvas-controls button {
-    width: calc(var(--ctl-size) - 12px);
-    height: calc(var(--ctl-size) - 12px);
-    flex: none;
-    font-size: 20px;
-  }
-
-  .ws-view-nodes .canvas-controls .canvas-zoom-level {
-    width: calc(var(--ctl-size) * 1.1);
-    font-size: 16px;
+    right: calc(clamp(10px, 1.4vw, 22px) + 132px);
   }
 }
 
@@ -1696,6 +1657,11 @@
     bottom: 12px;
     width: 50px;
     height: 50px;
+  }
+
+  .tour-launch svg {
+    width: 30px;
+    height: 30px;
   }
 }
 

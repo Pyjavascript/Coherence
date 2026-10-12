@@ -22,10 +22,11 @@ const CheckIcon = () => (
   </svg>
 );
 
-const EyeIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
-    <circle cx="12" cy="12" r="3" />
+const SlidersIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+    <circle cx="15" cy="7" r="2.2" />
+    <circle cx="9" cy="17" r="2.2" />
   </svg>
 );
 
@@ -77,7 +78,8 @@ function MoreMenu({ label, onDuplicate, onDelete, disabled }) {
 }
 
 export default function NodeActions({
-  label, busy, canCopy, preview, onTogglePreview, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete,
+  label, busy, canCopy, settingsOpen, customised, onToggleSettings,
+  regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete,
 }) {
   const [copied, flashCopied] = useCopyFeedback();
 
@@ -87,17 +89,16 @@ export default function NodeActions({
 
   return (
     <div className="ncard-actions">
-      {onTogglePreview && (canCopy || preview) && (
+      {onToggleSettings && (
         <button
           type="button"
-          className={"ncard-action" + (preview ? " is-on" : "")}
-          title={preview ? "Back to text" : `Preview ${label} in context`}
-          aria-label={preview ? `Show ${label} as text` : `Preview ${label} in context`}
-          aria-pressed={Boolean(preview)}
-          disabled={!canCopy}
-          onClick={onTogglePreview}
+          className={"ncard-action ncard-settings-btn" + (settingsOpen ? " is-on" : "") + (customised ? " has-dot" : "")}
+          title={settingsOpen ? "Back to copy" : `${label} settings${customised ? " (customised)" : ""}`}
+          aria-label={`${label} settings`}
+          aria-pressed={settingsOpen}
+          onClick={onToggleSettings}
         >
-          <EyeIcon />
+          <SlidersIcon />
         </button>
       )}
       <button

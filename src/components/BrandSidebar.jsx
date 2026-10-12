@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import { LIMITS } from "../lib/clientId";
 import { Logo } from "../assets/globalAssets";
 import { profileOf } from "./ProfileModal";
@@ -28,35 +27,10 @@ const ProfileIcon = ({ src }) => (
 );
 
 export default function BrandSidebar({
-  open, drawer, onToggle, onExpand, brands, currentId, onSelect, onNew, user, onLogin, onSignup, onProfile, usage, model,
+  open, drawer, onToggle, brands, currentId, onSelect, onNew, user, onLogin, onSignup, onProfile, onUsage, usage,
 }) {
-  const [popover, setPopover] = useState(null); // null | "usage"
-  const footerRef = useRef(null);
-
-  // The cards are sized to the expanded panel; never leave one open on a collapsed rail.
-  useEffect(() => { if (!open) setPopover(null); }, [open]);
-
-  useEffect(() => {
-    if (!popover) return undefined;
-    const onDown = (event) => {
-      if (footerRef.current && !footerRef.current.contains(event.target)) setPopover(null);
-    };
-    const onKey = (event) => { if (event.key === "Escape") setPopover(null); };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [popover]);
-
   const generationsUsed = Math.min(LIMITS.generations, Math.max(0, usage?.generations || 0));
-  const generationsLeft = LIMITS.generations - generationsUsed;
   const usagePercent = Math.round((generationsUsed / LIMITS.generations) * 100);
-  const togglePopover = (name) => {
-    if (!open) onExpand?.();
-    setPopover((current) => (current === name ? null : name));
-  };
   const tip = (text) => (open ? undefined : text);
   const profile = user ? profileOf(user) : null;
 
@@ -85,7 +59,7 @@ export default function BrandSidebar({
             </svg>
           )
         }
-        label=""
+        label="Close"
       />
 
       <Row
@@ -120,47 +94,12 @@ export default function BrandSidebar({
         </div>
       </nav>
 
-      <div className="lnav-footer" ref={footerRef}>
-        {popover === "usage" && user && (
-          <div className="rail-usage-card" role="dialog" aria-label="Credits">
-            <div className="rail-usage-heading">
-              <strong>{generationsLeft}/{LIMITS.generations}</strong>
-              <span>Credits Left</span>
-            </div>
-            <div className="rail-reset-time">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="8.25" />
-                <path d="M12 7.5v5l3.25 2" />
-              </svg>
-              <span>Resets daily</span>
-            </div>
-            <div
-              className={"rail-usage-bars" + (generationsUsed === LIMITS.generations ? " limit" : "")}
-              role="img"
-              aria-label={`${usagePercent}% of today's generation credits used`}
-            >
-              {Array.from({ length: LIMITS.generations }, (_, index) => (
-                <i key={index} className={index < generationsUsed ? "used" : ""} aria-hidden="true" />
-              ))}
-            </div>
-            <div className="rail-model-usage">
-              <span>
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 3.75v8.5h8.5" />
-                  <path d="M19.8 15A8.25 8.25 0 1 1 9 4.1" />
-                </svg>
-                Model Usage
-              </span>
-              <b>{model || "Free"}</b>
-            </div>
-          </div>
-        )}
-
+      <div className="lnav-footer">
         {user ? (
           <Row
             title={tip(profile.displayName || user.email)}
             aria-haspopup="dialog"
-            onClick={() => { setPopover(null); onProfile(); }}
+            onClick={onProfile}
             icon={<ProfileIcon src={profile.avatar} />}
             label="Profile"
           />
@@ -169,10 +108,10 @@ export default function BrandSidebar({
         )}
         <Row
           className="rail-credits"
-          aria-expanded={popover === "usage"}
+          aria-haspopup={user ? "dialog" : undefined}
           aria-label={`Credits used: ${usagePercent}%`}
           title={tip(`Credits used: ${usagePercent}%`)}
-          onClick={() => (user ? togglePopover("usage") : onSignup?.())}
+          onClick={user ? onUsage : onSignup}
           icon={
             <span
               className="rail-credits-meter"

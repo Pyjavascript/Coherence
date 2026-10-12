@@ -10,6 +10,7 @@ import HistoryModal from "./components/HistoryModal";
 import { CoherenceModal, ConfirmModal, HookModal } from "./components/Modal";
 import AuthModal from "./components/AuthModal";
 import ProfileModal from "./components/ProfileModal";
+import UsageModal from "./components/UsageModal";
 import TourModal from "./components/TourModal";
 import CanvasViewport from "./components/CanvasViewport";
 import LeftSidebar from "./components/layout/LeftSidebar";
@@ -56,6 +57,7 @@ export default function App() {
   const [lastGenerated, setLastGenerated] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false); // false | "login" | "signup"
   const [showProfile, setShowProfile] = useState(false);
+  const [showUsage, setShowUsage] = useState(false);
   const [panelFocus, setPanelFocus] = useState(null); // { target, flag } — new object per request
   const [hookQuota, setHookQuota] = useState(readHookQuota);
   const [showTour, setShowTour] = useState(() => !readTourSeen());
@@ -290,7 +292,7 @@ export default function App() {
     : "";
 
   const views = {
-    quick: <QuickGrid quick={quick} atGenLimit={atGenLimit} brand={ws.brand} />,
+    quick: <QuickGrid quick={quick} atGenLimit={atGenLimit} />,
     nodes: (
       <CanvasViewport>
         <NodeStudio
@@ -330,17 +332,16 @@ export default function App() {
             open={layout.leftOpen || layout.bp === "mobile"}
             drawer={!layout.inline && layout.leftOpen}
             onToggle={() => layout.toggle("left")}
-            onExpand={() => layout.open("left")}
             brands={ws.brands}
             currentId={ws.currentId}
             onSelect={handleSelectBrand}
             onNew={handleNewBrand}
             user={user}
             usage={usage}
-            model="Free"
             onLogin={() => setShowAuthModal("login")}
             onSignup={() => setShowAuthModal("signup")}
             onProfile={() => setShowProfile(true)}
+            onUsage={() => { refreshUsage(); setShowUsage(true); }}
           />
         </LeftSidebar>
 
@@ -418,6 +419,18 @@ export default function App() {
           onLogout={() => { setShowProfile(false); logout(); }}
           onSaved={() => setStatus("Profile updated.", "ok")}
           onDeleted={() => { setShowProfile(false); setStatus("Your account has been deleted.", "ok"); }}
+        />
+      )}
+
+      {showUsage && user && (
+        <UsageModal
+          userId={user.id}
+          usage={usage}
+          plan={premium ? "Premium" : "Free"}
+          hookQuota={premium ? null : hookQuota}
+          tier={tier}
+          onTier={setTier}
+          onClose={() => setShowUsage(false)}
         />
       )}
 

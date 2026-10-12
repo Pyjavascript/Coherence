@@ -17,9 +17,9 @@ import {
 const untitled = (scope) =>
   scope === "global" ? "Untitled global brand" : "Untitled brand";
 
-// The persisted brand fields ("Message to adapt" is per-session, never saved),
-// trimmed the same way services/brands does, for unsaved-change detection.
-const SAVED_KEYS = Object.keys(DEFAULT_BRAND).filter((k) => k !== "message");
+// The persisted brand fields, trimmed the same way services/brands does,
+// for unsaved-change detection.
+const SAVED_KEYS = Object.keys(DEFAULT_BRAND);
 const snapshot = (b) =>
   JSON.stringify(SAVED_KEYS.map((k) => (typeof b[k] === "string" ? b[k].trim() : b[k] ?? "")));
 
@@ -72,9 +72,8 @@ export function useBrandWorkspace(setStatus, userId) {
   const setField = (key, value) => setBrand((b) => ({ ...b, [key]: value }));
   const applyFields = (fields) => setBrand((b) => ({ ...b, ...fields }));
 
-  // "Message to adapt" carries over: it's the user's working text, not brand data.
   const fill = (d, nextScope, nextNotes) => {
-    setBrand((prev) => ({ ...DEFAULT_BRAND, ...d, message: prev.message }));
+    setBrand({ ...DEFAULT_BRAND, ...d });
     setSavedSnap(snapshot({ ...DEFAULT_BRAND, ...d }));
     setNotes(nextNotes);
     setFileLabel(d.name || untitled(nextScope));

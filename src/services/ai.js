@@ -1,7 +1,9 @@
 // The ONLY frontend module that talks to the generation Edge Function.
-// The Edge Function holds the OpenAI key; nothing secret exists in the browser.
+// The Edge Function holds the default OpenAI key; a user may set their own
+// (lib/apiKey), which is sent along and used in its place.
 import { requireSupabase } from "../lib/supabase";
 import { AI_MODELS, DEFAULT_TIER } from "../lib/constants";
+import { getApiKey } from "../lib/apiKey";
 import {
   buildQuickGridPrompt, buildNodePrompt, buildHookPrompt, buildCoherencePrompt,
 } from "../lib/prompts";
@@ -14,14 +16,17 @@ export class AIError extends Error {
 }
 
 export function describeError(err) {
-  if (err?.code === "limit_reached") return `Daily generation limit reached (40/day). Resets tomorrow. ${err?.code}`;
+  if (err?.code === "limit_reached") return `Daily generation limit reached (40/day). Resets tomorrow.`;
   return err?.message ? `Generation failed — ${err.message}` : "Generation failed. Try again.";
 }
 
 async function invoke(type, prompt, tier) {
   const client = requireSupabase();
+  const apiKey = getApiKey();
+  const modelToUse = AI_MODELS[tier] || AI_MODELS[DEFAULT_TIER];
+  console.log("Sending request with model:", modelToUse);
   const { data, error } = await client.functions.invoke("generate", {
-    body: { type, prompt, tier, model: AI_MODELS[tier] || AI_MODELS[DEFAULT_TIER] },
+    body: { type, prompt, tier, model: AI_MODELS[tier] || AI_MODELS[DEFAULT_TIER], ...(apiKey ? { apiKey } : {}) },
   });
   if (error) throw new AIError(error.message || "Couldn't reach the generation function.", "network");
   if (!data || data.success !== true) throw new AIError(data?.error || "Generation failed.", data?.code || "generation");
@@ -69,8 +74,9 @@ const malformed = () => new AIError("The AI returned an unexpected format. Try a
 
 /* ---------- public API ---------- */
 // Returns { packaging:[...], marketing:[...], advertising:[...], website:[...], email:[...] }
-export async function generateQuickGrid({ ctx, variantCount, tier }) {
-  const data = await invoke("quick-grid", buildQuickGridPrompt(ctx, variantCount), tier);
+// settings = { [medium]: { words, brief, requirements, component, pointerCount } } per-card settings (optional).
+export async function generateQuickGrid({ ctx, variantCount, tier, settings }) {
+  const data = await invoke("quick-grid", buildQuickGridPrompt(ctx, variantCount, undefined, settings), tier);
   const out = {};
   let any = false;
   ["packaging", "marketing", "advertising", "website", "email"].forEach((m) => {
@@ -81,17 +87,17 @@ export async function generateQuickGrid({ ctx, variantCount, tier }) {
   return out;
 }
 
-// Returns an array of items for one medium.
-export async function regenerateOutput({ ctx, medium, variantCount, tier }) {
-  const data = await invoke("regenerate", buildQuickGridPrompt(ctx, variantCount, medium), tier);
+// Returns an array of items for one medium. settings = that card's settings (optional).
+export async function regenerateOutput({ ctx, medium, variantCount, tier, settings }) {
+  const data = await invoke("regenerate", buildQuickGridPrompt(ctx, variantCount, medium, settings ? { [medium]: settings } : {}), tier);
   const items = toItems(medium, data?.[medium]);
   if (!items.length) throw malformed();
   return items;
 }
 
 // Returns an array of variants: [{headline, body}] or [{pointers:[{title,detail}]}]
-export async function generateNode({ ctx, node, variantCount, linkedNodes, tier }) {
-  const data = await invoke("node", buildNodePrompt(ctx, node, variantCount, linkedNodes), tier);
+export async function generateNode({ ctx, node, variantCount, linkedNodes, source, tier }) {
+  const data = await invoke("node", buildNodePrompt(ctx, node, variantCount, linkedNodes, source), tier);
   const variants = normalizeVariants(data);
   if (!variants.length) throw malformed();
   return variants;

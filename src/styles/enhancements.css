@@ -401,6 +401,8 @@
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  /* Whatever doesn't fit is clipped here, never drawn under the action buttons. */
+  overflow: hidden;
   cursor: help;
 }
 
@@ -412,8 +414,9 @@
 
 .ncard-meter-bar {
   width: 38px;
+  min-width: 18px;
   height: 5px;
-  flex: none;
+  flex: 0 1 auto;
   overflow: hidden;
   background: #edf0f8;
   border-radius: 999px;
@@ -425,6 +428,55 @@
   background: var(--ux-ok);
   border-radius: inherit;
   transition: width 300ms var(--shell-ease), background-color 200ms ease;
+}
+
+/* Editable word limit: reads as part of the meter until hovered or focused. */
+.ncard-meter-input {
+  flex: 0 0 auto;
+  min-width: 0;
+  height: 22px;
+  padding: 0 5px;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, currentColor 45%, transparent);
+  border-radius: 6px;
+  cursor: text;
+  -moz-appearance: textfield;
+  appearance: textfield;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.ncard-meter-input::-webkit-outer-spin-button,
+.ncard-meter-input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.ncard-meter-input:hover {
+  border-color: currentColor;
+}
+
+.ncard-meter-input:focus {
+  color: var(--shell-ink);
+  background: #fff;
+  border-style: solid;
+  border-color: var(--node-color, var(--shell-ink));
+  outline: none;
+}
+
+.ncard-meter-input.is-custom {
+  border-style: solid;
+  font-weight: 650;
+}
+
+.ncard-meter-value {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .ncard-meter.is-near { color: #b07a00; }
@@ -444,6 +496,22 @@
   }
 }
 
+/* Two-up grid cards: tighten the header so label, bar and all three actions
+   sit side by side. The count stays in the meter's hover title. */
+@container ncard (max-width: 440px) {
+  .ncard-head {
+    gap: 10px;
+  }
+
+  .ncard-actions {
+    gap: 6px;
+  }
+
+  .ncard-meter-text {
+    display: none;
+  }
+}
+
 @container ncard (max-width: 330px) {
   .ncard-meter-text {
     display: none;
@@ -452,6 +520,109 @@
   .ncard:has(.ncard-meter) .ncard-pill {
     flex-shrink: 1;
   }
+}
+
+/* ---------- Node card: settings (Node Studio's fields) ---------- */
+
+/* Replaces the copy in the same box, so the card keeps its size; scrolls if tall. */
+.ncard-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--shell-ink);
+  animation: ncard-content-in 220ms var(--shell-ease) both;
+}
+
+.ncard-settings .sn-field {
+  gap: 6px;
+}
+
+.ncard-settings .sn-field input,
+.ncard-settings .sn-field select {
+  min-height: 42px;
+}
+
+.ncard-settings .sn-field textarea {
+  min-height: 0;
+  padding: 11px 16px;
+  overflow-y: auto;
+  border-radius: 18px;
+}
+
+.ncard-settings .sn-row2 {
+  align-items: end;
+}
+
+.ncard-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.ncard-settings-reset,
+.ncard-settings-done {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--r);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+}
+
+.ncard-settings-reset {
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid #dfe3f2;
+}
+
+.ncard-settings-reset:hover:not(:disabled) {
+  background: var(--shell-tint-2);
+}
+
+.ncard-settings-reset:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.ncard-settings-done {
+  color: #fff;
+  background: var(--shell-navy);
+  border: 0;
+}
+
+.ncard-settings-done:hover {
+  background: var(--hover-solid);
+}
+
+.ncard-settings-reset:focus-visible,
+.ncard-settings-done:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
+/* Dot on the settings button while the card has its own settings. */
+.ncard-settings-btn {
+  position: relative;
+}
+
+.ncard-settings-btn.has-dot::after {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  background: var(--node-color, var(--shell-blue));
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  content: "";
+}
+
+.ncard-settings-btn.is-on.has-dot::after {
+  background: #fff;
+  border-color: var(--node-color, var(--shell-blue));
 }
 
 /* ---------- Node card: action states ---------- */
@@ -1349,7 +1520,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 28px 22px 22px;
+  padding: 22px;
   color: #fff;
   text-align: center;
   background:
@@ -1678,7 +1849,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: clamp(28px, 4vh, 38px) clamp(18px, 5vw, 26px) clamp(18px, 5vw, 26px);
+  padding: clamp(18px, 5vw, 26px);
 }
 
 /* Centred title with the close button pinned to the right, as in sign-up. */
@@ -1752,7 +1923,7 @@
 .history-modal .hook-description {
   flex: none;
   max-width: 380px;
-  margin: 6px auto 20px;
+  margin: 20px auto 20px;
   text-wrap: balance;
   color: #70748d;
   font-size: 13px;
@@ -2422,7 +2593,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 28px 22px 22px;
+  padding: 22px;
   text-align: center;
 }
 
@@ -2477,16 +2648,564 @@
   }
 }
 
+/* ---------- Usage dialog (profile skin) ---------- */
+
+.usage-modal {
+  --usage-grad: linear-gradient(135deg, #3a5bff 0%, var(--shell-blue) 100%);
+  --usage-line: #e6e9f5;
+  --usage-muted: #70748d;
+  max-width: 520px;
+  max-height: calc(100dvh - 100px);
+  /* Taller tint than the profile card so the gradient reaches behind the usage card. */
+  background:
+    radial-gradient(70% 90% at 50% 0%, rgba(23, 60, 245, 0.18) 0%, transparent 70%) top / 100% 190px no-repeat,
+    linear-gradient(180deg, #dfe5ff 0%, #f3f6ff 58%, #fff 100%) top / 100% 190px no-repeat,
+    #fff;
+}
+
+/* Header: gradient icon chip, title, plan line, close. */
+.usage-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: clamp(18px, 5vw, 24px) clamp(18px, 5vw, 26px) 18px;
+}
+
+.usage-head-icon {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--usage-grad);
+  border-radius: 16px;
+  box-shadow: 0 10px 22px rgba(23, 60, 245, 0.28);
+}
+
+.usage-head-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.usage-head-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.usage-head-text h2 {
+  margin: 0;
+  font-size: clamp(20px, 2vw, 22px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.usage-head-text p {
+  margin: 3px 0 0;
+  color: var(--usage-muted);
+  font-size: 13px;
+}
+
+.usage-modal .usage-close {
+  position: static;
+  flex: none;
+  align-self: flex-start;
+  margin: -6px -8px 0 0;
+}
+
+.usage-body {
+  padding: 0 clamp(18px, 5vw, 26px);
+}
+
+/* ---- Today's credits: one line per credit, coloured by what it was spent on ---- */
+
+.usage-modal {
+  --uc-quick: #1f5bff;
+  --uc-node: #4cc3f5;
+  --uc-regen: #ff9500;
+  --uc-hook: #8b5cf6;
+  --uc-other: var(--shell-navy);
+  --uc-empty: #e6e9f3;
+  --uc-grey: #8a8fa8;
+}
+
+.uc-section-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 4px 6px;
+  color: var(--uc-grey);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.uc-section-label span + span {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.uc-card {
+  padding: 16px 16px 0;
+  background: #fff;
+  border: 1px solid var(--usage-line);
+  border-radius: 18px;
+  box-shadow: 0 10px 26px rgba(13, 20, 69, 0.06);
+}
+
+.uc-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.uc-big {
+  margin: 0;
+  color: var(--shell-ink);
+  line-height: 1;
+}
+
+.uc-big b {
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.uc-big span {
+  margin-left: 6px;
+  color: var(--usage-muted);
+  font-size: 15px;
+}
+
+.uc-left {
+  color: var(--usage-muted);
+  font-size: 13.5px;
+}
+
+.uc-left b {
+  color: var(--shell-ink);
+  font-weight: 650;
+}
+
+.uc-left.is-near b { color: #c27c00; }
+.uc-left.is-over b { color: #e5303a; }
+
+/* The credit lines: rounded pills, empty ones grey, used ones filling in order. */
+.uc-lines {
+  display: grid;
+  grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+  gap: 3px;
+  height: 46px;
+  margin-top: 16px;
+}
+
+.uc-lines i {
+  min-width: 0;
+  height: 100%;
+  background: var(--uc-empty);
+  border-radius: 999px;
+}
+
+.uc-lines i[class] {
+  animation: uc-line-in 420ms var(--shell-ease) both;
+  animation-delay: calc(var(--i) * 18ms);
+}
+
+.uc-lines i.is-quick { background: var(--uc-quick); }
+.uc-lines i.is-node { background: var(--uc-node); }
+.uc-lines i.is-regen { background: var(--uc-regen); }
+.uc-lines i.is-hook { background: var(--uc-hook); }
+.uc-lines i.is-other { background: var(--uc-other); }
+
+.uc-lines.is-loading i {
+  background: linear-gradient(90deg, #eceef5 0%, #f6f7fb 50%, #eceef5 100%) 0 0 / 200% 100%;
+  animation: shell-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes uc-line-in {
+  from { opacity: 0; transform: scaleY(0.4); }
+}
+
+.uc-note {
+  margin: 10px 0 0;
+  color: #e5303a;
+  font-size: 13px;
+}
+
+.uc-legend {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0 12px;
+}
+
+.uc-legend-item {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.uc-legend-item span {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uc-legend-item:last-child { text-align: right; }
+.uc-legend-item.is-quick span { color: var(--uc-quick); }
+.uc-legend-item.is-node span { color: var(--uc-node); }
+.uc-legend-item.is-regen span { color: var(--uc-regen); }
+.uc-legend-item.is-hook span { color: var(--uc-hook); }
+
+.uc-legend-item b {
+  color: var(--shell-ink);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.uc-other {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: -4px 0 12px;
+  color: var(--usage-muted);
+  font-size: 12.5px;
+}
+
+.uc-other i {
+  width: 4px;
+  height: 14px;
+  flex: none;
+  background: var(--uc-other);
+  border-radius: 999px;
+}
+
+.uc-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 -16px;
+  padding: 11px 16px;
+  color: var(--shell-ink);
+  border-top: 1px solid #eef0f7;
+  font-size: 14px;
+}
+
+.uc-row span + span {
+  color: var(--uc-grey);
+  text-align: right;
+}
+
+@media (max-width: 519.98px) {
+  .uc-lines {
+    gap: 2px;
+    height: 40px;
+  }
+
+  .uc-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .uc-legend-item:nth-child(even) { text-align: right; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .uc-lines i[class] {
+    animation: none;
+  }
+}
+
+/* ---- Model picker ---- */
+
+.usage-section {
+  margin-top: 18px;
+}
+
+.usage-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.usage-section-head h3 {
+  margin: 0;
+  color: var(--shell-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.usage-section-head p {
+  margin: 0;
+  color: #8a8fa8;
+  font-size: 12.5px;
+}
+
+.usage-key {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 1 1 auto;
+  align-self: center;
+  min-width: 0;
+}
+
+.usage-key-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid var(--shell-tint-2);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.usage-key-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.usage-key-btn:hover,
+.usage-key-btn.is-open {
+  color: var(--shell-blue);
+  background: var(--shell-tint);
+  border-color: var(--shell-blue);
+}
+
+.usage-key-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(23, 60, 245, 0.2);
+}
+
+/* Small dot: a key of the user's own is saved and in use. */
+.usage-key-btn.is-set::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 8px;
+  height: 8px;
+  background: #22b573;
+  border: 2px solid #fff;
+  border-radius: 50%;
+}
+
+.usage-api-key {
+  flex: 0 1 240px;
+  min-width: 0;
+  height: 34px;
+  animation: usage-key-in 180ms var(--shell-ease);
+  padding: 0 12px;
+  color: var(--shell-ink);
+  font: inherit;
+  font-size: 12.5px;
+  background: #fff;
+  border: 1px solid var(--shell-tint-2);
+  border-radius: 999px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.usage-api-key::placeholder {
+  color: #8a8fa8;
+}
+
+.usage-api-key:focus {
+  border-color: var(--shell-blue);
+  box-shadow: 0 0 0 3px rgba(23, 60, 245, 0.12);
+}
+
+@keyframes usage-key-in {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usage-api-key { animation: none; }
+}
+
+.usage-models {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.usage-model {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 14px 12px 13px;
+  color: var(--shell-ink);
+  text-align: left;
+  background: #fff;
+  border: 1.5px solid var(--usage-line);
+  border-radius: 18px;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 200ms ease;
+}
+
+.usage-model:hover {
+  background: #fafbff;
+  border-color: #c9d3ff;
+}
+
+/* Picked: gradient border, tinted shadow, gradient icon chip and check. */
+.usage-model.is-on {
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    var(--usage-grad) border-box;
+  border-color: transparent;
+  box-shadow: 0 12px 26px rgba(23, 60, 245, 0.16);
+}
+
+.usage-model-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  color: var(--shell-navy);
+  background: var(--shell-tint);
+  border-radius: 12px;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.usage-model.is-on .usage-model-icon {
+  color: #fff;
+  background: var(--usage-grad);
+}
+
+.usage-model-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-model-tag {
+  padding: 2px 8px;
+  color: var(--shell-blue);
+  background: #eef1ff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.usage-model-desc {
+  color: var(--usage-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.usage-model-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  color: transparent;
+  border: 1.5px solid #d5daee;
+  border-radius: 50%;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.usage-model-check svg {
+  width: 12px;
+  height: 12px;
+}
+
+.usage-model.is-on .usage-model-check {
+  color: #fff;
+  background: var(--usage-grad);
+  border-color: transparent;
+}
+
+.usage-model:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
+.usage-actions {
+  justify-content: flex-end;
+}
+
+.usage-actions .profile-save {
+  min-width: 128px;
+}
+
+/* Phones: models stack as rows (icon left, text right). */
+@media (max-width: 519.98px) {
+  .usage-models {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .usage-model {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 12px;
+    row-gap: 3px;
+    padding: 12px 40px 12px 12px;
+  }
+
+  .usage-model-icon {
+    grid-row: 1 / span 3;
+    align-self: center;
+    margin: 0;
+  }
+
+  .usage-model-tag {
+    justify-self: start;
+  }
+
+  .usage-model-check {
+    top: 50%;
+    translate: 0 -50%;
+  }
+
+  .usage-actions .profile-save {
+    flex: 1;
+  }
+}
+
+
 /* ---------- Reduced motion ---------- */
 
-.rsb-scroll,
+/* The brand panel scrolls without a visible scrollbar. */
+.rsb-scroll {
+  scrollbar-width: none !important;
+}
+
+.rsb-scroll::-webkit-scrollbar {
+  display: none !important;
+}
+
 .research-notes-list,
 .history-list.research-panel {
   scrollbar-width: thin !important;
   scrollbar-color: rgba(23, 60, 245, 0.4) transparent;
 }
 
-.rsb-scroll::-webkit-scrollbar,
 .research-notes-list::-webkit-scrollbar,
 .history-list.research-panel::-webkit-scrollbar {
   display: block !important;
@@ -2494,7 +3213,6 @@
   height: 8px !important;
 }
 
-.rsb-scroll::-webkit-scrollbar-thumb,
 .research-notes-list::-webkit-scrollbar-thumb,
 .history-list.research-panel::-webkit-scrollbar-thumb {
   background: rgba(23, 60, 245, 0.4);
@@ -2610,9 +3328,14 @@
 /* ---------- Primary: blue fill ---------- */
 
 .ws-topbar .toolbar-generate:hover:not(:disabled),
-.history-actions button.is-primary:hover,
-.rsb .bp-copy:hover {
+.sn-gen:hover:not(:disabled),
+.history-actions button.is-primary:hover {
   background: var(--hover-primary);
+}
+
+/* Copy Prompt matches the right panel's navy, so it hovers like a solid button. */
+.rsb .bp-copy:hover {
+  background: var(--hover-solid);
 }
 
 /* Gradient buttons fade the same colour in as an overlay (gradients can't transition). */
@@ -2648,15 +3371,15 @@
 
 .toolbar-icon-btn:hover,
 .ws-topbar .toolbar-add-node:hover,
-.sn-gen:hover:not(:disabled),
 .sn-round.active:hover,
-.sn-add:hover,
 .qg-empty button:hover,
 .ncard-retry:hover {
   background: var(--hover-solid);
 }
 
+/* The "+" is a white chip with a navy icon, so it hovers like a light control. */
 .sn-add:hover {
+  background: var(--hover-light);
   scale: none;
 }
 

@@ -3127,12 +3127,6 @@ body {
     background: transparent;
     content: attr(data-percent);
     font-size: 8px;
-    opacity: 0;
-    transition: opacity 120ms ease;
-  }
-
-  .rail-credits:hover .rail-credits-meter::after,
-  .rail-credits:focus-visible .rail-credits-meter::after {
     opacity: 1;
   }
 
@@ -5378,12 +5372,6 @@ body {
   background: transparent;
   content: attr(data-percent);
   font-size: 8px;
-  opacity: 1;
-  transition: opacity 120ms ease;
-}
-
-.rail-credits:hover .rail-credits-meter::after,
-.rail-credits:focus-visible .rail-credits-meter::after {
   opacity: 1;
 }
 

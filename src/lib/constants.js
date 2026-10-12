@@ -6,9 +6,9 @@ export const AI_MODELS = {
   quality: "gpt-4.1",
 };
 export const MODEL_OPTIONS = [
-  { value: "fast", label: "Fast" },
-  { value: "balanced", label: "Balanced" },
-  { value: "quality", label: "Max quality" },
+  { value: "fast", label: "gpt-4o-mini", description: "Faster for everyday tasks" },
+  { value: "balanced", label: "gpt-4o", description: "Best balance of speed and quality" },
+  { value: "quality", label: "gpt-4.1", description: "Best for complex tasks" },
 ];
 export const DEFAULT_TIER = "balanced";
 
@@ -188,6 +188,17 @@ export const WEBSITE_COMPONENTS = {
   faq: { label: "FAQ item" },
   testimonial: { label: "Testimonial" },
   cta: { label: "CTA block" },
+};
+
+// The same components on the Quick Grid's Website card, which is always a
+// headline + supporting line: `fields` names those two lines, `words` is their
+// default word budget, `guide` tells the model what goes in them.
+export const GRID_WEBSITE_COMPONENTS = {
+  hero: { fields: ["Hero", "Support"], words: [10, 20], guide: "a hero headline plus one supporting sentence" },
+  pointers: { fields: ["Section title", "Pointers"], words: [6, 24], guide: "headline is a short section title; sub lists the feature pointers as short benefit-led phrases separated by ' · '" },
+  faq: { fields: ["Question", "Answer"], words: [10, 24], guide: "headline is a question a customer would ask; sub is a clear, direct answer" },
+  testimonial: { fields: ["Quote", "Attribution"], words: [24, 6], guide: "headline is a customer quote in their own voice; sub is the attribution (name and role)" },
+  cta: { fields: ["CTA line", "Button"], words: [10, 4], guide: "headline is the call-to-action line; sub is the button text" },
 };
 
 // Brand panel options (labels identical to the prototype)

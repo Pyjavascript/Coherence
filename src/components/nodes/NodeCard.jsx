@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import NodeHeader from "./NodeHeader";
 import NodeActions from "./NodeActions";
 import NodeContent from "./NodeContent";
-import { toDisplay, measure } from "../../lib/copyItems";
+import NodeSettings from "./NodeSettings";
+import { toDisplay, measure, cardLimits } from "../../lib/copyItems";
 
 // Kept for existing imports; the helper now lives in lib/copyItems.
 export { toDisplay };
@@ -13,13 +14,14 @@ const StarIcon = ({ filled }) => (
   </svg>
 );
 
-// node = { id, type, status, items, version, message, width, fav }
+// node = { id, type, status, items, version, message, width, fav, words, brief, requirements, component, pointerCount }
 export default function NodeCard({
-  node, meta, brand, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
+  node, meta, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
+  onWordsChange, onSetting, onResetSettings,
 }) {
   const [idx, setIdx] = useState(0);
   const [leaving, setLeaving] = useState(false);
-  const [preview, setPreview] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [fresh, setFresh] = useState(false);
   const firstVersion = useRef(node.version);
 
@@ -37,7 +39,12 @@ export default function NodeCard({
   const item = toDisplay(node.items[shown]);
   const busy = node.status === "loading";
   const canCopy = !busy && Boolean(item);
-  const meter = busy ? null : measure(item, meta.limits);
+  const limits = cardLimits(node.type, node);
+  const cardMeta = { ...meta, limits };
+  const customised = node.words != null || Boolean(node.brief?.trim() || node.requirements?.trim())
+    || (node.type === "website" && node.component && node.component !== "hero");
+  // Keep measuring the current copy while it regenerates, so the header doesn't shift.
+  const meter = measure(item, limits);
 
   return (
     <article
@@ -48,13 +55,14 @@ export default function NodeCard({
       aria-label={`${meta.label} node`}
       onAnimationEnd={(e) => { if (leaving && e.animationName === "ncard-out") onDelete(); }}
     >
-      <NodeHeader meta={meta} meter={meter}>
+      <NodeHeader meta={meta} meter={meter} limits={limits} custom={node.words != null} onWordsChange={onWordsChange}>
         <NodeActions
           label={meta.label}
           busy={busy}
           canCopy={canCopy}
-          preview={preview}
-          onTogglePreview={() => setPreview((on) => !on)}
+          settingsOpen={settingsOpen}
+          customised={customised}
+          onToggleSettings={onSetting ? () => setSettingsOpen((open) => !open) : undefined}
           regenDisabled={regenDisabled || leaving}
           regenTitle={regenTitle}
           onRegenerate={onRegenerate}
@@ -64,18 +72,28 @@ export default function NodeCard({
           onDelete={() => setLeaving(true)}
         />
       </NodeHeader>
-      <NodeContent
-        meta={meta}
-        brand={brand}
-        status={node.status}
-        item={item}
-        version={node.version}
-        message={node.message}
-        preview={preview && Boolean(item)}
-        onRetry={onRegenerate}
-        onEdit={onEdit ? (field, text) => onEdit(shown, field, text) : undefined}
-      />
-      {!busy && node.items.length > 1 && (
+      {settingsOpen ? (
+        <NodeSettings
+          node={node}
+          meta={meta}
+          limits={limits}
+          onSetting={onSetting}
+          onWordsChange={onWordsChange}
+          onReset={onResetSettings}
+          onDone={() => setSettingsOpen(false)}
+        />
+      ) : (
+        <NodeContent
+          meta={cardMeta}
+          status={node.status}
+          item={item}
+          version={node.version}
+          message={node.message}
+          onRetry={onRegenerate}
+          onEdit={onEdit ? (field, text) => onEdit(shown, field, text) : undefined}
+        />
+      )}
+      {!settingsOpen && !busy && node.items.length > 1 && (
         <div className="ncard-vtabs">
           <div className="ncard-vtabs-list" role="tablist" aria-label={`${meta.label} variants`}>
             {node.items.map((_, i) => (

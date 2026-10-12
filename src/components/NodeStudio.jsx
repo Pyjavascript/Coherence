@@ -255,7 +255,7 @@ function DraggableNode({ node, dragging, onSize, onPointerDown, onClickCapture, 
           aria-label="Add connected node"
         >
           <svg viewBox="0 0 22 22" fill="none" aria-hidden="true">
-            <path d="M11 3.5v15M3.5 11h15" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
+            <path d="M11 3.5v15M3.5 11h15" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"/>
           </svg>
         </button>
       )}
@@ -477,15 +477,24 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     setOpen(id, false);
   };
 
+  // Linking A -> B hands A's job requirement to B and writes B from A's copy,
+  // adapted to B's channel. Unlinking only removes the line.
   const handleLink = (id) => {
     if (linkingFrom === id) return setLinkingFrom(null);
     if (linkingFrom === null) return setLinkingFrom(id);
+    const fromId = linkingFrom;
+    const source = nodesRef.current.find((n) => n.id === fromId);
+    const target = nodesRef.current.find((n) => n.id === id);
+    const isNew = Boolean(source && target) && !source.connections.includes(id);
     commit((l) => l.map((n) => {
-      if (n.id !== linkingFrom) return n;
-      const has = n.connections.includes(id);
-      return { ...n, connections: has ? n.connections.filter((c) => c !== id) : [...n.connections, id] };
+      if (n.id === fromId) {
+        return { ...n, connections: isNew ? [...n.connections, id] : n.connections.filter((c) => c !== id) };
+      }
+      if (isNew && n.id === id && source.brief.trim()) return { ...n, brief: source.brief };
+      return n;
     }));
     setLinkingFrom(null);
+    if (isNew && !target.generating) generateNode(id, { sourceId: fromId });
   };
 
   const announce = (n, idx) => {
@@ -493,7 +502,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     if (v) onGenerated({ type: "node", label: n.label, variant: v });
   };
 
-  const generateNode = async (id) => {
+  const generateNode = async (id, { sourceId } = {}) => {
     const n = nodesRef.current.find((x) => x.id === id);
     if (!n) return;
     if (!aiAvailable) return setStatus("AI generation isn't available here.", "err");
@@ -507,7 +516,12 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
         .filter((t) => t && t.variants.length)
         .map((t) => ({ label: t.label, variant: t.variants[t.activeIdx || 0] || t.variants[0] }));
 
-      const variants = await aiGenerateNode({ ctx: ctxRef.current, node: n, variantCount, linkedNodes, tier });
+      const src = sourceId && nodesRef.current.find((x) => x.id === sourceId);
+      const source = src
+        ? { label: src.label, category: src.category, variant: src.variants[src.activeIdx || 0] || src.variants[0] || null }
+        : null;
+
+      const variants = await aiGenerateNode({ ctx: ctxRef.current, node: n, variantCount, linkedNodes, source, tier });
       patch(id, { variants, activeIdx: 0, generating: false });
       setOpen(id, true);
       lastNodeRef.current = id;
@@ -568,7 +582,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     <div className="studio">
       <div className="nodebar">
         <div className={"linkhint" + (linkingFrom ? " on" : "")} role="status">
-          Linking mode — click another node's link button to correlate it, or click this node's again to cancel.
+          Linking mode — click another node's link button to send this node's input and copy to it, or click this node's again to cancel.
         </div>
       </div>
 

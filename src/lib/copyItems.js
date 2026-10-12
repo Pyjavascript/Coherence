@@ -1,3 +1,5 @@
+import { MEDIA_BY_KEY, GRID_WEBSITE_COMPONENTS } from "./constants";
+
 // Helpers for the generated-copy item shapes returned by services/ai:
 //   packaging / marketing      -> "string"
 //   email                      -> { subject, preview }
@@ -31,6 +33,43 @@ export function itemToText(item) {
 }
 
 export const countWords = (text) => String(text || "").trim().split(/\s+/).filter(Boolean).length;
+
+// Fewest / most words a user can set as a node's total length.
+export const minWordsFor = (limits) => Object.keys(limits || {}).length || 1;
+export const MAX_WORDS = 200;
+
+// Default total word budget of a medium (sum of its field limits).
+export const defaultWords = (limits) => Object.values(limits || {}).reduce((sum, l) => sum + l.words, 0);
+
+// Rescales a medium's field limits to a user-set total, keeping their proportions
+// (character caps scale with them). total = null/undefined -> the defaults.
+export function limitsFor(limits, total) {
+  if (!limits || !total) return limits;
+  const entries = Object.entries(limits);
+  const base = defaultWords(limits);
+  let left = total;
+  return Object.fromEntries(entries.map(([key, l], i) => {
+    const rest = entries.length - i - 1;
+    const words = rest === 0
+      ? Math.max(1, left)
+      : Math.min(left - rest, Math.max(1, Math.round((total * l.words) / base)));
+    left -= words;
+    return [key, { ...l, words, ...(l.chars ? { chars: Math.round((l.chars * words) / l.words) } : {}) }];
+  }));
+}
+
+// A Quick Grid card's effective field limits: its medium's defaults (the Website
+// card's renamed and re-budgeted for its component), rescaled to the card's word total.
+export function cardLimits(type, { words, component } = {}) {
+  let base = MEDIA_BY_KEY[type]?.limits;
+  const comp = type === "website" ? GRID_WEBSITE_COMPONENTS[component] : null;
+  if (base && comp) {
+    base = Object.fromEntries(Object.entries(base).map(([key, l], i) => [
+      key, { ...l, label: comp.fields[i] || l.label, words: comp.words[i] || l.words },
+    ]));
+  }
+  return limitsFor(base, words);
+}
 
 // Checks a display item against a medium's length limits (see MEDIA in constants).
 // Returns { words, maxWords, level: "ok" | "near" | "over", details: [..] }.

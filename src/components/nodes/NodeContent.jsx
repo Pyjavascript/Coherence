@@ -1,5 +1,3 @@
-import NodePreview from "./NodePreview";
-
 // Click-to-edit text (single paragraph: Enter saves, Esc cancels). Remounts (key)
 // whenever the committed value changes, so React never reconciles against DOM
 // the browser edited.
@@ -38,9 +36,9 @@ function EditableText({ className, value, label, onCommit }) {
   );
 }
 
-// Body of a node: placeholder, skeleton, error, preview, or the generated copy.
+// Body of a node: placeholder, skeleton, error, or the generated copy.
 // `version` changes every time new content lands, re-running the fade-in.
-export default function NodeContent({ meta, brand, status, item, version, message, preview, onRetry, onEdit }) {
+export default function NodeContent({ meta, status, item, version, message, onRetry, onEdit }) {
   if (status === "loading" && !item) {
     return (
       <div className="ncard-body" aria-busy="true">
@@ -69,14 +67,6 @@ export default function NodeContent({ meta, brand, status, item, version, messag
   }
 
   const busy = status === "loading";
-
-  if (preview) {
-    return (
-      <div className={"ncard-body is-preview" + (busy ? " is-refreshing" : "")} aria-busy={busy}>
-        <NodePreview type={meta.key} item={item} brand={brand} />
-      </div>
-    );
-  }
 
   const edit = busy || !onEdit ? undefined : onEdit;
   const labels = meta.limits || {};

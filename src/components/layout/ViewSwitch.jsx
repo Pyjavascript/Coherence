@@ -16,8 +16,8 @@ const NodesIcon = () => (
 );
 
 export const VIEWS = [
-  { key: "nodes", label: "Node Studio", Icon: NodesIcon },
   { key: "quick", label: "Quick Grid", Icon: GridIcon },
+  { key: "nodes", label: "Node Studio", Icon: NodesIcon },
 ];
 
 // Segmented Quick Grid | Node Studio control with a sliding thumb.

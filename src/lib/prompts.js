@@ -4,7 +4,9 @@ import {
   SPECS,
   NODE_CATS,
   WEBSITE_COMPONENTS,
+  GRID_WEBSITE_COMPONENTS,
 } from "./constants";
+import { cardLimits } from "./copyItems";
 
 // ctx = { brand, notes, stylePack }
 const t = (s) => (s || "").trim();
@@ -62,15 +64,51 @@ Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience
 Never explain your choices. Never use quotation marks in the output text. Keep the core belief's point of view recognisable in every version, even though wording, length and register change per channel.`;
 }
 
+// The website card's component, unless it's the default hero.
+const gridComponent = (medium, s) =>
+  medium === "website" && s?.component && s.component !== "hero" ? s.component : null;
+
+// The medium's format + length constraint: the default SPECS line, or one built
+// from the card's component and/or user-set word total.
+function lengthSpec(medium, s = {}) {
+  const comp = gridComponent(medium, s);
+  if (!s.words && !comp) return SPECS[medium];
+  const limits = cardLimits(medium, s);
+  if (!limits) return SPECS[medium];
+  const parts = Object.values(limits).map((l) => `${l.label.toLowerCase()} of about ${l.words} words`);
+  let spec = parts.join(" plus ");
+  if (comp) {
+    const pointers = comp === "pointers" ? ` (exactly ${s.pointerCount || 3} pointers)` : "";
+    spec = `a "${WEBSITE_COMPONENTS[comp].label}" website component${pointers}: ${GRID_WEBSITE_COMPONENTS[comp].guide}; ${spec}`;
+  }
+  if (s.words) spec += ` (user-set length: about ${s.words} words in total, stay within 15%; this overrides any default length)`;
+  return spec;
+}
+
+// The card's job requirement and specific requirements, if any.
+function cardBrief(s = {}) {
+  const lines = [];
+  if (t(s.brief)) lines.push(`job requirement: ${t(s.brief)}`);
+  if (t(s.requirements)) lines.push(`specific requirements: ${t(s.requirements)}`);
+  return lines.join("; ");
+}
+
+const GRID_MEDIA = ["packaging", "marketing", "advertising", "website", "email"];
+
 // medium = undefined -> all five mediums; medium = "email" etc. -> regenerate one.
-export function buildQuickGridPrompt(ctx, n, medium) {
+// settings = { [medium]: { words, brief, requirements, component, pointerCount } }
+// per-card settings; missing mediums / fields use the defaults.
+export function buildQuickGridPrompt(ctx, n, medium, settings = {}) {
   const base = buildBasePrompt(ctx);
   if (!medium) {
+    const briefs = GRID_MEDIA.map((m) => [m, cardBrief(settings[m])]).filter(([, b]) => b);
     return `${base}
 Generate exactly ${n} distinct variant(s) per medium — different angles, not synonyms of each other.
 Return ONLY valid JSON, no markdown fences, arrays of length ${n} for every field:
 {"packaging":["..."],"marketing":["..."],"advertising":[{"headline":"...","sub":"..."}],"website":[{"headline":"...","sub":"..."}],"email":[{"subject":"...","preview":"..."}]}
-Constraints — packaging: ${SPECS.packaging}. marketing: ${SPECS.marketing}. advertising: ${SPECS.advertising}. website: ${SPECS.website}. email: ${SPECS.email}.`;
+Constraints — ${GRID_MEDIA.map((m) => `${m}: ${lengthSpec(m, settings[m])}`).join(". ")}.${briefs.length
+      ? `\nPer-medium instructions (follow them for that medium only):\n${briefs.map(([m, b]) => `- ${m}: ${b}`).join("\n")}`
+      : ""}`;
   }
   const itemShape =
     medium === "packaging" || medium === "marketing"
@@ -81,11 +119,12 @@ Constraints — packaging: ${SPECS.packaging}. marketing: ${SPECS.marketing}. ad
   return `${base}
 Generate exactly ${n} distinct variant(s) for the ${medium} medium only — different angles, not synonyms.
 Return ONLY this JSON, no markdown fences: {"${medium}":[${itemShape}]}  (array length ${n})
-Constraint: ${SPECS[medium]}.`;
+Constraint: ${lengthSpec(medium, settings[medium])}.${cardBrief(settings[medium]) ? `\nInstructions for this ${medium} copy — ${cardBrief(settings[medium])}.` : ""}`;
 }
 
 // node = full node object; linkedNodes = [{label, variant}] (connected nodes that already have output)
-export function buildNodePrompt(ctx, node, vCount, linkedNodes = []) {
+// source = {label, category, variant|null}: the node this one was just linked from, to adapt
+export function buildNodePrompt(ctx, node, vCount, linkedNodes = [], source = null) {
   const c = clean(ctx);
   const cat = NODE_CATS[node.category];
   let p = `You are a brand language engine generating one specific content node inside a larger node-based content system. Keep this piece coherent with the brand's constant while doing its own specific job.
@@ -117,6 +156,21 @@ Target length: about ${node.words || 60} words for the body copy (soft target, s
             : `- [${label}] ${v.headline} — ${v.body}`,
         )
         .join("\n");
+  }
+
+  if (source) {
+    const from = NODE_CATS[source.category]?.label || source.category;
+    p += `\n\nThis node is linked from the ${from} node "${source.label}" and shares its job requirement.`;
+    if (source.variant) {
+      const v = source.variant;
+      p += ` Its finished copy:\n` +
+        (v.pointers
+          ? v.pointers.map((x) => `- ${x.title} — ${x.detail}`).join("\n")
+          : `Headline: ${v.headline}\nBody: ${v.body}`);
+      p += `\nAdapt that copy into this ${cat.label} piece: carry over its message, key facts, offer and emotional angle, but rewrite it natively for this channel's format, length and conventions instead of copying lines verbatim.`;
+    } else {
+      p += ` Write this ${cat.label} piece for that same job, natively for this channel.`;
+    }
   }
 
   const isPointers =

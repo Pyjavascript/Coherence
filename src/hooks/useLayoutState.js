@@ -9,6 +9,7 @@ const KEY = "coherence.ui.v1";
 const VIEWS = ["quick", "nodes"];
 const DEFAULTS = { leftOpen: false, rightOpen: false, view: "quick", drawer: null };
 
+// The app always opens on Quick Grid; only the panels' open state is restored.
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
@@ -16,7 +17,6 @@ function load() {
       ...DEFAULTS,
       leftOpen: Boolean(raw.leftOpen),
       rightOpen: Boolean(raw.rightOpen),
-      view: VIEWS.includes(raw.view) ? raw.view : DEFAULTS.view,
     };
   } catch {
     return DEFAULTS;

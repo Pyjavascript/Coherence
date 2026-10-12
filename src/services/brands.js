@@ -1,7 +1,7 @@
 import { requireSupabase } from "../lib/supabase";
 
 const COLS =
-  "id,name,logo,scope,belief,industry,stage,mode,audience,pain,emo,formality,objection,cta,banned,must_include";
+  "id,name,logo,scope,belief,message,industry,stage,mode,audience,pain,emo,formality,objection,cta,banned,must_include";
 
 function fromRow(r) {
   return {
@@ -10,6 +10,7 @@ function fromRow(r) {
     logo: r.logo || "",
     scope: r.scope,
     belief: r.belief || "",
+    message: r.message || "",
     industry: r.industry,
     stage: r.stage,
     mode: r.mode,
@@ -31,6 +32,7 @@ function toRow(b) {
     logo: b.logo || "",
     scope: b.scope || "regular",
     belief: t(b.belief),
+    message: t(b.message),
     industry: b.industry,
     stage: t(b.stage),
     mode: t(b.mode),
@@ -103,6 +105,21 @@ export async function getGenerations(brandId, limit = 40) {
     .eq("brand_id", brandId)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+// The signed-in user's charged AI calls since `since` (Date), oldest first.
+// The generate Edge Function writes one usage_events row per credit, with
+// kind = the generation type ("quick-grid", "regenerate", "node", "hook", ...).
+export async function getUsageActivity(userId, since) {
+  const { data, error } = await requireSupabase()
+    .from("usage_events")
+    .select("kind,created_at")
+    .eq("user_id", userId)
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: true })
+    .limit(2000);
   if (error) throw error;
   return data || [];
 }

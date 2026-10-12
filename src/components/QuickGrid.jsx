@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import NodeCard from "./nodes/NodeCard";
 import { MEDIA, MEDIA_BY_KEY } from "../lib/constants";
-import { applyEdit } from "../lib/copyItems";
+import { applyEdit, cardLimits, defaultWords, minWordsFor, MAX_WORDS } from "../lib/copyItems";
 import { generateQuickGrid, regenerateOutput, describeError } from "../services/ai";
 import { saveGeneration } from "../services/brands";
 import { useFlip } from "../hooks/useFlip";
@@ -10,8 +10,16 @@ import host from "../hosts/browser";
 let seq = 0;
 const uid = () => `q${Date.now().toString(36)}${(seq++).toString(36)}`;
 
-// node = { id, type, width, status: idle|loading|ready|error, items, version, message, fav }
+// node = { id, type, width, status: idle|loading|ready|error, items, version, message, fav,
+//          words, brief, requirements, component, pointerCount }
 // `fav` is the index of the starred variant (null = none); it resets when new copy lands.
+// The rest are the card's settings, as on a Node Studio node: `words` is the user-set total
+// length (null = the medium's default); `component` / `pointerCount` apply to Website only.
+const DEFAULT_SETTINGS = { words: null, brief: "", requirements: "", component: "hero", pointerCount: 3 };
+const settingsOf = (n) => ({
+  words: n.words, brief: n.brief, requirements: n.requirements, component: n.component, pointerCount: n.pointerCount,
+});
+
 const createNode = (type, from) => ({
   id: uid(),
   type,
@@ -21,6 +29,8 @@ const createNode = (type, from) => ({
   version: 0,
   message: "",
   fav: from?.status === "ready" ? from.fav ?? null : null,
+  ...DEFAULT_SETTINGS,
+  ...(from ? settingsOf(from) : {}),
 });
 const seedNodes = () => MEDIA.map((m) => createNode(m.key));
 
@@ -62,11 +72,14 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     ids.forEach((id) => tokens.current.set(id, token));
     const stillMine = () => new Set([...ids].filter((id) => tokens.current.get(id) === token));
     const types = [...new Set(targets.map((n) => n.type))];
+    // One request covers every medium, so each uses its first node's settings.
+    const settings = {};
+    targets.forEach((n) => { if (!(n.type in settings)) settings[n.type] = settingsOf(n); });
 
     setNodes((list) => list.map((n) => (ids.has(n.id) ? { ...n, status: "loading", message: "" } : n)));
     setStatus(`Generating ${variantCount} variant(s) across ${types.length} medium${types.length === 1 ? "" : "s"}...`);
     try {
-      const data = await generateQuickGrid({ ctx, variantCount, tier });
+      const data = await generateQuickGrid({ ctx, variantCount, tier, settings });
       const live = stillMine();
       setNodes((list) => list.map((n) => {
         if (!live.has(n.id)) return n;
@@ -102,7 +115,7 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     const mine = () => tokens.current.get(id) === token;
     setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "loading", message: "" } : n)));
     try {
-      const items = await regenerateOutput({ ctx, medium: node.type, variantCount, tier });
+      const items = await regenerateOutput({ ctx, medium: node.type, variantCount, tier, settings: settingsOf(node) });
       if (!mine()) return;
       setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "ready", items, version: n.version + 1, fav: null } : n)));
       await saveGeneration({ brandId, medium: node.type, inputContext: { message: ctx.brand.message }, output: items });
@@ -150,6 +163,28 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     })));
   };
 
+  // User-set total length; clamped, and stored as null when it matches the default.
+  const setWords = (id, value) => {
+    setNodes((list) => list.map((n) => {
+      if (n.id !== id) return n;
+      // The card's own default (the Website card's depends on its component).
+      const limits = cardLimits(n.type, { component: n.component });
+      const words = Math.min(MAX_WORDS, Math.max(minWordsFor(limits), Math.round(Number(value) || 0)));
+      return { ...n, words: words === defaultWords(limits) ? null : words };
+    }));
+  };
+
+  // One of the card's other settings (brief, requirements, component, pointerCount).
+  const setSetting = (id, field, value) => {
+    if (!(field in DEFAULT_SETTINGS) || field === "words") return;
+    setNodes((list) => list.map((n) => (n.id === id ? { ...n, [field]: value } : n)));
+  };
+
+  // Back to the medium's defaults: length, job, requirements and component.
+  const resetSettings = (id) => {
+    setNodes((list) => list.map((n) => (n.id === id ? { ...n, ...DEFAULT_SETTINGS } : n)));
+  };
+
   const toggleFav = (id, index) => {
     setNodes((list) => list.map((n) => (n.id === id ? { ...n, fav: n.fav === index ? null : index } : n)));
   };
@@ -185,11 +220,11 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
 
   return {
     nodes, cards, busy, lastAdded, hasCopy,
-    generateAll, regenerate, add, duplicate, remove, restoreDefaults, editItem, toggleFav, restore, setStatus,
+    generateAll, regenerate, add, duplicate, remove, restoreDefaults, editItem, setWords, setSetting, resetSettings, toggleFav, restore, setStatus,
   };
 }
 
-export default function QuickGrid({ quick, atGenLimit, brand }) {
+export default function QuickGrid({ quick, atGenLimit }) {
   const gridRef = useRef(null);
   useFlip(gridRef, quick.nodes.map((n) => n.id).join("|"));
 
@@ -232,8 +267,10 @@ export default function QuickGrid({ quick, atGenLimit, brand }) {
             key={n.id}
             node={n}
             meta={MEDIA_BY_KEY[n.type]}
-            brand={brand}
             onEdit={(index, field, text) => quick.editItem(n.id, index, field, text)}
+            onWordsChange={(value) => quick.setWords(n.id, value)}
+            onSetting={(field, value) => quick.setSetting(n.id, field, value)}
+            onResetSettings={() => quick.resetSettings(n.id)}
             onToggleFav={(index) => quick.toggleFav(n.id, index)}
             regenDisabled={atGenLimit}
             regenTitle={atGenLimit ? "Daily generation limit reached" : undefined}

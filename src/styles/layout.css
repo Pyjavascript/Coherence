@@ -29,22 +29,19 @@
   --shell-radius: var(--r);
 
   --gap: clamp(8px, 0.75vw, 12px);
-  --ui-icon: clamp(40px, 3.4vw, 50px);
+  --ui-icon: clamp(50px, 3.4vw, 50px);
   --lnav-pad: clamp(12px, 1.35vw, 20px);
   --lnav-closed: calc(var(--ui-icon) + var(--lnav-pad) * 2);
   --lnav-open: clamp(236px, 19vw, 290px);
   --lnav-row-gap: clamp(10px, 1.2vw, 18px);
-  /* Labels are laid out at their final (open) width and simply revealed as the
-     rail grows, so text never re-wraps or re-ellipsizes mid-animation. */
+  
   --lnav-label-w: calc(var(--lnav-open) - var(--lnav-pad) * 2 - var(--ui-icon) - var(--lnav-row-gap));
   --rsb-w: clamp(320px, 28vw, 420px);
   --tb-h: clamp(44px, 4vw, 58px);
-  --tb-pad-top: clamp(12px, 1.5vw, 22px);
-  --tb-pad-bottom: clamp(10px, 1.1vw, 16px);
-  /* Same as the top padding so the panel toggle's notch is even on top, left and right. */
-  --tb-pad-x: var(--tb-pad-top);
-  /* Matches the .ws-topbar-end gap: the strip of workspace left of the notch. */
   --notch-gap: clamp(8px, 0.9vw, 14px);
+  --tb-pad-top: var(--notch-gap);
+  --tb-pad-bottom: clamp(10px, 1.1vw, 16px);
+  --tb-pad-x: var(--tb-pad-top);
   /* Navy on either side of the panel toggle inside its notch. */
   --notch-pad: clamp(4px, 0.45vw, 7px);
   /* Full toolbar height: Node Studio's canvas extends up under it by this much. */
@@ -87,7 +84,7 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
-  padding: var(--gap) var(--gap) var(--gap) 0;
+  padding:25px;
   background: var(--shell-navy);
   overflow: hidden;
 }
@@ -448,16 +445,6 @@ body {
   font-weight: 600;
   opacity: 1;
   transition: color 150ms ease;
-}
-
-/* Collapsed rail: percentage only on hover / keyboard focus. */
-.lnav[data-open="false"] .rail-credits-meter::after {
-  color: transparent;
-}
-
-.lnav[data-open="false"] .rail-credits:hover .rail-credits-meter::after,
-.lnav[data-open="false"] .rail-credits:focus-visible .rail-credits-meter::after {
-  color: var(--shell-ink);
 }
 
 .lnav .rail-account-card,
@@ -1031,7 +1018,7 @@ body {
   gap: 12px;
   padding: 0 clamp(18px, 1.6vw, 24px);
   color: #fff;
-  background: #0f55ff;
+  background: var(--shell-navy);
   border: 0;
   border-radius: var(--r);
   font-size: 14px;
@@ -1046,7 +1033,7 @@ body {
 }
 
 .rsb .bp-copy:hover {
-  background: #0a47e0;
+  background: var(--hover-solid);
 }
 
 /* Generate Free Hook card */
@@ -1199,10 +1186,10 @@ body {
 }
 
 .ws-topbar .toolbar-add-node {
-  /* Fixed 60px, but the negative margins keep the row at --tb-h so the
-     rest of the toolbar (and the panel toggle's notch) stays put. */
-  height: 60px;
-  margin-block: calc((var(--tb-h) - 60px) / 2);
+  /* Same height as the other toolbar buttons, so its top edge sits the same
+     toolbar padding away from the workspace edge. */
+  height: var(--tb-h);
+  margin-block: 0;
   gap: clamp(12px, 1.4vw, 10px);
   /* padding: 0 clamp(16px, 1.6vw, 24px); */
   padding: 10px clamp(12px, 1.2vw, 14px) 10px clamp(12px, 1.2vw, 14px);
@@ -1587,7 +1574,7 @@ body {
 .ws-switch {
   position: absolute;
   z-index: 15;
-  bottom: clamp(10px, 1.4vw, 22px);
+  bottom: clamp(10px, 1.4vw, 35px);
   left: 50%;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1597,6 +1584,7 @@ body {
   transform: translateX(-50%);
   isolation: isolate;
   max-height: 70px;
+  scale:0.95;
 }
 
 .ws-switch-thumb {
@@ -1649,13 +1637,6 @@ body {
 @container ws (max-width: 420px) {
   .ws-switch-btn svg {
     display: none;
-  }
-}
-
-/* Narrow workspace: lift the zoom controls above the view switch. */
-@container ws (max-width: 640px) {
-  .ws-view-nodes .canvas-controls {
-    bottom: 76px;
   }
 }
 
@@ -2081,6 +2062,28 @@ body {
   border: 0;
 }
 
+/* Narrow workspace: stack the zoom controls vertically (+ on top, − below) in
+   the corner, so they clear the centred view switch instead of overlapping it.
+   Kept after the rule above, which would otherwise win. */
+@container ws (max-width: 640px) {
+  .ws-view-nodes .canvas-controls {
+    flex-direction: column-reverse;
+    gap: 2px;
+    padding: 4px;
+  }
+
+  .ws-view-nodes .canvas-controls button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ws-view-nodes .canvas-controls .canvas-zoom-level {
+    width: 36px;
+    height: 26px;
+    font-size: 10.5px;
+  }
+}
+
 /* Offset content by the toolbar height so the initial view starts below it. */
 .ws-view-nodes .canvas-world .nodebar {
   min-height: 0;
@@ -2495,7 +2498,7 @@ body {
   min-width: 0;
   height: clamp(44px, 3.6vw, 48px);
   color: #fff;
-  background: var(--shell-indigo);
+  background: var(--shell-blue);
   border: 0;
   border-radius: var(--r);
   font: inherit;
@@ -2505,7 +2508,7 @@ body {
 }
 
 .sn-gen:hover:not(:disabled) {
-  background: #23277a;
+  background: var(--shell-blue-hover);
 }
 
 .sn-gen:disabled {
@@ -2641,10 +2644,11 @@ body {
   align-self: center;
   margin-top: clamp(16px, 2vw, 28px);
   padding: 0;
-  color: #fff;
-  background: var(--shell-navy);
+  color: var(--shell-navy);
+  background: #fff;
   border: 0;
   border-radius: var(--r);
+  box-shadow: 0 6px 18px rgba(13, 20, 69, 0.08);
   cursor: pointer;
   /* Slow, eased grow on hover; the press shrinks quicker so clicks feel crisp. */
   transition: background-color 260ms ease, scale var(--shell-dur) var(--shell-ease);
@@ -2657,7 +2661,7 @@ body {
 }
 
 .sn-add:hover {
-  background: var(--shell-indigo);
+  background: var(--shell-tint-2);
   scale: 1.06;
 }
 

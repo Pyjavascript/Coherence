@@ -240,7 +240,7 @@ export function HookModal({ aiAvailable, quota, onGenerate, onUsed, onCopy, onCl
   return (
     <Modal title="Hook Generator" onClose={onClose} modalClassName="hook-modal">
       <div className="hook-modal-content">
-        <p className="hook-description">Describe the moment. Get one decisive hook aligned with your brand core.</p>
+        <p className="hook-description">Describe the moment. Get a brand-aligned hook.</p>
         <div className="hook-panel">
           <label className="hook-label" htmlFor="hook-brief">What should this hook be about?</label>
           <textarea

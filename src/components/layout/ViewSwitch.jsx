@@ -7,14 +7,12 @@ const GridIcon = () => (
 );
 
 const NodesIcon = () => (
-  <svg width="31" height="24" viewBox="0 0 31 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12.25 7.75L8.25 14.75M18.25 7.75L23.25 14.75" stroke="#2B308B" stroke-width="1.4" />
-    <rect x="20.5" y="13" width="10" height="10" rx="2" fill="#2B308B" />
-    <rect x="10.5" width="10" height="10" rx="2" fill="#2B308B" />
-    <rect y="13.5" width="10" height="10" rx="2" fill="#2B308B" />
+  <svg width="31" height="24" viewBox="0 0 31 24" fill="none" aria-hidden="true">
+    <path d="M12.25 7.75L8.25 14.75M18.25 7.75L23.25 14.75" stroke="currentColor" strokeWidth="1.4" />
+    <rect x="20.5" y="13" width="10" height="10" rx="2" fill="currentColor" />
+    <rect x="10.5" width="10" height="10" rx="2" fill="currentColor" />
+    <rect y="13.5" width="10" height="10" rx="2" fill="currentColor" />
   </svg>
-
-
 );
 
 export const VIEWS = [

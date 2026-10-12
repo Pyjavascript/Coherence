@@ -1586,14 +1586,27 @@
   opacity: 1;
 }
 
+/* Bottom-row controls (view switch, "?", zoom pill) share one height. It comes
+   from the view switch (layout.css): its tab height + 6px padding each side,
+   at its 0.95 scale. The scale shrinks the switch about its centre, so the
+   others' bottom is lifted by half the difference to sit on the same line.
+   The zoom pill is two square buttons + a wider % button (see below). */
+.ws-stage {
+  --ctl-switch-h: calc(clamp(40px, 3.8vw, 56px) + 12px);
+  --ctl-size: calc(var(--ctl-switch-h) * 0.95);
+  --ctl-right: clamp(10px, 1.4vw, 22px);
+  --ctl-bottom: calc(clamp(10px, 1.4vw, 35px) + (var(--ctl-switch-h) - var(--ctl-size)) / 2);
+  --zoom-w: calc(var(--ctl-size) * 3.1 - 8px);
+}
+
 /* "?" in the workspace corner — same white pill language as the zoom controls. */
 .tour-launch {
   position: absolute;
   z-index: 15;
-  right: clamp(10px, 1.4vw, 22px);
-  bottom: clamp(10px, 1.4vw, 22px);
-  width: 40px;
-  height: 40px;
+  right: var(--ctl-right);
+  bottom: var(--ctl-bottom);
+  width: var(--ctl-size);
+  height: var(--ctl-size);
   display: grid;
   place-items: center;
   padding: 0;
@@ -1616,14 +1629,107 @@
 }
 
 .tour-launch svg {
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
 }
 
-/* Node Studio: sit just left of the zoom controls (they lift above the view switch when narrow). */
+/* Node Studio: sit just left of the zoom controls (they lift above the view switch
+   when narrow). Phones hide the zoom controls, so there it keeps the corner. */
 @container ws (min-width: 641px) {
-  .ws-stage[data-view="nodes"] .tour-launch {
-    right: calc(clamp(10px, 1.4vw, 22px) + 132px);
+  .app-shell:not([data-bp="mobile"]) .ws-stage[data-view="nodes"] .tour-launch {
+    right: calc(var(--ctl-right) + var(--zoom-w) + 10px);
+  }
+
+  /* Zoom pill: same height and bottom line as the "?" and the view switch.
+     Width = 6px padding x2 + two (size - 12px) squares + a 1.1 x size % button
+     + two 2px gaps = 3.1 x size - 8px (--zoom-w). */
+  .ws-view-nodes .canvas-controls {
+    right: var(--ctl-right);
+    bottom: var(--ctl-bottom);
+    box-sizing: border-box;
+    width: var(--zoom-w);
+    height: var(--ctl-size);
+    gap: 2px;
+    padding: 0 6px;
+    border-radius: 999px;
+  }
+
+  .ws-view-nodes .canvas-controls button {
+    width: calc(var(--ctl-size) - 12px);
+    height: calc(var(--ctl-size) - 12px);
+    flex: none;
+    font-size: 20px;
+  }
+
+  .ws-view-nodes .canvas-controls .canvas-zoom-level {
+    width: calc(var(--ctl-size) * 1.1);
+    font-size: 16px;
+  }
+}
+
+/* Narrow workspaces: the switch stays truly centred and the "?" keeps the
+   right corner, both on the same 12px bottom line. */
+@container ws (max-width: 400px) {
+  .ws-switch {
+    bottom: 12px;
+    padding: 5px;
+    scale: 1;
+    box-shadow: 0 5px 20px rgba(24, 38, 99, 0.14);
+  }
+
+  .ws-switch-thumb {
+    top: 5px;
+    bottom: 5px;
+    left: 5px;
+    width: calc((100% - 10px) / 2);
+  }
+
+  .ws-switch-btn {
+    min-height: 40px;
+    font-size: 13px;
+  }
+
+  /* Same size as the switch pill (40px tab + 5px padding each side) and on
+     the same bottom line, so the two read as one row. */
+  .tour-launch {
+    right: 12px;
+    bottom: 12px;
+    width: 50px;
+    height: 50px;
+  }
+}
+
+/* Phones: text-only tabs. Side padding is ~1.4x the space above and below the
+   label (40px tab, 13px text), so each tab reads as a balanced pill. */
+.app-shell[data-bp="mobile"] .ws-switch-btn {
+  gap: 0;
+  padding: 0 18px;
+}
+
+.app-shell[data-bp="mobile"] .ws-switch-btn svg {
+  display: none;
+}
+
+/* The switch always stays truly centred, so on the narrowest workspaces it
+   gets smaller instead of moving: each step keeps it clear of the "?" in the
+   corner (50px + 12px edge + a few px gap on each side of the centre). */
+@container ws (max-width: 350px) {
+  .ws-switch-btn {
+    font-size: 12px;
+  }
+
+  .app-shell[data-bp="mobile"] .ws-switch-btn {
+    padding: 0 12px;
+  }
+}
+
+@container ws (max-width: 315px) {
+  .app-shell[data-bp="mobile"] .ws-switch-btn {
+    padding: 0 9px;
+  }
+
+  .tour-launch {
+    right: 10px;
   }
 }
 
@@ -1967,16 +2073,18 @@
   animation: confirm-in 260ms var(--shell-ease) both;
 }
 
-/* Same box as the sign-up popup (460 × 570): one region per dialog — hook
-   result, prompt, notes list, history list — grows to fill the height. */
+/* Same width as the sign-up popup; the height follows the content, so short
+   dialogs stay compact and only scroll when the screen is too short. Long
+   lists (notes, history) shrink to fit and scroll inside themselves first. */
 .hook-modal,
 .research-modal,
 .coherence-modal {
-  height: min(570px, calc(100dvh - 32px));
-  max-height: calc(100dvh - 32px);
+  height: auto;
+  max-height: min(640px, calc(100dvh - 32px));
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: clamp(18px, 5vw, 26px);
 }
 
@@ -2051,7 +2159,7 @@
 .history-modal .hook-description {
   flex: none;
   max-width: 380px;
-  margin: 20px auto 20px;
+  margin: 10px auto 10px;
   text-wrap: balance;
   color: #70748d;
   font-size: 13px;
@@ -2103,7 +2211,8 @@
 
 /* The hook brief sits on a white card, so it's white with a light outline. */
 .hook-brief {
-  min-height: 96px;
+  height: 84px;
+  min-height: 84px;
   padding: 14px 20px;
   background: #fff;
   border-color: #dfe3f2;
@@ -2153,8 +2262,8 @@
 }
 
 .hook-result {
-  min-height: 90px;
-  flex: 1 1 auto;
+  min-height: 96px;
+  flex: none;
   padding: 14px 18px;
 }
 
@@ -2162,9 +2271,11 @@
   color: var(--shell-ink);
 }
 
+/* A fixed, compact box: the long prompt scrolls inside it. */
 .coherence-prompt {
+  flex: none;
   min-height: 0;
-  height: auto;
+  height: clamp(290px, 22vh, 170px);
   padding: 16px 18px;
   font-size: 13px;
   line-height: 1.55;
@@ -3454,6 +3565,56 @@
   .confirm-dialog,
   .tour {
     max-height: calc(100svh - 24px);
+  }
+
+  /* Phones: every dialog, text and controls included, a little smaller. */
+  .overlay > [role="dialog"],
+  .overlay > [role="alertdialog"] {
+    zoom: 0.88;
+  }
+
+  /* Toasts: compact on phones (index.css bumps the text up to 18px). */
+  /* max-height is lifted so a two-line message isn't clipped. */
+  .toast {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    min-height: 0;
+    max-height: none;
+    gap: 12px;
+    padding: 12px 44px 12px 14px;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(10, 14, 60, 0.28);
+  }
+
+  .toast-text {
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .toast-icon {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+  }
+
+  /* The icons are <img>s with width="40", so size them, not just svgs. */
+  .toast-icon img,
+  .toast-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .toast-close {
+    top: 50%;
+    right: 12px;
+    translate: 0 -50%;
+  }
+
+  .toast-close svg {
+    width: 18px;
+    height: 18px;
   }
 }
 

@@ -100,7 +100,7 @@ export default function BrandSidebar({
             aria-haspopup="dialog"
             onClick={onProfile}
             icon={<ProfileIcon src={profile.avatar} />}
-            label="Profile"
+            label={profile.displayName || user.email}
           />
         ) : (
           <Row title={tip("Log in")} onClick={onLogin} icon={<ProfileIcon />} label="Log in" />

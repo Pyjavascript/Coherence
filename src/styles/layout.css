@@ -29,14 +29,14 @@
   --shell-radius: var(--r);
 
   --gap: clamp(8px, 0.75vw, 12px);
-  --ui-icon: clamp(50px, 3.4vw, 50px);
+  --ui-icon: clamp(45px, 3.4vw, 50px);
   --shell-pad: 25px;
   --lnav-pad: clamp(12px, 1.35vw, 20px);
   /* The shell's left padding sits before the icons, so the rail only adds the
      same amount after them: equal navy on both sides of the icon column. */
   --lnav-closed: calc(var(--ui-icon) + var(--shell-pad));
   --lnav-open: clamp(236px, 19vw, 290px);
-  --lnav-row-gap: clamp(10px, 1.2vw, 18px);
+  --lnav-row-gap: clamp(15px, 1.2vw, 18px);
 
   --lnav-label-w: calc(var(--lnav-open) - var(--shell-pad) - var(--ui-icon) - var(--lnav-row-gap));
   --rsb-w: clamp(320px, 28vw, 420px);
@@ -234,7 +234,7 @@ body {
 .app-shell[data-bp="mobile"] .lnav-label {
   flex: 1 1 auto;
   width: auto;
-  font-size: clamp(18px, 1.2vw, 18px);
+  font-size: clamp(15px, 1.2vw, 18px);
   font-weight: 500;
 }
 
@@ -343,7 +343,7 @@ body {
   margin-block: auto;
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1vw, 16px);
+  gap: clamp(12px, 1vw, 16px);
 }
 
 .lnav-item.is-active {
@@ -381,7 +381,7 @@ body {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: clamp(6px, 0.8vw, 12px);
+  gap: clamp(12px, 0.8vw, 16px);
 }
 
 .lnav-icon {
@@ -574,11 +574,30 @@ body {
   transform: translateX(calc(100% + var(--gap) * 2));
 }
 
+/* Mobile: the panel fills the screen edge to edge, with the shell's 8px navy
+   frame as padding, and the scrim stays clear behind it. Square corners on
+   purpose: a rounded panel over the rounded workspace let the workspace's
+   corner peek out as a thin curved stroke. */
 .app-shell[data-bp="mobile"] .rsb {
-  top: 8px;
-  right: 8px;
-  bottom: 8px;
-  width: min(440px, calc(100vw - 16px));
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  padding:
+    max(8px, env(safe-area-inset-top))
+    max(8px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
+  border-radius: 0;
+}
+
+.app-shell[data-bp="mobile"][data-drawer="right"] .shell-scrim {
+  background: transparent;
+}
+
+/* Phones: everything in the panel at a slightly smaller scale. */
+.app-shell[data-bp="mobile"] .rsb-scroll {
+  zoom: 0.88;
 }
 
 .app-shell:not([data-bp="desktop"])[data-right="open"] .rsb {
@@ -671,7 +690,7 @@ body {
   display: block;
   margin: 0 0 clamp(10px, 1vw, 14px) 2px;
   color: #fff;
-  font-size: clamp(16px, 1.3vw, 18px);
+  font-size: clamp(15px, 1.3vw, 18px);
   font-weight: 500;
   letter-spacing: -0.02em;
 }
@@ -1502,29 +1521,35 @@ body {
     white-space: nowrap;
   }
 
+  /* Phones: Add Node is an icon-only navy circle, the 2x2 dots centred in it
+     with plenty of navy around them (the dot grid is ~55% of the circle). */
   .ws-topbar .toolbar-add-node {
     width: var(--tb-h);
+    flex: none;
     justify-content: center;
     padding: 0;
+    border-radius: 50%;
   }
 
-  /* Phones: smaller Add Node dots (whole-pixel sizes keep the "+" bars centred). */
   .ws-topbar .toolbar-add-spark {
-    grid-template-columns: repeat(2, 12px);
+    grid-template-columns: repeat(2, 11px);
     gap: 3px;
   }
 
   .ws-topbar .toolbar-add-spark i {
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
   }
 
+  /* Slimmer "+" so each dot reads as a coloured disc with a fine cross. */
   .ws-topbar .toolbar-add-spark i::before {
-    width: 6px;
+    width: 5px;
+    height: 1.5px;
   }
 
   .ws-topbar .toolbar-add-spark i::after {
-    height: 6px;
+    width: 1.5px;
+    height: 5px;
   }
 
   /* Phones: the menu drops down as one white card with the options stacked. */
@@ -1669,11 +1694,6 @@ body {
   outline-offset: 1px;
 }
 
-@container ws (max-width: 420px) {
-  .ws-switch-btn svg {
-    display: none;
-  }
-}
 
 /* ==========================================================================
    Quick Grid — fills the stage; rows stretch to fit one screen
@@ -1817,7 +1837,7 @@ body {
   gap: clamp(8px, 0.8vw, 12px);
   margin: 0;
   color: var(--shell-ink);
-  font-size: clamp(16px, 1.5vw, 20px);
+  font-size: clamp(15px, 1.5vw, 20px);
   font-weight: 500;
   letter-spacing: -0.02em;
 }
@@ -2117,6 +2137,11 @@ body {
     height: 26px;
     font-size: 10.5px;
   }
+}
+
+/* Phones zoom the canvas with a pinch, so the zoom buttons are hidden. */
+.app-shell[data-bp="mobile"] .canvas-controls {
+  display: none;
 }
 
 /* Offset content by the toolbar height so the initial view starts below it. */
@@ -3078,7 +3103,9 @@ body {
 }
 
 /* ---------- Toast clears the view switch on small screens ---------- */
-.app:has(.app-shell[data-bp="mobile"]) .toast {
+/* Only while the switch is visible: the right panel covers it, so with the
+   panel open the toast drops back to the bottom edge. */
+.app:has(.app-shell[data-bp="mobile"]:not([data-right="open"])) .toast {
   bottom: 84px;
 }
 

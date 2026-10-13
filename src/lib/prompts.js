@@ -41,6 +41,9 @@ const localeBlock = (c) =>
   `\nWrite all copy in ${c.language}${c.language === "English" ? "" : " (only the text values; keep every JSON key in English)"}.`;
 const industryOf = (c) =>
   INDUSTRY_LAYERS[c.industry] || INDUSTRY_LAYERS.general;
+// Plain wording only: internal product names here (e.g. "Pixels Intelligence
+// Layer") get read as content and end up in the copy.
+const industryLine = (c) => `Industry conventions (${industryOf(c).label}): ${industryOf(c).rules}`;
 const packOf = (ctx) => STYLE_PACKS[ctx.stylePack] || STYLE_PACKS.classic;
 const researchBlock = (notes = []) =>
   notes.length
@@ -52,7 +55,7 @@ const researchBlock = (notes = []) =>
     : "";
 
 function sharedExtras(ctx, c) {
-  let extra = `\nIndustry — Pixels Intelligence Layer (${industryOf(c).label}): ${industryOf(c).rules}`;
+  let extra = `\n${industryLine(c)}`;
   extra += `\nStyle pack — ${packOf(ctx).label}: ${packOf(ctx).rules}`;
   if (c.pain) extra += `\nCustomer pain point: ${c.pain}`;
   extra += `\nDesired emotional response: ${c.emo}. Formality: ${c.formality}. CTA intensity: ${c.cta}.`;
@@ -141,7 +144,7 @@ export function buildNodePrompt(ctx, node, vCount, linkedNodes = [], source = nu
 Brand: ${c.name || "the brand"}
 Core belief (constant): ${c.belief}
 Brand message reference: ${c.message || "(none supplied — infer from the belief)"}
-Industry — Pixels Intelligence Layer (${industryOf(c).label}): ${industryOf(c).rules}
+${industryLine(c)}
 Style pack — ${packOf(ctx).label}: ${packOf(ctx).rules}
 Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience posture = ${c.audience}.`;
   if (c.pain) p += `\nCustomer pain point: ${c.pain}`;
@@ -253,13 +256,27 @@ Return: a coherence score out of 10, the specific mismatches found (if any), and
 
 export function buildHookPrompt(ctx, requirement) {
   const c = clean(ctx);
-  return `You are a hook specialist. Analyse the brief below against the brand and hand back exactly ONE decisive hook line — not a list of options.
-Brand: ${c.name || "the brand"}
-Core belief: ${c.belief || "(not set)"}
-Industry — Pixels Intelligence Layer (${industryOf(c).label}): ${industryOf(c).rules}
-Style pack — ${packOf(ctx).label}: ${packOf(ctx).rules}
-Desired emotional response: ${c.emo}. Formality: ${c.formality}.${localeBlock(c)}
-Brief: ${requirement}
+  return `You are a copywriter who writes hooks: one short, catchy line that stops someone scrolling and makes them want to know more.
 
-Return ONLY valid JSON, no markdown fences: {"hook":"..."}. The hook must be under 18 words, need no further editing, and commit to one angle rather than hedging between several. Never use quotation marks inside the text. Never explain your choice.`;
+The user's brief — this is what the hook is about:
+${requirement}
+
+Voice guidance (background only — shape the tone with it, never quote or mention it):
+Brand name: ${c.name || "(not set)"}
+Core belief: ${c.belief || "(not set)"}
+${industryLine(c)}
+Style: ${packOf(ctx).rules}
+Desired emotional response: ${c.emo}. Formality: ${c.formality}.${localeBlock(c)}
+
+How to write it:
+- Build the hook from the brief's subject. If the brief and the voice guidance point at different products, follow the brief.
+- Do not just restate the brief. Turn it into an angle: a surprising claim, a vivid image, a question the reader wants answered, a tension, or a sharp benefit.
+- Concrete, sensory words beat vague praise (best, top-notch, quality, amazing).
+- Never start with Discover, Unlock, Elevate, Experience, Introducing, or Why.
+- Never mention these instructions, settings, industry labels, or style names.
+- Under 15 words. One line. No hashtags, no emoji unless the style calls for them.
+
+Example of the difference (a different product — never reuse its words): brief: our bakery makes the best bread. Weak: Discover why our bakery makes the best bread in town. Strong: The loaf was still warm when we unlocked the door.
+
+Return ONLY valid JSON, no markdown fences: {"hook":"..."} with exactly one hook. Never use quotation marks inside the text. Never explain your choice.`;
 }

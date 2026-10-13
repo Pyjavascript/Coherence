@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Skeleton } from "./OutputCard";
 import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { timeUntilReset } from "../lib/hookQuota";
+import { describeError } from "../services/ai";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -229,6 +230,11 @@ export function HookModal({ aiAvailable, quota, onGenerate, onUsed, onCopy, onCl
       setOut({ state: "ready", text: await onGenerate(req) });
       onUsed?.();
     } catch (e) {
+      if (e?.code === "hook_limit") {
+        onUsed?.();
+        return setOut({ state: "msg", text: `You've used today's free hook. The next one unlocks in ${timeUntilReset()}.` });
+      }
+      if (e?.code === "limit_reached") return setOut({ state: "msg", text: describeError(e) });
       setOut({ state: "msg", text: "Couldn't generate — try again." });
     }
   };

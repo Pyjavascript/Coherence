@@ -25,7 +25,8 @@ import { buildCoherencePrompt, describeLastGenerated } from "./lib/prompts";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { DEFAULT_TIER, MEDIA, MEDIA_BY_KEY, NODE_CATS, SAMPLE_BRAND } from "./lib/constants";
 import { gridToText, gridToCsv, downloadFile, fileSlug } from "./lib/exporters";
-import { readHookQuota, recordHookUse } from "./lib/hookQuota";
+import { hookQuotaFrom } from "./lib/hookQuota";
+import { nextCreditReset } from "./lib/usageActivity";
 
 import host from "./hosts/browser";
 
@@ -59,7 +60,7 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showUsage, setShowUsage] = useState(false);
   const [panelFocus, setPanelFocus] = useState(null); // { target, flag } — new object per request
-  const [hookQuota, setHookQuota] = useState(readHookQuota);
+  const hookQuota = hookQuotaFrom(usage.hooks);
   const [showTour, setShowTour] = useState(() => !readTourSeen());
 
   const nodeStudioRef = useRef(null);
@@ -232,13 +233,13 @@ export default function App() {
     setStatus(`${MEDIA_BY_KEY[medium]?.label || "Copy"} restored to the grid.`, "ok");
   };
 
-  // Hook quota resets at midnight; re-read it when the tab regains focus.
+  // Credits and the free hook reset at UTC midnight; reload usage then and
+  // whenever the tab regains focus.
   useEffect(() => {
-    const refresh = () => setHookQuota(readHookQuota());
-    window.addEventListener("focus", refresh);
-    const timer = window.setInterval(refresh, 60000);
-    return () => { window.removeEventListener("focus", refresh); window.clearInterval(timer); };
-  }, []);
+    window.addEventListener("focus", refreshUsage);
+    const timer = window.setTimeout(refreshUsage, nextCreditReset() - Date.now() + 1000);
+    return () => { window.removeEventListener("focus", refreshUsage); window.clearTimeout(timer); };
+  }, [refreshUsage, usage]);
 
   // Warn before closing the tab with unsaved brand edits.
   useEffect(() => {
@@ -465,7 +466,7 @@ export default function App() {
           aiAvailable={aiAvailable}
           quota={premium ? null : hookQuota}
           onGenerate={(requirement) => generateHook({ ctx, requirement, tier })}
-          onUsed={() => { if (!premium) setHookQuota(recordHookUse()); }}
+          onUsed={refreshUsage}
           onCopy={(t) => copy(t, "Hook copied.")}
           onClose={() => setModal(null)}
         />

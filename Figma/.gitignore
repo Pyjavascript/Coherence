@@ -1,0 +1,5 @@
+# Generated from manifest.template.json by `npm run build` (holds your project's Supabase origin).
+manifest.json
+dist/
+node_modules/
+.env

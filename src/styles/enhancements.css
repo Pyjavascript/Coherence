@@ -1665,8 +1665,7 @@
   }
 }
 
-/* Phones: text-only tabs. Side padding is ~1.4x the space above and below the
-   label (40px tab, 13px text), so each tab reads as a balanced pill. */
+
 .app-shell[data-bp="mobile"] .ws-switch-btn {
   gap: 0;
   padding: 0 18px;
@@ -1676,9 +1675,7 @@
   display: none;
 }
 
-/* The switch always stays truly centred, so on the narrowest workspaces it
-   gets smaller instead of moving: each step keeps it clear of the "?" in the
-   corner (50px + 12px edge + a few px gap on each side of the centre). */
+
 @container ws (max-width: 350px) {
   .ws-switch-btn {
     font-size: 12px;

@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const MAX_GENERATIONS = 40; 
+const MAX_GENERATIONS = 40;
+const FREE_HOOKS_PER_DAY = 1; // keep in sync with src/lib/hookQuota.js
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -103,6 +104,22 @@ Deno.serve(async (req) => {
   }
   if ((usedToday ?? 0) >= MAX_GENERATIONS) {
     return fail(`Daily limit reached: ${MAX_GENERATIONS} generations per day.`, "limit_reached");
+  }
+  // Free hooks come out of the same credit day, so they reset with the credits.
+  if (type === "hook") {
+    const { count: hooksToday, error: hookError } = await admin
+      .from("usage_events")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("kind", "hook")
+      .gte("created_at", dayStart.toISOString());
+    if (hookError) {
+      console.error("usage_events hook count failed:", hookError.message);
+      return fail("Couldn't check your usage. Try again.", "upstream");
+    }
+    if ((hooksToday ?? 0) >= FREE_HOOKS_PER_DAY) {
+      return fail(`Free hook limit reached: ${FREE_HOOKS_PER_DAY} per day.`, "hook_limit");
+    }
   }
   // ==========================================
 

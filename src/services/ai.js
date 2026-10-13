@@ -17,6 +17,7 @@ export class AIError extends Error {
 
 export function describeError(err) {
   if (err?.code === "limit_reached") return `Daily generation limit reached (40/day). Resets tomorrow.`;
+  if (err?.code === "hook_limit") return "Today's free hook is used. It resets with your credits.";
   return err?.message ? `Generation failed — ${err.message}` : "Generation failed. Try again.";
 }
 

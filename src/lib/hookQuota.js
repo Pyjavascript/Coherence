@@ -1,34 +1,18 @@
-// Free hooks per day, tracked in this browser. The Edge Function does not
-// enforce this, so it is a UX limit rather than a security boundary.
+import { nextCreditReset } from "./usageActivity";
+
+// Free hooks per credit day. Each hook is also one of the day's credits, and
+// the generate Edge Function enforces both limits from usage_events, so the
+// free hook resets with the credits at UTC midnight on every device.
 export const FREE_HOOKS_PER_DAY = 1;
-const KEY = "coherence.freeHook.v1";
 
-const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local time
+// hooksUsed = today's usage_events rows with kind "hook" (hooks/useUsage).
+export const hookQuotaFrom = (hooksUsed = 0) => ({
+  used: hooksUsed,
+  left: Math.max(0, FREE_HOOKS_PER_DAY - hooksUsed),
+});
 
-export function readHookQuota() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
-    const used = raw.date === today() ? Number(raw.used) || 0 : 0;
-    return { used, left: Math.max(0, FREE_HOOKS_PER_DAY - used) };
-  } catch {
-    return { used: 0, left: FREE_HOOKS_PER_DAY };
-  }
-}
-
-export function recordHookUse() {
-  const { used } = readHookQuota();
-  try {
-    localStorage.setItem(KEY, JSON.stringify({ date: today(), used: used + 1 }));
-  } catch {
-    /* storage unavailable — the count just isn't remembered */
-  }
-  return readHookQuota();
-}
-
-// "6h", "45m" — time until local midnight, when the quota resets.
+// "6h", "45m" — time until the credits (and the free hook) reset.
 export function timeUntilReset(now = new Date()) {
-  const midnight = new Date(now);
-  midnight.setHours(24, 0, 0, 0);
-  const mins = Math.max(1, Math.round((midnight - now) / 60000));
+  const mins = Math.max(1, Math.round((nextCreditReset(now) - now) / 60000));
   return mins >= 60 ? `${Math.round(mins / 60)}h` : `${mins}m`;
 }

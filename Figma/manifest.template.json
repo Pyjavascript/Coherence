@@ -1,0 +1,13 @@
+{
+  "name": "Brand Language OS",
+  "id": "__PLUGIN_ID__",
+  "api": "1.0.0",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "networkAccess": {
+    "allowedDomains": ["__SUPABASE_ORIGIN__"],
+    "reasoning": "Sign-in, brand data and copy generation through the Brand Language OS Supabase backend. AI provider keys stay on the server."
+  }
+}

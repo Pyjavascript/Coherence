@@ -30,12 +30,14 @@ export const LIMITS = {
 
 // Keys the UI may read/write in figma.clientStorage: the Supabase session
 // (supabase-js appends suffixes such as -code-verifier) and UI preferences.
-export const STORAGE_KEY_PATTERN = /^blos-figma-(?:auth(?:-[a-z-]{1,30})?|prefs)$/;
+export const STORAGE_KEY_PATTERN = /^blos-figma-(?:auth(?:-[a-z-]{1,30})?|prefs|plugin-key)$/;
 
-export type TextRole = "headline" | "body";
+export type TextRole = "headline" | "subhead" | "body";
 export interface TextBlock {
   role: TextRole;
   text: string;
+  // Body only: the first `boldPrefix` characters are set in bold (e.g. "CTA Logic:").
+  boldPrefix?: number;
 }
 
 export interface SelectedText {
@@ -66,6 +68,7 @@ export interface RequestMap {
   "ui.resize": { req: { width: number; height: number }; res: null };
   "ui.notify": { req: { message: string; error?: boolean }; res: null };
   "external.open": { req: { url: string }; res: null };
+  "ui.boot": { req: Record<string, never>; res: { command: "open-workspace" | "set-api-key" } };
 }
 export type RequestType = keyof RequestMap;
 export type RequestPayload<T extends RequestType> = RequestMap[T]["req"];
@@ -138,9 +141,10 @@ const PAYLOAD_VALIDATORS: { [T in RequestType]: (p: Obj) => boolean } = {
     p.blocks.every(
       (b) =>
         isObj(b) &&
-        onlyKeys(b, ["role", "text"]) &&
-        (b.role === "headline" || b.role === "body") &&
-        isStr(b.text, LIMITS.text, 1),
+        onlyKeys(b, ["role", "text", "boldPrefix"]) &&
+        (b.role === "headline" || b.role === "subhead" || b.role === "body") &&
+        isStr(b.text, LIMITS.text, 1) &&
+        (b.boldPrefix === undefined || (b.role === "body" && isInt(b.boldPrefix, 1, (b.text as string).length))),
     ),
   "text.replace": (p) =>
     onlyKeys(p, ["nodeId", "expected", "text"]) &&
@@ -156,7 +160,11 @@ const PAYLOAD_VALIDATORS: { [T in RequestType]: (p: Obj) => boolean } = {
     onlyKeys(p, ["message", "error"]) &&
     isStr(p.message, LIMITS.message, 1) &&
     (p.error === undefined || typeof p.error === "boolean"),
-  "external.open": (p) => onlyKeys(p, ["url"]) && isStr(p.url, LIMITS.url) && /^https:\/\//.test(p.url),
+  // https, or http on a local dev server. The main thread also checks the URL is the web app's.
+  "external.open": (p) =>
+    onlyKeys(p, ["url"]) && isStr(p.url, LIMITS.url) &&
+    /^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|\?|$))/.test(p.url),
+  "ui.boot": (p) => Object.keys(p).length === 0,
 };
 
 export type ParsedRequest =

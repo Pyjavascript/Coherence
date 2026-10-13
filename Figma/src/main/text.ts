@@ -9,9 +9,10 @@ const REGULAR: FontName = { family: "Inter", style: "Regular" };
 const BOLD: FontName = { family: "Inter", style: "Bold" };
 const WIDTH = 360;
 const GAP = 48;
-const STYLE: Record<TextBlock["role"], { font: FontName; size: number }> = {
-  headline: { font: BOLD, size: 24 },
-  body: { font: REGULAR, size: 14 },
+const STYLE: Record<TextBlock["role"], { font: FontName; size: number; name: string }> = {
+  headline: { font: BOLD, size: 24, name: "Headline" },
+  subhead: { font: BOLD, size: 17, name: "Subhead" },
+  body: { font: REGULAR, size: 14, name: "Body" },
 };
 
 function makeText(block: TextBlock): TextNode {
@@ -20,7 +21,8 @@ function makeText(block: TextBlock): TextNode {
   t.fontName = style.font;
   t.fontSize = style.size;
   t.characters = block.text;
-  t.name = block.role === "headline" ? "Headline" : "Body";
+  if (block.boldPrefix) t.setRangeFontName(0, Math.min(block.boldPrefix, block.text.length), BOLD);
+  t.name = style.name;
   return t;
 }
 

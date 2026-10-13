@@ -8,6 +8,10 @@
   "ui": "dist/ui.html",
   "networkAccess": {
     "allowedDomains": ["__SUPABASE_ORIGIN__"],
-    "reasoning": "Sign-in, brand data and copy generation through the Brand Language OS Supabase backend. AI provider keys stay on the server."
-  }
+    "reasoning": "Brand data and copy generation through the Brand Language OS Supabase backend. The plugin signs in with a plugin API key. AI provider keys stay on the server."
+  },
+  "menu": [
+    { "name": "Open workspace", "command": "open-workspace" },
+    { "name": "Set API key", "command": "set-api-key" }
+  ]
 }

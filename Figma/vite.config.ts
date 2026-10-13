@@ -1,6 +1,6 @@
 /// <reference types="vitest" />
 import path from "node:path";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, normalizePath, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { FIGMA_DIR, REPO_ROOT, loadPluginConfig } from "./scripts/env.mjs";
@@ -8,11 +8,19 @@ import { FIGMA_DIR, REPO_ROOT, loadPluginConfig } from "./scripts/env.mjs";
 // The plugin reuses the web app's src/lib + src/services unchanged. Only two
 // web modules are swapped, by resolved file path, inside this bundle:
 //   src/lib/supabase.js -> a client that keeps its session in figma.clientStorage
-//   src/lib/apiKey.js   -> a stub (the plugin never sends an OpenAI key)
+//   src/lib/apiKey.js      -> a stub (the plugin never sends an OpenAI key)
+//   src/lib/pluginApiKey.js -> the coh_ key saved in figma.clientStorage
+//
+// Swap targets must use Vite's id format (forward slashes). A Windows path
+// with backslashes is a different module id than the same file imported
+// directly, which bundles two copies: the plugin key set by the UI would never
+// reach the copy services/ai.js reads.
 const key = (p: string) => path.resolve(p.split("?")[0]).toLowerCase();
+const target = (p: string) => normalizePath(path.join(FIGMA_DIR, p));
 const SWAPS: Record<string, string> = {
-  [key(path.join(REPO_ROOT, "src/lib/supabase.js"))]: path.join(FIGMA_DIR, "src/ui/lib/supabaseClient.ts"),
-  [key(path.join(REPO_ROOT, "src/lib/apiKey.js"))]: path.join(FIGMA_DIR, "src/ui/lib/apiKeyStub.ts"),
+  [key(path.join(REPO_ROOT, "src/lib/supabase.js"))]: target("src/ui/lib/supabaseClient.ts"),
+  [key(path.join(REPO_ROOT, "src/lib/apiKey.js"))]: target("src/ui/lib/apiKeyStub.ts"),
+  [key(path.join(REPO_ROOT, "src/lib/pluginApiKey.js"))]: target("src/ui/lib/pluginApiKey.ts"),
 };
 
 function swapWebModules(): Plugin {

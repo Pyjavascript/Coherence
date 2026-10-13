@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NODE_CATS, NODE_DEFAULT_WORDS, PLATFORMS, WEBSITE_COMPONENTS } from "@web/lib/constants.js";
+import { LIMITS } from "@web/lib/clientId.js";
 import { describeError, generateNode } from "@web/services/ai.js";
 import { saveGeneration } from "@web/services/brands.js";
 import type { Brand, Note } from "../hooks/useBrandData";
@@ -54,6 +55,7 @@ interface Props {
     replace: (target: SelectedText, text: string) => void;
     copy: (text: string) => void;
   };
+  atLimit: boolean;
   onUsed: () => void;
   onAuthError: () => void;
 }
@@ -61,7 +63,7 @@ interface Props {
 // The mockup's main flow: pick a channel, describe the piece, generate up to 3
 // variants with the web app's node generator, then insert / replace / copy.
 export default function GenerateTab(props: Props) {
-  const { brand, notes, tier, category, variantCount, selection, selectionText, replaceTarget, canvas } = props;
+  const { brand, notes, tier, category, variantCount, selection, selectionText, replaceTarget, canvas, atLimit } = props;
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [adapt, setAdapt] = useState(false);
   const [variants, setVariants] = useState<Variant[]>([]);
@@ -256,8 +258,12 @@ export default function GenerateTab(props: Props) {
             </button>
           ))}
         </div>
-        <button type="button" className="btn btn-primary btn-grow" onClick={generate} disabled={generating}>
-          {generating ? "Generating…" : `Generate ${variantCount} variant${variantCount === 1 ? "" : "s"}`}
+        <button type="button" className="btn btn-primary btn-grow" onClick={generate} disabled={generating || atLimit}>
+          {atLimit
+            ? `Daily limit reached · ${LIMITS.generations}/${LIMITS.generations}`
+            : generating
+              ? "Generating…"
+              : `Generate ${variantCount} variant${variantCount === 1 ? "" : "s"}`}
         </button>
       </div>
 

@@ -17,7 +17,10 @@ import { getItem, removeItem, setItem } from "./storage";
 
 declare const __BLOS_WEB_URL__: string;
 
-figma.showUI(__html__, { width: 440, height: 660, themeColors: true, title: "Brand Language OS" });
+const command = figma.command === "set-api-key" ? "set-api-key" : "open-workspace";
+
+// Light popup only. themeColors would paint Figma's dark chrome over it.
+figma.showUI(__html__, { width: 440, height: 660, themeColors: false, title: "Brand Language OS" });
 
 function send(message: ResponseMessage | EventMessage) {
   figma.ui.postMessage(message);
@@ -58,6 +61,8 @@ async function handle(msg: RequestMessage): Promise<unknown> {
       return null;
     case "external.open":
       return openWebApp(p.url);
+    case "ui.boot":
+      return { command };
   }
 }
 

@@ -16,6 +16,8 @@ describe("parseRequest", () => {
     expect(parseRequest(req("storage.get", { key: "blos-figma-auth" })).ok).toBe(true);
     expect(parseRequest(req("storage.set", { key: "blos-figma-auth-code-verifier", value: "x" })).ok).toBe(true);
     expect(parseRequest(req("storage.get", { key: "blos-figma-prefs" })).ok).toBe(true);
+    expect(parseRequest(req("storage.get", { key: "blos-figma-plugin-key" })).ok).toBe(true);
+    expect(parseRequest(req("ui.boot", {})).ok).toBe(true);
     expect(
       parseRequest(req("text.insert", { name: "V1", blocks: [{ role: "headline", text: "Hi" }] })).ok,
     ).toBe(true);
@@ -59,7 +61,14 @@ describe("parseRequest", () => {
     expect(parseRequest(req("ui.resize", { width: 10, height: 660 })).ok).toBe(false);
     expect(parseRequest(req("external.open", { url: "javascript:alert(1)" })).ok).toBe(false);
     expect(parseRequest(req("external.open", { url: "http://example.com" })).ok).toBe(false);
+    expect(parseRequest(req("external.open", { url: "http://localhost.evil.com/" })).ok).toBe(false);
     expect(parseRequest(req("selection.get", { sneaky: true })).ok).toBe(false);
+  });
+
+  it("allows https links, and http only for a local dev server", () => {
+    expect(parseRequest(req("external.open", { url: "https://app.example.com/?open=profile" })).ok).toBe(true);
+    expect(parseRequest(req("external.open", { url: "http://localhost:5173/?open=profile" })).ok).toBe(true);
+    expect(parseRequest(req("external.open", { url: "http://127.0.0.1:5173" })).ok).toBe(true);
   });
 });
 

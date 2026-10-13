@@ -79,6 +79,22 @@ export default function App() {
     return false;
   }, [user]);
 
+  // The Figma plugin links to /?open=profile so people can create a plugin key.
+  // Signed out, it asks for a login first and opens the profile afterwards.
+  useEffect(() => {
+    if (authLoading) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open") !== "profile") return;
+    if (!user) {
+      setShowAuthModal("login");
+      return;
+    }
+    setShowProfile(true);
+    params.delete("open");
+    const query = params.toString();
+    window.history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
+  }, [user, authLoading]);
+
   const requireLogin = (actionFn) => (...args) => {
     if (ensureAuth()) return actionFn(...args);
     pendingAuthRef.current = () => actionFn(...args);

@@ -4,6 +4,7 @@
 import { requireSupabase } from "../lib/supabase";
 import { AI_MODELS, DEFAULT_TIER } from "../lib/constants";
 import { getApiKey } from "../lib/apiKey";
+import { getPluginApiKey } from "../lib/pluginApiKey";
 import {
   buildQuickGridPrompt, buildNodePrompt, buildHookPrompt, buildCoherencePrompt,
 } from "../lib/prompts";
@@ -18,20 +19,52 @@ export class AIError extends Error {
 export function describeError(err) {
   if (err?.code === "limit_reached") return `Daily generation limit reached (40/day). Resets tomorrow.`;
   if (err?.code === "hook_limit") return "Today's free hook is used. It resets with your credits.";
+  if (err?.code === "unauthorized") return "That plugin key isn't valid. Generate a new one in your profile.";
   return err?.message ? `Generation failed — ${err.message}` : "Generation failed. Try again.";
 }
 
-async function invoke(type, prompt, tier) {
+// True inside the Figma plugin, which has a coh_ key instead of a session.
+export function usesPluginKey() {
+  return Boolean(getPluginApiKey());
+}
+
+// One request to the generate Edge Function; returns its `data`. Also carries
+// the plugin's brand data requests (type "brands.list", "notes.create", ...),
+// since row-level security hides the user's rows from a plugin with no session.
+export async function callFunction(type, payload = {}) {
   const client = requireSupabase();
   const apiKey = getApiKey();
-  const modelToUse = AI_MODELS[tier] || AI_MODELS[DEFAULT_TIER];
-  console.log("Sending request with model:", modelToUse);
+  const pluginApiKey = getPluginApiKey();
+  console.log(pluginApiKey ? "[Figma AI Request]" : "[AI Request]", {
+    type,
+    tier: payload.tier,
+    model: payload.model,
+    hasPrompt: Boolean(payload.prompt),
+    hasPluginKey: Boolean(pluginApiKey),
+  });
+  // supabase-js serialises `body` itself: pass the flat payload, never { body: {...} }.
   const { data, error } = await client.functions.invoke("generate", {
-    body: { type, prompt, tier, model: AI_MODELS[tier] || AI_MODELS[DEFAULT_TIER], ...(apiKey ? { apiKey } : {}) },
+    body: {
+      ...payload,
+      type,
+      ...(apiKey ? { apiKey } : {}),
+      ...(pluginApiKey ? { pluginApiKey } : {}),
+    },
   });
   if (error) throw new AIError(error.message || "Couldn't reach the generation function.", "network");
-  if (!data || data.success !== true) throw new AIError(data?.error || "Generation failed.", data?.code || "generation");
+  if (!data || data.success !== true) {
+    // An older deployment of the generate function doesn't know "ping" (or plugin keys).
+    if (data?.code === "bad_request" && /generation type/i.test(data?.error || "")) {
+      throw new AIError(`The server doesn't accept "${type}" requests yet. Redeploy the generate Edge Function.`, "bad_request");
+    }
+    throw new AIError(data?.error || "Generation failed.", data?.code || "generation");
+  }
   return data.data;
+}
+
+function invoke(type, prompt, tier) {
+  const tierToUse = AI_MODELS[tier] ? tier : DEFAULT_TIER;
+  return callFunction(type, { prompt, tier: tierToUse, model: AI_MODELS[tierToUse] });
 }
 
 /* ---------- response normalisation (handles malformed AI output) ---------- */
@@ -116,4 +149,10 @@ export async function generateHook({ ctx, requirement, tier }) {
 export async function generateCoherenceCheck({ ctx, described, tier }) {
   const data = await invoke("coherence", buildCoherencePrompt(ctx, described), tier);
   return String(data?.text || "").trim();
+}
+
+// Figma opens with this. It does not spend a credit. Returns
+// { userId, generations, hooks, brands }.
+export async function pluginPing() {
+  return invoke("ping", "ping", DEFAULT_TIER);
 }

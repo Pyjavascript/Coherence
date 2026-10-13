@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LIMITS } from "@web/lib/clientId.js";
 import { describeError, generateCoherenceCheck } from "@web/services/ai.js";
 import type { Brand, Note } from "../hooks/useBrandData";
 import type { SelectionInfo } from "../../shared/protocol";
@@ -11,6 +12,7 @@ interface Props {
   selection: SelectionInfo;
   selectionText: string;
   onCopy: (text: string) => void;
+  atLimit: boolean;
   onUsed: () => void;
   onAuthError: () => void;
 }
@@ -19,7 +21,7 @@ const ICON = { pass: "✓", warn: "!", fail: "×" } as const;
 
 // Brand alignment for copy on the canvas: free local checks against the
 // brand's rules, plus the web app's AI coherence review (1 credit).
-export default function CheckTab({ brand, notes, tier, selection, selectionText, onCopy, onUsed, onAuthError }: Props) {
+export default function CheckTab({ brand, notes, tier, selection, selectionText, onCopy, atLimit, onUsed, onAuthError }: Props) {
   const [pasted, setPasted] = useState("");
   const [targetWords, setTargetWords] = useState("");
   const [review, setReview] = useState("");
@@ -126,8 +128,8 @@ export default function CheckTab({ brand, notes, tier, selection, selectionText,
         </ul>
       )}
 
-      <button type="button" className="btn btn-primary btn-block" onClick={runReview} disabled={!text.trim() || reviewing}>
-        {reviewing ? "Reviewing…" : "Run AI brand review · 1 credit"}
+      <button type="button" className="btn btn-primary btn-block" onClick={runReview} disabled={!text.trim() || reviewing || atLimit}>
+        {atLimit ? `Daily limit reached · ${LIMITS.generations}/${LIMITS.generations}` : reviewing ? "Reviewing…" : "Run AI brand review · 1 generation"}
       </button>
       <p className="muted small">
         Checks the copy against the brand's core belief and CTA intensity, scores it out of 10 and suggests a better CTA.

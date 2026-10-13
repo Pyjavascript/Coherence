@@ -9,7 +9,10 @@ export const REPO_ROOT = path.resolve(FIGMA_DIR, "..");
 
 const PREFIXES = ["VITE_", "FIGMA_"];
 
-function httpsOrigin(value, name, { required }) {
+// Plain http is accepted only for a local dev server.
+const isLocalHttp = (url) => url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname);
+
+function httpsOrigin(value, name, { required, allowLocal = false }) {
   const raw = String(value || "").trim();
   if (!raw) {
     if (required) throw new Error(`${name} is missing. Set it in the repo root .env or Figma/.env.`);
@@ -21,7 +24,9 @@ function httpsOrigin(value, name, { required }) {
   } catch {
     throw new Error(`${name} is not a valid URL.`);
   }
-  if (url.protocol !== "https:") throw new Error(`${name} must use https.`);
+  if (url.protocol !== "https:" && !(allowLocal && isLocalHttp(url))) {
+    throw new Error(`${name} must use https${allowLocal ? " (or http://localhost)" : ""}.`);
+  }
   return url.origin;
 }
 
@@ -34,7 +39,7 @@ export function loadPluginConfig(mode = "production") {
   return {
     supabaseUrl: httpsOrigin(env.VITE_SUPABASE_URL, "VITE_SUPABASE_URL", { required: true }),
     supabaseAnonKey,
-    webUrl: httpsOrigin(env.VITE_BLOS_WEB_URL, "VITE_BLOS_WEB_URL", { required: false }),
+    webUrl: httpsOrigin(env.VITE_BLOS_WEB_URL, "VITE_BLOS_WEB_URL", { required: false, allowLocal: true }),
     pluginId: String(env.FIGMA_PLUGIN_ID || "brand-language-os-local").trim(),
   };
 }

@@ -159,7 +159,7 @@ export default function UsageModal({ userId, usage, plan = "Free", hookQuota, ti
             {!loading && other > 0 && (
               <p className="uc-other">
                 <i aria-hidden="true" />
-                {rows ? `${other} ${other === 1 ? "credit" : "credits"} on other generations` : "Couldn't load today's breakdown"}
+                {rows ? `${other} ${other === 1 ? "credit" : "credits"} on Figma generations` : "Couldn't load today's breakdown"}
               </p>
             )}
 

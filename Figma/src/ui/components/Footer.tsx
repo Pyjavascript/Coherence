@@ -6,14 +6,16 @@ import host from "../host";
 interface Props {
   status: { text: string; tone?: "ok" | "err" };
   creditsUsed: number;
+  brandsUsed: number;
   email: string;
   onSignOut: () => void;
 }
 
-// Status line (messages, or today's credits), "Open full app", account menu.
-export default function Footer({ status, creditsUsed, email, onSignOut }: Props) {
+// Status line (messages, or today's free allowance), "Open full app", account menu.
+export default function Footer({ status, creditsUsed, brandsUsed, email, onSignOut }: Props) {
   const [menu, setMenu] = useState(false);
   const atLimit = creditsUsed >= LIMITS.generations;
+  const brands = Math.max(0, brandsUsed);
 
   return (
     <footer className="footer">
@@ -21,7 +23,7 @@ export default function Footer({ status, creditsUsed, email, onSignOut }: Props)
         {status.text || (
           <>
             <span className={"dot" + (atLimit ? " is-err" : "")} aria-hidden="true" />
-            {creditsUsed}/{LIMITS.generations} credits today
+            {creditsUsed}/{LIMITS.generations} generations · {brands}/{LIMITS.brands} brands
           </>
         )}
       </span>

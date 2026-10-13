@@ -1,4 +1,9 @@
 import { requireSupabase } from "../lib/supabase";
+import { callFunction, usesPluginKey } from "./ai";
+
+// The Figma plugin has no Supabase session, so row-level security would hide
+// the user's brands. With a plugin key, brand reads and writes go through the
+// generate Edge Function, which scopes them to the key's user.
 
 const BASE_COLS =
   "id,name,logo,scope,belief,message,industry,stage,mode,audience,pain,emo,formality,objection,cta,banned,must_include";
@@ -56,7 +61,7 @@ function fromRow(r) {
 
 function toRow(b) {
   const t = (s) => (s || "").trim();
-  return {
+  const row = {
     name: t(b.name),
     logo: b.logo || "",
     scope: b.scope || "regular",
@@ -76,10 +81,17 @@ function toRow(b) {
     location: t(b.location),
     language: t(b.language) || "English",
   };
+  // user_id is left unset: the column default (auth.uid()) applies in the web
+  // app, and the Edge Function sets it from the plugin key in Figma.
+  return row;
 }
 
 // Only the signed-in user's brands, even if a table policy is still open.
 export async function getBrands(userId) {
+  if (usesPluginKey()) {
+    const { brands } = await callFunction("brands.list");
+    return (brands || []).map(fromRow);
+  }
   const { data, error } = await withCols((c) => requireSupabase()
     .from("brands")
     .select(c)
@@ -100,6 +112,10 @@ export async function getBrand(id) {
 }
 
 export async function createBrand(brand) {
+  if (usesPluginKey()) {
+    const { brand: saved } = await callFunction("brands.create", { brand: toRow(brand) });
+    return fromRow(saved);
+  }
   const { data, error } = await withCols((c) => requireSupabase()
     .from("brands")
     .insert(rowFor(brand))
@@ -110,6 +126,10 @@ export async function createBrand(brand) {
 }
 
 export async function updateBrand(id, brand) {
+  if (usesPluginKey()) {
+    const { brand: saved } = await callFunction("brands.update", { id, brand: toRow(brand) });
+    return fromRow(saved);
+  }
   const { data, error } = await withCols((c) => requireSupabase()
     .from("brands")
     .update(rowFor(brand))
@@ -164,6 +184,10 @@ export async function saveGeneration({
 }) {
   if (!brandId) return;
   try {
+    if (usesPluginKey()) {
+      await callFunction("generations.save", { brandId, medium, inputContext, output });
+      return;
+    }
     await requireSupabase()
       .from("generations")
       .insert({

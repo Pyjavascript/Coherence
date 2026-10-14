@@ -385,16 +385,58 @@
   outline: none;
 }
 
-/* ---------- Node card: fresh copy highlight ---------- */
+/* ---------- Node card: generating + fresh copy ---------- */
 
+/* ncard-in stays first in each list: dropping it from the list would replay
+   the card's entrance when these states end. */
+
+/* While copy is being written the card breathes in its medium's colour. */
+.ncard.is-busy {
+  animation: ncard-in 280ms var(--shell-ease) both, ncard-busy 1.6s ease-in-out infinite;
+}
+
+@keyframes ncard-busy {
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--node-color) 25%, transparent); }
+  50% {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--node-color) 65%, transparent),
+      0 10px 26px color-mix(in srgb, var(--node-color) 20%, transparent);
+  }
+}
+
+/* When copy lands the card lifts, rings in its colour and settles. Across a
+   full Generate the cards light up one after another (--stagger). */
 .ncard.is-fresh {
-  animation: ncard-fresh 1.3s ease-out both;
+  --fresh-delay: calc(var(--stagger, 0) * 110ms);
+  position: relative;
+  z-index: 1;
+  animation: ncard-in 280ms var(--shell-ease) both, ncard-fresh 1.5s var(--shell-ease) var(--fresh-delay) both;
 }
 
 @keyframes ncard-fresh {
-  0% { box-shadow: 0 0 0 0 transparent; }
-  18% { box-shadow: 0 0 0 3px var(--node-color), 0 10px 30px rgba(13, 20, 69, 0.12); }
-  100% { box-shadow: 0 0 0 0 transparent; }
+  0% { transform: none; box-shadow: 0 0 0 0 transparent; }
+  22% {
+    transform: translateY(-5px) scale(1.012);
+    box-shadow:
+      0 0 0 3px var(--node-color),
+      0 22px 44px color-mix(in srgb, var(--node-color) 32%, transparent);
+  }
+  60% {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 2px var(--node-color),
+      0 12px 28px color-mix(in srgb, var(--node-color) 16%, transparent);
+  }
+  100% { transform: none; box-shadow: 0 0 0 0 transparent; }
+}
+
+/* The copy writes in with the card: headline, then the supporting line. */
+.ncard.is-fresh .ncard-copy > * {
+  animation: ncard-content-in 420ms var(--shell-ease) calc(var(--fresh-delay) + 140ms) both;
+}
+
+.ncard.is-fresh .ncard-copy > * + * {
+  animation-delay: calc(var(--fresh-delay) + 240ms);
 }
 
 /* ---------- Node card: length meter ---------- */
@@ -3976,6 +4018,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ncard.is-fresh,
+  .ncard.is-busy,
+  .ncard.is-fresh .ncard-copy > *,
   .rsb .bp-textarea.is-invalid,
   .rsb .bp-upsell,
   .rsb-unsaved,

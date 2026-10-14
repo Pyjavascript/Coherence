@@ -1,0 +1,389 @@
+/* ==========================================================================
+   Coherence polish — SHELL (left nav, brand panel, modals, tour, switches)
+   Additive only. Positioning transforms in the app CSS are never overridden:
+   motion here uses the individual `translate` / `scale` / `rotate` properties
+   (which compose with `transform`) and keyframes with only a `from` step.
+   Note: the app ships `#root .app *, #root .overlay * { box-shadow:none !important }`,
+   so the few shadows/rings added below need #root-scoped !important rules.
+   ========================================================================== */
+
+/* ---------- shared keyframes (prefixed pl-sh-*) ---------- */
+@keyframes pl-sh-rise { from { opacity: 0; translate: 0 var(--pl-rise); } }
+@keyframes pl-sh-dialog-in { from { opacity: 0; translate: 0 6px; scale: var(--pl-pop-from); } }
+@keyframes pl-sh-scrim-in {
+  from { opacity: 0; -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px); }
+}
+@keyframes pl-sh-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: var(--pl-fx, 0px) var(--pl-fy, -3px); }
+}
+@keyframes pl-sh-step-in { from { opacity: 0; translate: calc(var(--pl-dir, 1) * 12px) 0; } }
+@keyframes pl-sh-ring-draw { from { opacity: 0; rotate: -100deg; scale: .9; } }
+@keyframes pl-sh-bar-in { from { opacity: 0; scale: 1 .4; } }
+
+/* ==========================================================================
+   LEFT NAV (.lnav)
+   Rows are `overflow:hidden` and exactly icon-sized when collapsed, so icons
+   cannot grow outward without clipping: hover animates the glyph *inside* the
+   icon, press shrinks the whole icon.
+   ========================================================================== */
+.lnav-slot > *,
+.lnav-slot > * > :is(svg, img),
+.lnav-plus {
+  transition:
+    scale var(--pl-d-2) var(--pl-ease-spring),
+    rotate var(--pl-d-3) var(--pl-ease-out),
+    box-shadow var(--pl-d-2) var(--pl-ease-out);
+}
+.lnav-row:hover .lnav-slot > :is(.lnav-icon, .lnav-avatar) > :is(svg, img),
+.lnav-toggle:hover .lnav-glyph {
+  scale: calc(var(--hover-grow, 1.06) + .04);
+}
+.lnav-row:active .lnav-slot > * {
+  scale: var(--pl-press-scale);
+  transition-duration: var(--pl-d-1);
+}
+.lnav-row .lnav-slot { transition: background-color var(--pl-d-2) var(--pl-ease-out); }
+
+/* "+" (Add brand) turns a quarter on hover */
+.lnav-add:hover .lnav-plus,
+.lnav-add:focus-visible .lnav-plus { rotate: 90deg; }
+
+/* collapse / expand glyph */
+.lnav-glyph-bar { transition: transform var(--pl-d-3) var(--pl-ease-soft-spring); }
+
+/* labels: quick exit, staggered enter (--pl-li set by shell.js in DOM order) */
+.lnav-label {
+  transition:
+    opacity var(--pl-d-1) var(--pl-ease-in),
+    transform var(--pl-d-2) var(--pl-ease-in);
+}
+.lnav[data-open=true] .lnav-label {
+  transition:
+    opacity var(--pl-d-3) var(--pl-ease-out) calc(var(--pl-stagger) + var(--pl-li, 0) * var(--pl-stagger) * .6),
+    transform var(--pl-d-3) var(--pl-ease-out) calc(var(--pl-stagger) * .5 + var(--pl-li, 0) * var(--pl-stagger) * .6);
+}
+.lnav-row, .lnav-head {
+  transition:
+    background-color var(--pl-d-2) var(--pl-ease-out),
+    color var(--pl-d-2) var(--pl-ease-out);
+}
+.lnav .lnav-add {
+  transition:
+    background-color var(--pl-d-2) var(--pl-ease-out),
+    color var(--pl-d-2) var(--pl-ease-out),
+    transform var(--pl-d-1) var(--pl-ease-out);
+}
+
+/* avatar / profile hover ring (inset so the row's overflow clip can't eat it) */
+#root .app .lnav-row:is(:hover, :focus-visible) .lnav-slot > :is(.lnav-profile, .lnav-avatar) {
+  box-shadow: inset 0 0 0 2px rgb(23 60 245 / .35) !important;
+}
+#root .app .lnav-item.is-active .lnav-avatar { box-shadow: inset 0 0 0 1px rgb(12 23 79 / .08) !important; }
+
+/* usage ring: the ring "draws" (sweeps in) on mount, number fades after it */
+.lnav .rail-credits-meter::before {
+  animation: pl-sh-ring-draw var(--pl-d-4) var(--pl-ease-out) backwards;
+}
+.lnav .rail-credits-meter::after {
+  animation: pl-fade-in var(--pl-d-3) var(--pl-ease-out) var(--pl-d-2) backwards;
+}
+/* count-up driven by shell.js: counter value replaces attr(data-percent) only while counting */
+.lnav .rail-credits-meter[data-pl-count]::after {
+  counter-reset: pl-pct var(--pl-pct, 0);
+  content: counter(pl-pct) "%";
+}
+
+/* account / usage popover cards (logged-in only) */
+.lnav .rail-account-card,
+.lnav .rail-usage-card {
+  animation: rail-usage-in var(--pl-d-3) var(--pl-ease-out) both;
+}
+#root .app .lnav :is(.rail-account-card, .rail-usage-card) { box-shadow: var(--pl-shadow-3) !important; }
+.rail-usage-bars i {
+  transform-origin: 50% 100%;
+  animation: pl-sh-bar-in var(--pl-d-3) var(--pl-ease-out) backwards;
+  animation-delay: calc(var(--pl-bi, 0) * var(--pl-stagger) * .2);
+}
+.rail-account-card .rail-logout { transition: background-color var(--pl-d-2) var(--pl-ease-out), scale var(--pl-d-1) var(--pl-ease-out); }
+.rail-account-card .rail-logout:active { scale: var(--pl-press-scale); }
+
+/* ==========================================================================
+   SCRIM + RIGHT BRAND PANEL (.rsb / .bp-*)
+   ========================================================================== */
+.shell-scrim {
+  -webkit-backdrop-filter: blur(0px);
+  backdrop-filter: blur(0px);
+  transition:
+    opacity var(--pl-d-3) var(--pl-ease-out),
+    -webkit-backdrop-filter var(--pl-d-3) var(--pl-ease-out),
+    backdrop-filter var(--pl-d-3) var(--pl-ease-out);
+}
+.shell-scrim[data-visible=true] { -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.app-shell[data-bp=mobile][data-drawer=right] .shell-scrim { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* desktop: panel is opacity-only in the app -> add a short eased slide via `translate` */
+.app-shell[data-bp=desktop] .rsb {
+  translate: var(--pl-rise) 0;
+  transition:
+    opacity var(--pl-d-2) var(--pl-ease-in),
+    translate var(--pl-d-3) var(--pl-ease-in),
+    transform var(--shell-dur) var(--shell-ease),
+    visibility 0s linear var(--pl-d-3);
+}
+.app-shell[data-bp=desktop][data-right=open] .rsb {
+  translate: 0 0;
+  transition:
+    opacity var(--pl-d-3) var(--pl-ease-out) var(--pl-stagger),
+    translate var(--pl-d-4) var(--pl-ease-out),
+    transform var(--shell-dur) var(--shell-ease),
+    visibility 0s;
+}
+/* tablet/mobile drawer keeps its translateX; only its easing is retuned */
+.app-shell:not([data-bp=desktop]) .rsb {
+  transition:
+    opacity var(--pl-d-2) var(--pl-ease-out),
+    transform var(--pl-d-4) var(--pl-ease-out),
+    visibility 0s linear var(--pl-d-4);
+}
+.app-shell:not([data-bp=desktop])[data-right=open] .rsb {
+  transition: opacity var(--pl-d-2) var(--pl-ease-out), transform var(--pl-d-4) var(--pl-ease-out), visibility 0s;
+}
+
+/* sections stagger in each time the panel opens (shell.js sets data-pl-enter-rsb) */
+.rsb[data-pl-enter-rsb] .rsb-scroll > * {
+  animation: pl-sh-rise var(--pl-d-4) var(--pl-ease-out) backwards;
+  animation-delay: calc(var(--pl-stagger) * (var(--pl-si, 0) + 1));
+}
+.rsb-scroll > :nth-child(1) { --pl-si: 0; }
+.rsb-scroll > :nth-child(2) { --pl-si: 1; }
+.rsb-scroll > :nth-child(3) { --pl-si: 2; }
+.rsb-scroll > :nth-child(4) { --pl-si: 3; }
+.rsb-scroll > :nth-child(5) { --pl-si: 4; }
+.rsb-scroll > :nth-child(6) { --pl-si: 5; }
+.rsb-scroll > :nth-child(7) { --pl-si: 6; }
+.rsb-scroll > :nth-child(n+8) { --pl-si: 7; }
+
+/* inputs: one soft focus ring, eased */
+.rsb :is(.bp-input, .bp-textarea),
+.rsb .bp-dd-trigger,
+.auth-field input,
+.profile-input,
+.usage-api-key {
+  transition:
+    border-color var(--pl-d-2) var(--pl-ease-out),
+    background-color var(--pl-d-2) var(--pl-ease-out),
+    color var(--pl-d-2) var(--pl-ease-out),
+    box-shadow var(--pl-d-2) var(--pl-ease-out);
+}
+#root .app .rsb :is(.bp-input, .bp-textarea):not(.is-invalid):focus,
+#root .app .rsb .bp-dd-trigger:focus-visible,
+#root .app .rsb .bp-dd.open .bp-dd-trigger,
+#root .overlay :is(.auth-field input, .profile-input, .usage-api-key):focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring, #c9d2ff) 55%, transparent) !important;
+}
+/* validation: keep the app's bp-shake, retimed, and restore its red halo */
+.rsb .bp-textarea.is-invalid { animation: bp-shake var(--pl-d-4) var(--pl-ease-out) both; }
+#root .app .rsb .bp-textarea.is-invalid { box-shadow: 0 0 0 3px #ff5a6429 !important; }
+.rsb .bp-field-error { animation: pl-sh-rise var(--pl-d-2) var(--pl-ease-out) backwards; }
+
+/* chevrons + presses */
+.rsb .bp-section-chevron { transition: transform var(--pl-d-3) var(--pl-ease-soft-spring); }
+/* Section chevrons read as dropdown arrows: down when collapsed, up when open
+   (the app rotates a down-chevron -90deg, which points sideways when closed). */
+html body .rsb .bp-section-chevron { transform: none; }
+html body .rsb .bp-section-chevron.open { transform: rotate(180deg); }
+.rsb .bp-chevron-slot { transition: background-color var(--pl-d-2) var(--pl-ease-out); }
+.rsb .bp-dd-chev { transition: rotate var(--pl-d-3) var(--pl-ease-out); }
+.rsb .bp-dd.open .bp-dd-chev { rotate: 180deg; }
+.rsb .rsb-head button { transition: background-color var(--pl-d-2) var(--pl-ease-out), scale var(--pl-d-1) var(--pl-ease-out); }
+.rsb :is(.bp-save, .bp-del, .bp-copy, .bp-card-hook .bp-gen-btn, .bp-research-field) {
+  transition: var(--hover-transition), scale var(--pl-d-1) var(--pl-ease-out), filter var(--pl-d-2) var(--pl-ease-out);
+}
+.rsb :is(.bp-save, .bp-del, .bp-copy, .bp-card-hook .bp-gen-btn, .rsb-head button):active:not(:disabled) {
+  scale: var(--pl-press-scale);
+}
+.rsb .bp-research-field:active { scale: .99; }
+.rsb .bp-upsell { animation: pl-sh-rise var(--pl-d-3) var(--pl-ease-out) backwards; }
+.rsb-unsaved { animation: pl-sh-dialog-in var(--pl-d-3) var(--pl-ease-spring) both; }
+
+/* ==========================================================================
+   MODALS — one language for profile, usage, history, confirm, auth,
+   coherence, research, hook (and the tour card)
+   ========================================================================== */
+.overlay,
+.coherence-overlay {
+  animation: pl-sh-scrim-in var(--pl-d-2) var(--pl-ease-out) backwards;
+}
+.overlay > :is([role=dialog], [role=alertdialog]) {
+  animation: pl-sh-dialog-in var(--pl-d-3) var(--pl-ease-out) backwards;
+}
+#root .overlay > :is([role=dialog], [role=alertdialog]) {
+  box-shadow: var(--pl-shadow-4) !important;
+}
+/* content rows stagger in after the dialog */
+.overlay > :is([role=dialog], [role=alertdialog]):not(.tour) > *,
+.profile-rows > .profile-row,
+.usage-models > *,
+.history-list > .history-entry,
+.coherence-panel > *,
+.hook-panel > *,
+.research-panel > :not(.research-notes-list),
+.auth-form > * {
+  animation: pl-sh-rise var(--pl-d-3) var(--pl-ease-out) backwards;
+  animation-delay: calc(var(--pl-d-1) * .5 + var(--pl-ci, 0) * var(--pl-stagger));
+}
+:is(.overlay > [role], .profile-rows, .usage-models, .history-list, .coherence-panel, .hook-panel, .research-panel, .auth-form) > :nth-child(1) { --pl-ci: 0; }
+:is(.overlay > [role], .profile-rows, .usage-models, .history-list, .coherence-panel, .hook-panel, .research-panel, .auth-form) > :nth-child(2) { --pl-ci: 1; }
+:is(.overlay > [role], .profile-rows, .usage-models, .history-list, .coherence-panel, .hook-panel, .research-panel, .auth-form) > :nth-child(3) { --pl-ci: 2; }
+:is(.overlay > [role], .profile-rows, .usage-models, .history-list, .coherence-panel, .hook-panel, .research-panel, .auth-form) > :nth-child(4) { --pl-ci: 3; }
+:is(.overlay > [role], .profile-rows, .usage-models, .history-list, .coherence-panel, .hook-panel, .research-panel, .auth-form) > :nth-child(5) { --pl-ci: 4; }
+:is(.overlay > [role], .profile-rows, .usage-models, .history-list, .coherence-panel, .hook-panel, .research-panel, .auth-form) > :nth-child(6) { --pl-ci: 5; }
+:is(.overlay > [role], .profile-rows, .usage-models, .history-list, .coherence-panel, .hook-panel, .research-panel, .auth-form) > :nth-child(n+7) { --pl-ci: 6; }
+/* nested lists start after their dialog's own rows */
+.profile-rows > .profile-row, .usage-models > *, .history-list > .history-entry,
+.coherence-panel > *, .hook-panel > *, .research-panel > *, .auth-form > * {
+  animation-delay: calc(var(--pl-d-2) + var(--pl-ci, 0) * var(--pl-stagger));
+}
+
+/* close buttons + secondary actions: consistent hover/press */
+:is(.profile-close, .coherence-close, .auth-modal .modal-head button, .hook-modal .modal-head button, .research-modal .modal-head button) {
+  transition: background-color var(--pl-d-2) var(--pl-ease-out), rotate var(--pl-d-3) var(--pl-ease-out);
+}
+:is(.profile-close, .coherence-close, .auth-modal .modal-head button, .hook-modal .modal-head button, .research-modal .modal-head button):hover {
+  rotate: 90deg;
+}
+:is(.auth-submit, .auth-google, .profile-save, .profile-cancel, .profile-delete, .profile-pill,
+    .hook-generate, .hook-copy, .research-add, .coherence-copy, .confirm-actions button, .usage-key-btn) {
+  transition: var(--hover-transition), scale var(--pl-d-1) var(--pl-ease-out), transform var(--pl-d-1) var(--pl-ease-out);
+}
+:is(.auth-submit, .auth-google, .profile-save, .profile-cancel, .profile-delete, .profile-pill,
+    .hook-generate, .hook-copy, .research-add, .coherence-copy, .usage-key-btn):active:not(:disabled) {
+  scale: var(--pl-press-scale);
+}
+.confirm-actions button:active { transform: scale(var(--pl-press-scale)); }
+
+/* confirm icon pops in after the dialog */
+.confirm-icon { animation: pl-sh-dialog-in var(--pl-d-3) var(--pl-ease-spring) var(--pl-d-1) backwards; }
+
+/* profile photo badge / plugin-access accordion: tokenised easing */
+.profile-photo-badge { transition: background-color var(--pl-d-2) var(--pl-ease-out), scale var(--pl-d-2) var(--pl-ease-spring); }
+.profile-photo-trigger:hover .profile-photo-badge { scale: var(--hover-grow, 1.06); }
+.pa-chevron { transition: transform var(--pl-d-3) var(--pl-ease-soft-spring), background-color var(--pl-d-2) var(--pl-ease-out); }
+.pa-logo { transition: transform var(--pl-d-3) var(--pl-ease-out); }
+.pa-icon-btn { transition: background-color var(--pl-d-2) var(--pl-ease-out), color var(--pl-d-2) var(--pl-ease-out), transform var(--pl-d-1) var(--pl-ease-out); }
+.pa-icon-btn:active { transform: scale(var(--pl-press-scale)); }
+
+/* usage models: hover lift + tint */
+.usage-model {
+  transition: border-color var(--pl-d-2) var(--pl-ease-out), background-color var(--pl-d-2) var(--pl-ease-out),
+    translate var(--pl-d-2) var(--pl-ease-out), box-shadow var(--pl-d-2) var(--pl-ease-out);
+}
+.usage-model:hover { translate: 0 var(--pl-lift); border-color: var(--shell-tint-2); }
+#root .overlay .usage-model:hover { box-shadow: var(--pl-shadow-2) !important; }
+.usage-api-key { animation: usage-key-in var(--pl-d-2) var(--pl-ease-out); }
+
+/* history entries: hover slide + tint */
+.history-entry {
+  transition: translate var(--pl-d-2) var(--pl-ease-out), border-color var(--pl-d-2) var(--pl-ease-out),
+    background-color var(--pl-d-2) var(--pl-ease-out), box-shadow var(--pl-d-2) var(--pl-ease-out);
+}
+.history-entry:hover { translate: 3px 0; border-color: var(--shell-tint-2); }
+#root .overlay .history-entry:hover { box-shadow: var(--pl-shadow-1) !important; }
+.history-filters button { transition: var(--hover-transition), scale var(--pl-d-1) var(--pl-ease-out); }
+.history-filters button:active { scale: var(--pl-press-scale); }
+
+/* research notes: retimed enter */
+.research-note-card { animation: research-note-in var(--pl-d-3) var(--pl-ease-out) backwards; }
+
+/* popover menus in my area */
+.share-menu, .user-menu { animation: pl-sh-dialog-in var(--pl-d-2) var(--pl-ease-out) backwards; transform-origin: 100% 100%; }
+.user-menu { transform-origin: 0 100%; }
+
+/* ==========================================================================
+   TOUR
+   ========================================================================== */
+/* art: keep the app's tour-pop entrance, then each chip drifts on its own loop */
+.tour-art > :is(.tour-chip, .tour-pill) {
+  animation:
+    tour-pop var(--pl-d-4) var(--pl-ease-out) var(--d, 0ms) both,
+    pl-sh-float calc(var(--pl-d-loop) * var(--pl-fk, 1)) var(--pl-ease-inout) calc(var(--d, 0ms) + var(--pl-d-4)) infinite;
+}
+.tour-art > .tour-card {
+  --pl-fy: -2px;
+  animation:
+    tour-pop var(--pl-d-4) var(--pl-ease-out) var(--d, 0ms) both,
+    pl-sh-float calc(var(--pl-d-loop) * 1.6) var(--pl-ease-inout) calc(var(--d, 0ms) + var(--pl-d-4)) infinite;
+}
+.tour-art > :nth-child(1) { --pl-fk: 1.05; --pl-fx: 1px;  --pl-fy: -4px; }
+.tour-art > :nth-child(2) { --pl-fk: 1.3;  --pl-fx: -1px; --pl-fy: -3px; }
+.tour-art > :nth-child(3) { --pl-fk: 1.15; --pl-fx: 1px;  --pl-fy: 3px; }
+.tour-art > :nth-child(4) { --pl-fk: 1.4;  --pl-fx: -2px; --pl-fy: -3px; }
+.tour-art > :nth-child(5) { --pl-fk: 0.95; --pl-fx: 0px;  --pl-fy: 4px; }
+.tour-art > :nth-child(n+6) { --pl-fk: 1.2; --pl-fx: 1px;  --pl-fy: -3px; }
+.tour-art > :is(:not(.tour-chip, .tour-pill, .tour-card)) {
+  animation: tour-pop var(--pl-d-4) var(--pl-ease-out) var(--d, 0ms) both;
+}
+
+/* step copy: directional crossfade (shell.js sets --pl-dir on .tour) */
+.tour-copy {
+  transition:
+    opacity var(--pl-d-2) var(--pl-ease-in),
+    translate var(--pl-d-2) var(--pl-ease-in),
+    visibility 0s linear var(--pl-d-2);
+}
+.tour-copy[data-active=false] { opacity: 0; translate: calc(var(--pl-dir, 1) * -12px) 0; }
+.tour-copy[data-active=true] {
+  transition: visibility 0s;
+  animation: pl-sh-step-in var(--pl-d-3) var(--pl-ease-out) var(--pl-d-1) both;
+}
+
+/* progress dots: colour eases; size change is FLIP-animated with scale/translate in shell.js */
+.tour-dots button {
+  transition: background-color var(--pl-d-2) var(--pl-ease-out), opacity var(--pl-d-2) var(--pl-ease-out);
+}
+.tour-dots button:not(.is-on):hover { opacity: .7; }
+.tour-dots button[data-pl-flip] {
+  transition:
+    background-color var(--pl-d-2) var(--pl-ease-out),
+    translate var(--pl-d-3) var(--pl-ease-out),
+    scale var(--pl-d-3) var(--pl-ease-out);
+}
+
+/* actions: hover lift + press */
+.tour-actions button {
+  transition:
+    background-color var(--hover-dur) var(--pl-ease-out),
+    border-color var(--hover-dur) var(--pl-ease-out),
+    translate var(--pl-d-2) var(--pl-ease-out),
+    transform var(--pl-d-1) var(--pl-ease-out);
+}
+.tour-actions button:hover { translate: 0 var(--pl-lift); }
+.tour-actions button:active { translate: 0 0; transform: scale(var(--pl-press-scale)); }
+.tour-sample button { transition: var(--hover-transition); }
+
+/* "?" launcher: owned by studio.css */
+
+/* ==========================================================================
+   TOGGLE SWITCHES — knob springs (left stays at rest value; translate moves it)
+   ========================================================================== */
+.switch-track { transition: background-color var(--pl-d-2) var(--pl-ease-out); }
+.switch-knob { transition: translate var(--pl-d-3) var(--pl-ease-spring), scale var(--pl-d-1) var(--pl-ease-out); }
+.switch.on .switch-knob { left: 2px; translate: 12px 0; }
+.switch:active .switch-knob { scale: 1.12 1; }
+
+/* ---------- app loading ---------- */
+.app-loading { animation: pl-fade-in var(--pl-d-3) var(--pl-ease-out) backwards; }
+
+/* ---------- reduced motion: no ambient loops / FLIP ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .tour-art > *, .tour-copy[data-active=true], .overlay, .coherence-overlay,
+  .overlay > [role], .rsb[data-pl-enter-rsb] .rsb-scroll > *, .rail-usage-bars i,
+  .lnav .rail-credits-meter::before, .lnav .rail-credits-meter::after { animation: none !important; }
+  .tour-dots button[data-pl-flip] { translate: none !important; scale: none !important; }
+}
+
+/* Style & Output: the "Variants" selector is not shown; Style Pack takes the full row.
+   The app keeps its default (1 variant per medium). */
+html body .rsb .bp-style-section .bp-field:has(> .bp-dd [aria-label="Variants per medium"]) { display: none; }
+html body .rsb .bp-style-section .bp-row2:has([aria-label="Variants per medium"]) { grid-template-columns: minmax(0, 1fr) !important; }

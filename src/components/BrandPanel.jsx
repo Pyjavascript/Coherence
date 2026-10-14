@@ -143,7 +143,7 @@ function BrandSelect({ value, onChange, options, label, premium = false, muted =
 }
 
 export default function BrandPanel({
-  brand, onField, stylePack, onStylePack, variantCount, onVariantCount, premium,
+  brand, onField, stylePack, onStylePack, premium,
   researchCount, isSaved, dirty, saving, focusRequest, hookQuota,
   onSave, onDelete, onResearch, onCoherence, onHook, onHistory, onStatus, onClose,
 }) {
@@ -201,12 +201,6 @@ export default function BrandPanel({
     onStylePack(value);
   };
 
-  const pickVariants = (value) => {
-    const count = parseInt(value, 10);
-    if (count !== 1 && !premium) return setUpsell({ name: `${count} variants per medium`, where: "style" });
-    setUpsell(null);
-    onVariantCount(count);
-  };
 
   // Gold Premium callout shown in the card the user just tried to use.
   const renderUpsell = (where, note, detail) => (upsell?.where === where ? (
@@ -298,7 +292,7 @@ export default function BrandPanel({
             />
             {showMessageError && (
               <p id="bp-message-error" className="bp-field-error">
-                Write the message you want adapted — every medium is generated from it.
+                Write a message to generate every format.
               </p>
             )}
           </div>
@@ -381,32 +375,20 @@ export default function BrandPanel({
         </button>
         {styleOpen && (
         <div className="bp-card bp-card-cream" id="bp-style">
-          <div className="bp-row2">
-            <div className="bp-field">
-              <span className="bp-label">Style Pack</span>
-              <BrandSelect
-                label="Style pack"
-                premium
-                value={stylePack}
-                onChange={pickStyle}
-                options={Object.entries(STYLE_PACKS).map(([value, pack]) => ({ value, label: pack.label, locked: !premium && value !== "classic" }))}
-              />
-            </div>
-            <div className="bp-field">
-              <span className="bp-label">Variants</span>
-              <BrandSelect
-                label="Variants per medium"
-                premium
-                value={String(variantCount)}
-                onChange={pickVariants}
-                options={[1, 2, 3].map((value) => ({ value: String(value), label: String(value), locked: !premium && value !== 1 }))}
-              />
-            </div>
+          <div className="bp-field">
+            <span className="bp-label">Style Pack</span>
+            <BrandSelect
+              label="Style pack"
+              premium
+              value={stylePack}
+              onChange={pickStyle}
+              options={Object.entries(STYLE_PACKS).map(([value, pack]) => ({ value, label: pack.label, locked: !premium && value !== "classic" }))}
+            />
           </div>
           {renderUpsell(
             "style",
-            "Style packs and multiple variants are Premium.",
-            "Premium unlocks every style pack and up to 3 variants per medium.",
+            "Style packs are Premium.",
+            "Premium unlocks every style pack.",
           )}
         </div>
         )}

@@ -21,7 +21,7 @@ import { useLayoutState } from "./hooks/useLayoutState";
 import { useUsage } from "./hooks/useUsage";
 import { useAuth } from "./hooks/useAuth";
 import { generateHook } from "./services/ai";
-import { buildCoherencePrompt, describeLastGenerated } from "./lib/prompts";
+import { buildBrandBriefPrompt } from "./lib/prompts";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { DEFAULT_TIER, MEDIA, MEDIA_BY_KEY, NODE_CATS, SAMPLE_BRAND } from "./lib/constants";
 import { gridToText, gridToCsv, downloadFile, fileSlug } from "./lib/exporters";
@@ -55,7 +55,6 @@ export default function App() {
   const [variantCount, setVariantCount] = useState(1);
   const [modal, setModal] = useState(null);
   const [confirm, setConfirm] = useState(null); // { title, body, confirmLabel, tone, onConfirm }
-  const [lastGenerated, setLastGenerated] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false); // false | "login" | "signup"
   const [showProfile, setShowProfile] = useState(false);
   const [showUsage, setShowUsage] = useState(false);
@@ -114,8 +113,7 @@ export default function App() {
     setPanelFocus({ target, flag });
   }, [layout.open]);
 
-  const handleGenerated = useCallback((res) => {
-    setLastGenerated(res);
+  const handleGenerated = useCallback(() => {
     refreshUsage();
   }, [refreshUsage]);
 
@@ -471,7 +469,7 @@ export default function App() {
 
       {modal === "coherence" && (
         <CoherenceModal
-          text={buildCoherencePrompt(ctx, describeLastGenerated(lastGenerated, quick.cards))}
+          text={buildBrandBriefPrompt(ctx)}
           onCopy={(t) => copy(t, "Prompt copied — paste it into ChatGPT or any other LLM.")}
           onClose={() => setModal(null)}
         />

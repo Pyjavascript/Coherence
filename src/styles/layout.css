@@ -995,12 +995,13 @@ body {
   width: 20px;
   height: 20px;
   color: #fff;
-  transform: rotate(-90deg);
+  transform: none;
   transition: transform 220ms var(--shell-ease);
 }
 
+/* Down when closed, up when open. */
 .rsb .bp-section-chevron.open {
-  transform: none;
+  transform: rotate(180deg);
 }
 
 .rsb .bp-research-field {

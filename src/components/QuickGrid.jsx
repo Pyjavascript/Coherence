@@ -81,13 +81,17 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     try {
       const data = await generateQuickGrid({ ctx, variantCount, tier, settings });
       const live = stillMine();
-      setNodes((list) => list.map((n) => {
-        if (!live.has(n.id)) return n;
-        const items = data[n.type] || [];
-        return items.length
-          ? { ...n, status: "ready", items, version: n.version + 1, message: "", fav: null }
-          : failed(n, "No copy came back for this medium. Try regenerating it.");
-      }));
+      // stagger = reveal order, so the cards light up across the grid in turn.
+      setNodes((list) => {
+        let order = 0;
+        return list.map((n) => {
+          if (!live.has(n.id)) return n;
+          const items = data[n.type] || [];
+          return items.length
+            ? { ...n, status: "ready", items, version: n.version + 1, message: "", fav: null, stagger: order++ }
+            : failed(n, "No copy came back for this medium. Try regenerating it.");
+        });
+      });
       await Promise.all(types.map((type) => saveGeneration({
         brandId,
         medium: type,
@@ -117,7 +121,7 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     try {
       const items = await regenerateOutput({ ctx, medium: node.type, variantCount, tier, settings: settingsOf(node) });
       if (!mine()) return;
-      setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "ready", items, version: n.version + 1, fav: null } : n)));
+      setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "ready", items, version: n.version + 1, fav: null, stagger: 0 } : n)));
       await saveGeneration({ brandId, medium: node.type, inputContext: { message: ctx.brand.message }, output: items });
       onGenerated({ type: "quick", medium: node.type });
     } catch (err) {

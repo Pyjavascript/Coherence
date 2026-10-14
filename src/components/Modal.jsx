@@ -188,7 +188,7 @@ export function CoherenceModal({ text, onCopy, onClose }) {
         </header>
         <div className="coherence-content" id="coherence-content">
           <p className="coherence-description" id="coherence-description">
-            Paste into any LLM to check CTA and body copy alignment.
+            Your brand controls as a ChatGPT prompt. Paste it in to get on-brand copy.
           </p>
           <div className="coherence-panel">
             <textarea

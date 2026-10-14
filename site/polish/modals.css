@@ -1,0 +1,682 @@
+/* ==========================================================================
+   Coherence polish — unified modal system (compact, Linear / Stripe-style)
+   One shell, one type scale, one spacing system for every dialog:
+   profile · usage · history · confirm · auth · coherence prompt · research ·
+   hook generator · tour.
+   Colors, font families, copy, features and placement are untouched; only
+   dimensions, typography scale, spacing and control sizing are standardised.
+   Tune everything from the --md-* tokens below.
+   ========================================================================== */
+
+:root {
+  --md-w: 460px;            /* standard modal width: the original site's modal width */
+  --md-h: 470px;            /* base (minimum) modal height: the original site's modal height */
+  --md-max-h: 85vh;         /* never taller than this */
+  --md-pad: 24px;           /* shared internal padding */
+  --md-r: var(--ui-r);      /* shell radius: the app-wide fluid radius (24px on desktop) */
+  --md-gap: 12px;           /* header -> content / section rhythm */
+  --md-h1: clamp(18px, 6px + 1.8vw, 24px); /* heading: 18px on phones, ~20px tablets, 24px from ~1000px wide */
+  --md-sub: 12px;           /* subtitle */
+  --md-body: 12px;          /* body */
+  --md-body-ls: -.02em;     /* tighter tracking for small text */
+  --md-body-lh: 1.35;       /* compact: used when text has to wrap */
+  --md-list: 12px;          /* dense list cards (history, notes) */
+  --md-btn-fs: 16px;        /* button labels keep their size */
+  --md-btn-h: 48px;         /* primary / secondary action height */
+  --md-btn-r: var(--ui-r);
+  --md-ctl-h: 46px;         /* text inputs in forms */
+  /* fluid: the close icon and the space above the heading shrink on small screens */
+  --md-close: clamp(32px, 28px + 1vw, 36px);       /* close-button hit area */
+  --md-close-inset: clamp(6px, 4px + .5vw, 8px);   /* close icon distance from the top + right edges */
+  --md-head-top: clamp(30px, 24px + 1vw, 36px);    /* heading top, measured from the modal top */
+  --md-head-drop: calc(var(--md-head-top) - var(--md-pad));
+  --md-line: #e8ebf6;       /* existing hairline used across the light modals */
+}
+@media (max-width: 640px) {
+  :root {
+    --md-max-h: 90vh;
+    --md-pad: 20px;
+    --md-btn-h: 46px;
+    --md-btn-fs: 14px;        /* button labels scale down with the phone type scale */
+    --md-ctl-h: 44px;
+  }
+}
+
+/* ---------- 1. Shell: identical outer dimensions, centred ------------------ */
+html body .overlay { padding: 20px; }
+@media (max-width: 640px) { html body .overlay { padding: 16px; } }
+html body .overlay > :is(.profile-modal, .confirm-dialog, .auth-modal, .coherence-modal, .research-modal, .hook-modal, .tour) {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--md-w);
+  height: auto; /* grows with its content, like the original site... */
+  min-height: min(var(--md-h), var(--md-max-h)); /* ...from a shared 460x470 base... */
+  max-height: var(--md-max-h); /* ...up to 85vh, then the content area scrolls */
+  border-radius: var(--md-r);
+  position: relative;
+  zoom: 1; /* the app shrinks dialogs with zoom:.88 under 768px; sizes below are exact */
+  overscroll-behavior: contain;
+}
+
+/* Scroll containers: calm, predictable scrollbars that never overlap content */
+html body .overlay :is(.profile-modal, .auth-modal, .tour, .hook-modal-content, .research-notes-list, .history-list, .usage-body, .coherence-prompt) {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d6ea transparent;
+}
+
+/* Modals whose padding lives on the shell (dark-family + auth) */
+html body .overlay > :is(.confirm-dialog, .auth-modal, .coherence-modal, .research-modal, .hook-modal) {
+  padding: var(--md-pad);
+}
+html body .overlay > :is(.coherence-modal, .research-modal, .hook-modal, .auth-modal) {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+html body .overlay > .confirm-dialog { justify-content: center; }
+
+/* ---------- 2. Header: heading + close, same everywhere -------------------- */
+html body .overlay :is(.modal-head, .coherence-header) {
+  position: static; /* close icon anchors to the shell corner, not the header row */
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--md-head-drop) 0 var(--md-gap);
+  padding: 0 calc(var(--md-close) + var(--md-close-inset) + 6px - var(--md-pad));
+  text-align: center;
+}
+html body .overlay :is(.modal-head h3, .coherence-header h2, .usage-head-text h2, .profile-id h2, .confirm-title, .tour-copy h2) {
+  margin: 0;
+  font-size: var(--md-h1);
+  font-weight: 500;
+  letter-spacing: -.02em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+html body .overlay :is(.confirm-title, .tour-copy h2) { margin-bottom: 8px; }
+
+/* Close buttons: one size, one position (glyph aligns with the content edge) */
+html body .overlay .modal-head > button {
+  position: absolute;
+  top: var(--md-close-inset);
+  right: var(--md-close-inset);
+  width: var(--md-close);
+  height: var(--md-close);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  transform: none;
+}
+html body .overlay .coherence-header-actions {
+  position: absolute;
+  top: var(--md-close-inset);
+  right: var(--md-close-inset);
+  transform: none;
+}
+html body .overlay .coherence-close {
+  width: var(--md-close);
+  height: var(--md-close);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+}
+html body .overlay :is(.modal-head > button, .coherence-close, .profile-close) svg { width: 18px; height: 18px; }
+html body .overlay > .profile-modal { position: relative; }
+html body .overlay .profile-close {
+  position: absolute;
+  top: var(--md-close-inset);
+  right: var(--md-close-inset);
+  width: var(--md-close);
+  height: var(--md-close);
+}
+html body .overlay .usage-head { padding-right: calc(var(--md-pad) + var(--md-close)); }
+html body .overlay .usage-modal .usage-close { position: absolute; margin: 0; align-self: auto; }
+
+/* Entrance: the header row (which holds the close icon) must not slide relative to
+   the modal. The dialog itself pops in as one piece; the header only fades. */
+html body .overlay > :is([role=dialog], [role=alertdialog]) > :is(.modal-head, .coherence-header, .profile-banner, .usage-head, form) {
+  animation: pl-fade-in var(--pl-d-2) var(--pl-ease-out) backwards;
+  translate: none;
+}
+html body .overlay :is(.modal-head > button, .coherence-close, .coherence-header-actions, .profile-close) {
+  animation: none;
+  translate: none;
+}
+
+/* ---------- 3. Subtitle + body typography --------------------------------- */
+html body .overlay :is(.modal-subtitle, .hook-description, .research-description, .coherence-description) {
+  flex: none;
+  max-width: none;
+  margin: 0 auto var(--md-gap);
+  font-size: var(--md-sub);
+  font-weight: 500;
+  line-height: var(--md-body-lh);
+  letter-spacing: var(--md-body-ls);
+  text-align: center;
+  text-wrap: balance;
+}
+html body .overlay .usage-head-text p,
+html body .overlay .profile-id p {
+  margin: 2px 0 0;
+  font-size: var(--md-body);
+  font-weight: 500;
+  letter-spacing: var(--md-body-ls);
+}
+html body .overlay :is(.confirm-body, .tour-copy > p, .hook-label, .auth-field label, .profile-row-label, .auth-notice, .hook-result-text, .hook-result-message, .research-empty, .history-empty) {
+  font-size: var(--md-body);
+  line-height: var(--md-body-lh);
+  letter-spacing: var(--md-body-ls);
+}
+html body .overlay :is(.hook-label, .auth-field label, .profile-row-label) { font-weight: 600; }
+html body .overlay :is(.research-note-body p, .history-item) {
+  font-size: var(--md-list);
+  line-height: var(--md-body-lh);
+  letter-spacing: var(--md-body-ls);
+}
+html body .overlay :is(.research-note-body h3) { font-size: var(--md-list); font-weight: 600; }
+html body .overlay .confirm-note { font-size: var(--md-body); font-weight: 600; }
+html body .overlay .tour-copy > .tour-sample { font-size: var(--md-body); }
+
+/* ---------- 4. Form fields ------------------------------------------------- */
+html body .overlay :is(.hook-brief, .research-field textarea, .coherence-prompt) {
+  font-size: var(--md-body);
+  line-height: var(--md-body-lh);
+  letter-spacing: var(--md-body-ls);
+}
+html body .overlay .auth-field input { height: var(--md-btn-h); border-radius: var(--md-btn-r); font-size: var(--md-body); }
+html body .overlay .profile-input { height: var(--md-ctl-h); border-radius: var(--md-btn-r); font-size: var(--md-body); }
+html body .overlay .profile-input-icon .profile-input { padding-left: 44px; }
+html body .overlay .profile-row { padding: 12px 0; }
+html body .overlay .profile-banner { height: 88px; }
+html body .overlay .profile-row { grid-template-columns: 120px minmax(0, 1fr); }
+@media (max-width: 519.98px) {
+  html body .overlay .profile-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- 5. Actions: one height, one radius, one weight ---------------- */
+html body .overlay :is(
+  .hook-generate, .hook-copy, .research-add, .coherence-copy,
+  .confirm-ok, .confirm-cancel, .auth-submit, .auth-google,
+  .profile-actions .profile-save, .profile-actions .profile-cancel, .profile-actions .profile-delete,
+  .tour-actions button
+) {
+  height: var(--md-btn-h);
+  min-height: var(--md-btn-h);
+  border-radius: var(--md-btn-r);
+  font-size: var(--md-btn-fs);
+  font-weight: 600;
+  letter-spacing: normal;
+  transition:
+    background-color var(--pl-d-2) var(--pl-ease-out),
+    border-color var(--pl-d-2) var(--pl-ease-out),
+    color var(--pl-d-2) var(--pl-ease-out),
+    translate var(--pl-d-2) var(--pl-ease-out),
+    scale var(--pl-d-1) var(--pl-ease-out);
+}
+html body .overlay :is(
+  .hook-generate, .hook-copy, .research-add, .coherence-copy,
+  .confirm-ok, .confirm-cancel, .auth-submit, .auth-google,
+  .profile-actions .profile-save, .profile-actions .profile-cancel, .profile-actions .profile-delete,
+  .tour-actions button
+):not(:disabled):hover { translate: 0 -1px; }
+html body .overlay :is(
+  .hook-generate, .hook-copy, .research-add, .coherence-copy,
+  .confirm-ok, .confirm-cancel, .auth-submit, .auth-google,
+  .profile-actions .profile-save, .profile-actions .profile-cancel, .profile-actions .profile-delete,
+  .tour-actions button
+):not(:disabled):active { translate: 0 0; scale: var(--pl-press-scale); }
+html body .overlay .research-add span { font-size: 20px; }
+
+/* ---------- 6. Footers: pinned, aligned, never clipped -------------------- */
+/* Profile: scrolls as one sheet, action bar pinned to the bottom edge */
+html body .overlay .profile-modal:not(.usage-modal):not(.profile-confirm) { display: flex; flex-direction: column; }
+html body .overlay .profile-modal:not(.usage-modal):not(.profile-confirm) > form {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+html body .overlay .profile-modal:not(.usage-modal):not(.profile-confirm) .profile-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: auto;
+  padding: 14px var(--md-pad) var(--md-pad);
+  background: #fff;
+  border-top: 1px solid var(--md-line);
+  justify-content: space-between;
+}
+html body .overlay .profile-modal:not(.usage-modal) .profile-head,
+html body .overlay .profile-modal:not(.usage-modal) .profile-id { padding-left: var(--md-pad); padding-right: var(--md-pad); }
+html body .overlay .profile-modal:not(.usage-modal) :is(.profile-rows, .plugin-access) { margin-left: var(--md-pad); margin-right: var(--md-pad); }
+html body .overlay .profile-modal .profile-error { margin: 12px var(--md-pad) 0; }
+html body .overlay .profile-modal.profile-confirm { padding: var(--md-pad); justify-content: center; }
+
+/* Usage: fixed header + footer, scrolling middle */
+html body .overlay .usage-modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+html body .overlay .usage-head { flex: none; padding: var(--md-pad) var(--md-pad) 14px; }
+html body .overlay .usage-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--md-pad) var(--md-gap);
+  scrollbar-gutter: stable;
+}
+html body .overlay .usage-actions {
+  flex: none;
+  justify-content: flex-end;
+  padding: 14px var(--md-pad) var(--md-pad);
+  border-top: 1px solid var(--md-line);
+  background: #fff;
+}
+html body .overlay .usage-actions .profile-save { min-width: 140px; flex: 0 0 auto; }
+@media (max-width: 519.98px) {
+  html body .overlay .usage-actions .profile-save { flex: 1 1 auto; }
+}
+
+/* Auth: the sign-up form is taller than the shell. Heading and close icon stay
+   fixed; only the form scrolls, with the CTA pinned (a white halo masks fields
+   as they scroll beneath it). */
+html body .overlay > .auth-modal { padding-bottom: 0; overflow: hidden; }
+html body .overlay .auth-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  overflow-y: auto;
+  padding: 2px 2px var(--md-pad);
+  scrollbar-gutter: stable;
+}
+html body .overlay .auth-modal .auth-submit {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  outline: 12px solid #fff;
+}
+
+/* Auth: padding now on the shell */
+html body .overlay .auth-modal .modal-head { margin: var(--md-head-drop) 0 var(--md-gap); }
+html body .overlay .auth-card { gap: 12px; }
+html body .overlay .auth-form { gap: 12px; }
+html body .overlay .auth-field label { margin-bottom: 6px; }
+html body .overlay .auth-divider { margin: 0; }
+
+/* Confirm dialogs are short: they size to their content at a narrower width
+   instead of stretching to the shared 460x470 base */
+html body .overlay > :is(.confirm-dialog, .profile-modal.profile-confirm) {
+  max-width: 380px;
+  min-height: 0;
+}
+html body .overlay > :is(.confirm-dialog, .profile-modal.profile-confirm) :is(.confirm-text, .confirm-actions) { max-width: none; }
+
+/* Confirm: balanced whitespace inside the shell */
+html body .overlay :is(.confirm-text, .confirm-actions) { width: 100%; max-width: 480px; }
+html body .overlay .confirm-text { margin-bottom: 20px; }
+html body .overlay .confirm-actions { gap: 10px; }
+html body .overlay .confirm-icon { width: 52px; height: 52px; margin-bottom: 14px; }
+html body .overlay .confirm-icon svg { width: 24px; height: 24px; }
+
+/* Coherence prompt: textarea fills the available height, copy bar stays visible */
+html body .overlay .coherence-content { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+html body .overlay .coherence-panel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 0; }
+html body .overlay .coherence-prompt { flex: 1 1 auto; height: auto; min-height: 120px; padding: 14px 18px; }
+html body .overlay .coherence-copy { flex: none; margin-top: 0; }
+
+/* Hook generator: the content area scrolls; Copy stays pinned to its bottom edge
+   (a white halo masks the result as it scrolls beneath). When everything fits,
+   the result box simply fills the spare height. */
+html body .overlay .hook-modal-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  margin: -4px;
+  scrollbar-gutter: stable;
+}
+html body .overlay .hook-description { flex: none; }
+/* The "What should this hook be about?" line is removed visually; it stays in the
+   accessibility tree as the textarea's label. */
+html body .overlay .hook-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+html body .overlay .hook-panel { flex: 1 0 auto; gap: 12px; padding: 0; }
+html body .overlay .hook-brief { flex: none; height: 72px; min-height: 72px; padding: 12px 16px; }
+html body .overlay .hook-result { flex: 1 0 auto; min-height: 88px; padding: 12px 16px; }
+html body .overlay .hook-copy {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  flex: none;
+  outline: 10px solid #fff;
+}
+
+/* Research notes / History: list scrolls, header + composer stay put */
+html body .overlay .research-modal-content { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+html body .overlay .research-panel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 0; }
+html body .overlay .research-field { flex: none; min-height: 84px; }
+html body .overlay .research-field textarea { height: 84px; padding: 12px 16px; }
+html body .overlay .research-add { flex: none; }
+html body .overlay .research-notes-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
+html body .overlay .history-modal .history-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; padding: 0; gap: 10px; }
+html body .overlay .history-filters { flex: none; margin-bottom: 12px; }
+html body .overlay .history-entry { padding: 12px 14px; }
+html body .overlay .history-actions button { height: 34px; font-size: var(--md-body); padding: 0 14px; }
+html body .overlay .history-pill { font-size: var(--md-body); font-weight: 600; }
+
+/* Tour: art full-bleed, copy + actions on the shared padding */
+html body .overlay > .tour { display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto; }
+html body .overlay .tour-art { height: clamp(150px, 28vh, 190px); }
+html body .overlay .tour-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: center;
+  padding: var(--md-pad) var(--md-pad) 0;
+}
+html body .overlay .tour-dots { flex: none; padding: 14px 0 16px; }
+html body .overlay .tour-actions { flex: none; gap: 10px; padding: 0 var(--md-pad) var(--md-pad); }
+
+@media (prefers-reduced-motion: reduce) {
+  html body .overlay :is(.hook-generate, .hook-copy, .research-add, .coherence-copy, .confirm-ok, .confirm-cancel, .auth-submit, .auth-google, .profile-save, .profile-cancel, .profile-delete, .tour-actions button) {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   Profile modal: settings-sheet layout
+   Banner + overlapping avatar, identity, then hairline-separated rows with the
+   title and helper text on the left and the control on the right. Same tokens,
+   colours and 460px shell as every other dialog.
+   ========================================================================== */
+html body .overlay .profile-modal:not(.usage-modal) .profile-rows {
+  display: block;
+  margin: 18px var(--md-pad) 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--md-line);
+  border-radius: 0;
+}
+html body .overlay .profile-modal:not(.usage-modal) .profile-row {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 18px 0;
+  border: 0;
+  border-bottom: 1px solid var(--md-line);
+}
+html body .overlay .profile-modal:not(.usage-modal) .profile-row-label {
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: var(--shell-ink);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+}
+/* helper line under the title (account.js sets data-desc) */
+html body .overlay .profile-modal:not(.usage-modal) .profile-row-label[data-desc]::after {
+  content: attr(data-desc);
+  display: block;
+  margin-top: 4px;
+  color: #8a8fa8;
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+html body .overlay .profile-modal:not(.usage-modal) .profile-name-fields { gap: 8px; }
+html body .overlay .profile-modal:not(.usage-modal) .profile-input {
+  height: 44px;
+  padding: 0 16px;
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid #e3e8fb;
+  border-radius: var(--ui-r);
+  font-size: 13px;
+  font-weight: 500;
+}
+html body .overlay .profile-modal:not(.usage-modal) .profile-input::placeholder { color: #a9aec9; font-weight: 400; }
+html body .overlay .profile-modal:not(.usage-modal) .profile-input:focus { border-color: #c9d2ff; }
+html body .overlay .profile-modal:not(.usage-modal) .profile-input[readonly] { color: #8a8fa8; background: var(--shell-tint); }
+html body .overlay .profile-modal:not(.usage-modal) .profile-input-icon .profile-input { padding-left: 42px; }
+@media (max-width: 519.98px) {
+  html body .overlay .profile-modal:not(.usage-modal) .profile-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  html body .overlay .profile-modal:not(.usage-modal) .profile-name-fields { grid-template-columns: minmax(0, 1fr); }
+}
+html body .overlay .profile-modal:not(.usage-modal) .plugin-access { margin-top: 18px; margin-bottom: 0; }
+
+/* Account rows (Log out, Delete account): copy left, button right (account.js builds them) */
+.pl-acct-rows { margin: 6px var(--md-pad) 10px; }
+.pl-acct-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--md-line);
+}
+.pl-acct-row:last-child { border-bottom: 0; }
+.pl-acct-copy { min-width: 0; }
+.pl-acct-copy strong { display: block; color: var(--shell-ink); font-size: 14px; font-weight: 500; letter-spacing: -.02em; line-height: 1.3; }
+.pl-acct-copy p { margin: 4px 0 0; color: #8a8fa8; font-size: 11.5px; line-height: 1.4; }
+html body .overlay .pl-acct-row :is(.profile-pill, .profile-delete) {
+  flex: none;
+  width: auto;
+  height: 40px;
+  padding: 0 16px;
+  gap: 8px;
+  border-radius: var(--md-btn-r);
+  font-size: 14px;
+  font-weight: 600;
+}
+html body .overlay .pl-acct-row .profile-pill { background: var(--shell-tint); border-color: transparent; }
+html body .overlay .pl-acct-row .profile-pill:hover { background: var(--shell-tint-2); }
+html body .overlay .pl-acct-row :is(.profile-pill, .profile-delete) svg { width: 16px; height: 16px; }
+@media (max-width: 519.98px) {
+  .pl-acct-row { align-items: flex-start; flex-direction: column; gap: 12px; }
+  html body .overlay .pl-acct-row :is(.profile-pill, .profile-delete) { width: 100%; justify-content: center; }
+}
+
+/* Footer: only Cancel + Save changes, only while there is something to save */
+html body .overlay .profile-modal:not(.usage-modal):not(.profile-confirm) .profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+html body .overlay .profile-actions .profile-actions-end {
+  display: flex;
+  gap: 10px;
+  animation: pl-rise-in var(--pl-d-3) var(--pl-ease-out) backwards;
+}
+html body .overlay .profile-actions .profile-actions-end > * { width: auto; min-width: 110px; }
+html body .overlay .profile-actions:has(.profile-save:disabled):has(.profile-cancel:not(:disabled)) { display: none; }
+@media (max-width: 519.98px) {
+  html body .overlay .profile-actions .profile-actions-end { width: 100%; }
+  html body .overlay .profile-actions .profile-actions-end > * { flex: 1; }
+}
+
+/* ==========================================================================
+   Usage modal: centred stat row, single Brands row, premium model cards
+   ========================================================================== */
+/* Free hooks today is not shown (account.js tags the row; the app still renders it) */
+html body .overlay .usage-modal .uc-row[data-pl-kind=hooks] { display: none; }
+/* Brands: plain row, label left, value right (the app's own row style) */
+html body .overlay .usage-modal .uc-row { padding: 14px 16px; font-size: 14px; }
+
+/* Four stats in one evenly spaced row; label and number centred on each other */
+html body .overlay .usage-modal .uc-legend {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0 14px;
+}
+html body .overlay .usage-modal .uc-legend-item,
+html body .overlay .usage-modal .uc-legend-item:last-child,
+html body .overlay .usage-modal .uc-legend-item:nth-child(2n) { text-align: center; justify-items: center; gap: 4px; }
+@media (max-width: 519.98px) {
+  html body .overlay .usage-modal .uc-legend { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  html body .overlay .usage-modal .uc-legend-item span { font-size: 11px; }
+}
+
+/* Model cards: soft lavender-to-white surface, badge pill, selection circle */
+html body .overlay .usage-modal .usage-model-icon { display: none; }
+html body .overlay .usage-modal .usage-models { gap: 12px; align-items: stretch; }
+html body .overlay .usage-modal .usage-model {
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 132px;
+  padding: 14px 12px 16px;
+  border: 1px solid #e3e8fb;
+  border-radius: var(--ui-r);
+  background:
+    radial-gradient(120% 90% at 0% 0%, #fff 0%, transparent 60%),
+    linear-gradient(160deg, #f7f9ff 0%, #eaf0ff 100%);
+  transition: border-color var(--pl-d-2) var(--pl-ease-out), background-color var(--pl-d-2) var(--pl-ease-out), translate var(--pl-d-2) var(--pl-ease-out);
+}
+html body .overlay .usage-modal .usage-model.is-on {
+  border-color: var(--shell-blue);
+  background:
+    radial-gradient(120% 90% at 0% 0%, #fff 0%, transparent 55%),
+    linear-gradient(160deg, #eef2ff 0%, #d9e3ff 100%);
+}
+html body .overlay .usage-modal .usage-model-tag {
+  margin: 0 0 auto;
+  padding: 3px 7px;
+  color: var(--shell-blue);
+  background: #fff;
+  border-radius: 999px;
+  font-size: 9.5px;
+  letter-spacing: -.01em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+html body .overlay .usage-modal .usage-model.is-on .usage-model-tag { color: #fff; background: var(--shell-blue); }
+html body .overlay .usage-modal .usage-model-name {
+  margin-top: 22px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.25;
+}
+html body .overlay .usage-modal .usage-model-desc {
+  margin-top: 4px;
+  color: #6f7694;
+  font-size: 11.5px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+/* the circular tick control stays; white disc when idle, blue with tick when chosen */
+html body .overlay .usage-modal .usage-model-check { top: 15px; right: 10px; width: 15px; height: 15px; background: #fff; border-color: #c4cbe6; }
+html body .overlay .usage-modal .usage-model-check svg { width: 10px; height: 10px; }
+html body .overlay .usage-modal .usage-model.is-on .usage-model-check { background: var(--shell-blue); border-color: var(--shell-blue); }
+@media (max-width: 519.98px) {
+  html body .overlay .usage-modal .usage-model {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    min-height: 0;
+    padding: 14px 44px 14px 14px;
+  }
+  html body .overlay .usage-modal .usage-model-tag { margin-bottom: 8px; }
+  html body .overlay .usage-modal .usage-model-name { margin-top: 0; }
+  html body .overlay .usage-modal .usage-model-check { top: 50%; translate: 0 -50%; }
+}
+
+/* ==========================================================================
+   Usage modal: same settings-sheet rhythm as Profile
+   Flat sections separated by hairlines; each opens with a 14px title (and a
+   quiet helper line), content sits underneath on the shared 24px padding.
+   ========================================================================== */
+html body .overlay .usage-modal .usage-body::before {
+  content: "";
+  display: block;
+  border-top: 1px solid var(--md-line);
+}
+html body .overlay .usage-modal .uc-section-label {
+  align-items: baseline;
+  margin: 0;
+  padding: 18px 0 12px;
+  color: var(--shell-ink);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.02em;
+  text-transform: none;
+}
+html body .overlay .usage-modal .uc-section-label span + span {
+  color: #8a8fa8;
+  font-size: 11.5px;
+  font-weight: 400;
+}
+/* the credits card loses its box: just content on the sheet */
+html body .overlay .usage-modal .uc-card {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--md-line);
+  border-radius: 0;
+}
+html body .overlay .usage-modal .uc-lines { margin-top: 14px; }
+html body .overlay .usage-modal .uc-legend { margin: 16px 0 16px; }
+/* Brands: title left, value right, hairline above (like a profile row) */
+html body .overlay .usage-modal .uc-row {
+  margin: 0;
+  padding: 16px 0;
+  border-top: 1px solid var(--md-line);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.02em;
+}
+html body .overlay .usage-modal .uc-row span + span { color: #8a8fa8; font-size: 13px; font-weight: 400; letter-spacing: 0; }
+/* Model section */
+html body .overlay .usage-modal .usage-section { margin-top: 0; padding-top: 18px; }
+html body .overlay .usage-modal .usage-section-head { align-items: flex-start; margin-bottom: 14px; }
+html body .overlay .usage-modal .usage-section-head h3 { font-size: 14px; font-weight: 500; letter-spacing: -.02em; line-height: 1.3; }
+html body .overlay .usage-modal .usage-section-head h3::after {
+  content: "Applies to everything you generate.";
+  display: block;
+  margin-top: 4px;
+  color: #8a8fa8;
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* Credit stats: left-aligned on the same edge as the section titles (like the profile rows) */
+html body .overlay .usage-modal .uc-legend { justify-content: start; gap: 8px; }
+html body .overlay .usage-modal .uc-legend-item,
+html body .overlay .usage-modal .uc-legend-item:last-child,
+html body .overlay .usage-modal .uc-legend-item:nth-child(2n) { text-align: left; justify-items: start; }
+
+/* Model cards: lighter gradient, smaller description */
+html body .overlay .usage-modal .usage-model {
+  background:
+    radial-gradient(120% 90% at 0% 0%, #fff 0%, transparent 65%),
+    linear-gradient(160deg, #fbfcff 0%, #f3f6ff 100%);
+  border-color: #eaeefc;
+}
+html body .overlay .usage-modal .usage-model.is-on {
+  background:
+    radial-gradient(120% 90% at 0% 0%, #fff 0%, transparent 60%),
+    linear-gradient(160deg, #f6f8ff 0%, #e8eeff 100%);
+}
+html body .overlay .usage-modal .usage-model-desc { font-size: 10.5px; line-height: 1.4; }

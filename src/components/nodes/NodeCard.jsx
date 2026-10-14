@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import NodeHeader from "./NodeHeader";
 import NodeActions from "./NodeActions";
 import NodeContent from "./NodeContent";
@@ -26,11 +26,13 @@ export default function NodeCard({
 
   useEffect(() => setIdx(0), [node.version]);
 
-  // Brief glow when new copy lands (not on mount).
-  useEffect(() => {
+  // Lift + glow when new copy lands (not on mount). Set before paint, so the
+  // copy's delayed write-in never flashes in first. The CSS staggers each
+  // card by node.stagger, so the timer waits for that too.
+  useLayoutEffect(() => {
     if (node.version === firstVersion.current) return undefined;
     setFresh(true);
-    const timer = window.setTimeout(() => setFresh(false), 1400);
+    const timer = window.setTimeout(() => setFresh(false), 1600 + (node.stagger || 0) * 110);
     return () => window.clearTimeout(timer);
   }, [node.version]);
 
@@ -45,10 +47,10 @@ export default function NodeCard({
 
   return (
     <article
-      className={"ncard" + (node.width === "full" ? " is-full" : "") + (leaving ? " is-leaving" : "") + (fresh ? " is-fresh" : "")}
+      className={"ncard" + (node.width === "full" ? " is-full" : "") + (leaving ? " is-leaving" : "") + (busy && !leaving ? " is-busy" : "") + (fresh ? " is-fresh" : "")}
       data-flip-id={node.id}
       data-type={node.type}
-      style={{ "--node-color": meta.color }}
+      style={{ "--node-color": meta.color, "--stagger": node.stagger || 0 }}
       aria-label={`${meta.label} node`}
       onAnimationEnd={(e) => { if (leaving && e.animationName === "ncard-out") onDelete(); }}
     >

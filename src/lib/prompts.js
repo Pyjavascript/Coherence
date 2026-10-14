@@ -254,6 +254,47 @@ Check:
 Return: a coherence score out of 10, the specific mismatches found (if any), and one rewritten CTA that fits better.`;
 }
 
+// The Brand Panel's controls as a paste-ready ChatGPT prompt. Unlike the in-app
+// prompts it asks for readable copy, not JSON, and skips fields left empty.
+export function buildBrandBriefPrompt(ctx) {
+  const c = clean(ctx);
+  const line = (label, value) => (value ? `- ${label}: ${value}\n` : "");
+  const notes = (ctx.notes || []).slice(0, 8).map((n) => `- [${n.type}] ${n.text}`).join("\n");
+
+  return `You are a senior brand copywriter for ${c.name || "this brand"}. Use the brand brief below as fixed rules for every piece of copy you write in this chat.
+
+## Brand core
+${line("Brand name", c.name)}${line("Core belief (must stay true in every piece)", c.belief)}${line("Message to adapt", c.message)}- Industry: ${industryOf(c).label}. ${industryOf(c).rules}
+- Style: ${packOf(ctx).label}. ${packOf(ctx).rules}
+
+## Customer context
+- Funnel stage: ${c.stage}
+- Language mode: ${c.mode}
+- Audience posture: ${c.audience}
+${line("Pain point right before this moment", c.pain)}${line("Objection to pre-empt", c.objection)}
+## Voice and output
+- Desired emotional response: ${c.emo}
+- Formality: ${c.formality}
+- CTA intensity: ${c.cta}
+${line("Target market", c.location && `${c.location} (use its spelling, currency, units and cultural cues)`)}- Output language: ${c.language}
+${line("Never use these words or claims", c.banned)}${line("Work in naturally", c.must)}${notes ? `\n## Research notes\n${notes}\n` : ""}
+## Your task
+Adapt the message above into channel-correct copy:
+1. Packaging line (under 12 words)
+2. Social / marketing post (40-70 words)
+3. Ad: headline + one supporting line
+4. Website hero: headline + subheadline
+5. Email: subject line + preview text
+
+Rules:
+- Keep the core belief's point of view recognisable in every piece, even as wording, length and register change per channel.
+- Give each piece its own angle; do not reuse the same line across channels.
+- Match the CTA intensity above, and make every CTA follow from the copy before it.
+- Do not explain your choices or mention this brief.
+
+After this, keep following the brief for anything else I ask you to write.`;
+}
+
 export function buildHookPrompt(ctx, requirement) {
   const c = clean(ctx);
   return `You are a copywriter who writes hooks: one short, catchy line that stops someone scrolling and makes them want to know more.

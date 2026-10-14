@@ -34,7 +34,7 @@ function AutoTextarea({ value, ...props }) {
 }
 
 const baseNode = (o) => ({
-  id: uid(), category: "email", label: "", brief: "", words: 60, requirements: "", filename: "",
+  id: uid(), category: "email", label: "", brief: "", words: 60, requirements: "",
   platform: undefined, component: "hero", pointerCount: 3, connections: [], variants: [], activeIdx: 0, generating: false,
   x: o.x ?? 0, y: o.y ?? 0, z: o.z ?? 10,
   ...o,
@@ -45,18 +45,18 @@ function makeNode(category, existing, x = null, y = null) {
   const idx = existing.filter((n) => n.category === category).length + 1;
   return baseNode({
     category, label: `${cat.label} ${idx}`, words: NODE_DEFAULT_WORDS[category] || 60,
-    filename: `${category}-${idx}`, platform: category === "social" ? "Instagram" : undefined,
+    platform: category === "social" ? "Instagram" : undefined,
     x: x ?? (Math.random() * 100 + 50),
     y: y ?? (Math.random() * 100 + 50)
   });
 }
 
 function seedNodes() {
-  const email = baseNode({ x: 40, y: 100, category: "email", label: "Launch email", brief: "Announce the new fragrance to warm subscribers who've browsed before but not bought.", words: 110, filename: "launch-email-v1" });
-  const social = baseNode({ x: 420, y: 100, category: "social", label: "Instagram launch post", brief: "Tease the fragrance's mood for a cold, scrolling audience.", words: 40, filename: "ig-launch-post", platform: "Instagram" });
-  const website = baseNode({ x: 800, y: 100, category: "website", label: "Homepage hero", brief: "Set the emotional frame for a first-time visitor landing on the homepage.", words: 30, filename: "homepage-hero", component: "hero" });
-  const packaging = baseNode({ x: 1180, y: 100, category: "packaging", label: "Box front line", brief: "A short line for the front of the box that sells the mood at a glance.", words: NODE_DEFAULT_WORDS.packaging, filename: "box-front-line" });
-  const advertising = baseNode({ x: 1560, y: 100, category: "advertising", label: "Launch ad", brief: "Stop a cold audience mid-scroll and make them curious about the fragrance.", words: NODE_DEFAULT_WORDS.advertising, filename: "launch-ad" });
+  const email = baseNode({ x: 40, y: 100, category: "email", label: "Launch email", brief: "Announce the new fragrance to warm subscribers who've browsed before but not bought.", words: 110 });
+  const social = baseNode({ x: 420, y: 100, category: "social", label: "Instagram launch post", brief: "Tease the fragrance's mood for a cold, scrolling audience.", words: 40, platform: "Instagram" });
+  const website = baseNode({ x: 800, y: 100, category: "website", label: "Homepage hero", brief: "Set the emotional frame for a first-time visitor landing on the homepage.", words: 30, component: "hero" });
+  const packaging = baseNode({ x: 1180, y: 100, category: "packaging", label: "Box front line", brief: "A short line for the front of the box that sells the mood at a glance.", words: NODE_DEFAULT_WORDS.packaging });
+  const advertising = baseNode({ x: 1560, y: 100, category: "advertising", label: "Launch ad", brief: "Stop a cold audience mid-scroll and make them curious about the fragrance.", words: NODE_DEFAULT_WORDS.advertising });
   return [email, social, website, packaging, advertising];
 }
 
@@ -168,14 +168,9 @@ function StudioNode({ node, expanded, onToggle, labelOf, linking, shareOpen, onF
                 )}
               </>
             )}
-            <div className="sn-row2">
-              <div className="sn-field"><label>Target Words</label>
-                <input type="number" min="4" max="600" value={node.words}
-                  onChange={(e) => onField("words", e.target.value === "" ? "" : parseInt(e.target.value, 10) || 0)} />
-              </div>
-              <div className="sn-field"><label>File Name</label>
-                <input type="text" placeholder="e.g. launch-email-v1" value={node.filename} onChange={(e) => onField("filename", e.target.value)} />
-              </div>
+            <div className="sn-field"><label>Target Words</label>
+              <input type="number" min="4" max="600" value={node.words}
+                onChange={(e) => onField("words", e.target.value === "" ? "" : parseInt(e.target.value, 10) || 0)} />
             </div>
             <div className="sn-field"><label>Specific Requirements</label>
               <AutoTextarea placeholder="Format, must-include line, banned words override..." value={node.requirements} onChange={(e) => onField("requirements", e.target.value)} />
@@ -502,13 +497,19 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     if (v) onGenerated({ type: "node", label: n.label, variant: v });
   };
 
-  const generateNode = async (id, { sourceId } = {}) => {
+  const canGenerate = () => {
+    if (!aiAvailable) { setStatus("AI generation isn't available here.", "err"); return false; }
+    return !ensureAuth || ensureAuth();
+  };
+  const hasJob = (n) => Boolean(n.brief.trim() || ctxRef.current.brand.message.trim());
+
+  // Writes one node's copy. Throws the AI error so callers can report it.
+  const runNode = async (id, { sourceId } = {}) => {
     const n = nodesRef.current.find((x) => x.id === id);
-    if (!n) return;
-    if (!aiAvailable) return setStatus("AI generation isn't available here.", "err");
-    if (ensureAuth && !ensureAuth()) return;
-    if (!n.brief.trim() && !ctxRef.current.brand.message.trim()) return setStatus("Add a job requirement (or a brand message) first.", "err");
+    if (!n) return false;
     patch(id, { generating: true });
+    // Open it while it writes so the skeleton (or a failure) is visible.
+    setOpen(id, true);
 
     try {
       const linkedNodes = n.connections
@@ -523,7 +524,6 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
 
       const variants = await aiGenerateNode({ ctx: ctxRef.current, node: n, variantCount, linkedNodes, source, tier });
       patch(id, { variants, activeIdx: 0, generating: false });
-      setOpen(id, true);
       lastNodeRef.current = id;
       onGenerated({ type: "node", label: n.label, variant: variants[0] });
       await saveGeneration({
@@ -532,24 +532,67 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
         inputContext: { brief: n.brief, label: n.label },
         output: variants
       });
+      return true;
+    } catch (err) {
+      patch(id, { generating: false });
+      throw err;
+    }
+  };
+
+  const generateNode = async (id, opts) => {
+    const n = nodesRef.current.find((x) => x.id === id);
+    if (!n || !canGenerate()) return;
+    if (!hasJob(n)) return setStatus("Add a job requirement (or a brand message) first.", "err");
+    try {
+      await runNode(id, opts);
       if (refreshUsage) refreshUsage();
       setStatus("Node generated.", "ok");
     } catch (err) {
-      patch(id, { generating: false });
       setStatus(describeError(err), "err");
     }
   };
 
+  // Writes every node. Unlinked nodes go out together; a node linked from
+  // another waits for it, then adapts its copy (as linking does). Stops at the
+  // daily limit and reports how many nodes made it.
+  const generateAllNodes = async () => {
+    if (!canGenerate()) return;
+    const idle = nodesRef.current.filter((n) => !n.generating);
+    const targets = idle.filter(hasJob);
+    const skipped = idle.length - targets.length;
+    if (!targets.length) return setStatus("Add a job requirement (or a brand message) first.", "err");
+
+    const total = targets.length;
+    setStatus(`Generating ${total} node${total === 1 ? "" : "s"}...`);
+    let pending = targets.map((n) => n.id);
+    let done = 0;
+    let firstErr = null;
+    while (pending.length && firstErr?.code !== "limit_reached") {
+      const waiting = new Set(pending);
+      const parentOf = (id) => nodesRef.current.find((p) => p.connections.includes(id));
+      const ready = pending.filter((id) => !nodesRef.current.some((p) => waiting.has(p.id) && p.connections.includes(id)));
+      // A link cycle leaves nothing ready: run the rest together.
+      const wave = ready.length ? ready : pending;
+      pending = pending.filter((id) => !wave.includes(id));
+      const results = await Promise.allSettled(wave.map((id) => {
+        const parent = parentOf(id);
+        return runNode(id, parent?.variants.length ? { sourceId: parent.id } : {});
+      }));
+      results.forEach((r) => {
+        if (r.status === "fulfilled" && r.value) done += 1;
+        else if (r.status === "rejected" && !firstErr) firstErr = r.reason;
+      });
+    }
+    if (refreshUsage) refreshUsage();
+
+    const skipNote = skipped ? ` ${skipped} skipped — no job requirement or brand message.` : "";
+    if (firstErr) setStatus(`Generated ${done} of ${total} nodes. ${describeError(firstErr)}${skipNote}`, "err");
+    else setStatus(`Generated ${done} node${done === 1 ? "" : "s"}.${skipNote}`, skipped ? "warn" : "ok");
+  };
+
   useImperativeHandle(ref, () => ({
     addNode: (category) => addNodes(category, 1),
-    generateAllNodes: async () => {
-      for (const n of nodesRef.current) {
-        if (!n.generating) {
-          await generateNode(n.id);
-          await new Promise(resolve => setTimeout(resolve, 1500));
-        }
-      }
-    }
+    generateAllNodes,
   }));
 
   const generateColumn = async (category) => {

@@ -191,10 +191,10 @@ export default function GeneratePanel(props: Props) {
       </div>
 
       <div className="card">
-        <label className="field">
+        {/* <label className="field">
           <span className="field-label">Piece name</span>
           <input value={draft.label} maxLength={80} placeholder={medium.piece} onChange={(e) => setDraft({ label: e.target.value })} />
-        </label>
+        </label> */}
 
         <div className="field">
           <div className="field-label-row">

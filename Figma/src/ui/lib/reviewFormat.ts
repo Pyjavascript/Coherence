@@ -9,6 +9,7 @@ export type ReviewBlock =
   | { type: "point"; n?: string; title: string; text: string } // 1) **CTA Logic**: …
   | { type: "bullet"; title?: string; text: string } //            - None found…
   | { type: "quote"; text: string } //                             "Embark on a journey…"
+  | { type: "cta"; label: string; text: string } //                Rewritten CTA: "Discover…"
   | { type: "para"; text: string };
 
 // Drops markdown emphasis (**bold**, __bold__, *em*, `code`) but keeps the words.
@@ -23,28 +24,71 @@ export function plain(text: string): string {
 }
 
 const clean = (s: string) => plain(s).replace(/\s*:\s*$/, "").trim();
-const SCORE = /^(.*?\bscore\b)\s*[:\-–]?\s*(\d+(?:\.\d+)?\s*\/\s*\d+)\s*$/i;
+// "Coherence Score: 8/10", "Score - 8 out of 10", "Coherence score is 7.5/10."
+const SCORE = /^(.*?\bscore\b)\s*(?:[:\-–]|\bis\b)?\s*(\d+(?:\.\d+)?)\s*(?:\/|\bout of\b)\s*(\d+)\s*\.?$/i;
 const QUOTED = /^["“'].+["”']$/;
+// "Rewritten CTA", "Suggested call-to-action", "Revised CTA", …
+const CTA_LABEL = /^(?:(?:rewritten|revised|suggested|improved|better|new|alternative|recommended)\s+)+(?:cta|call[\s-]to[\s-]action)\b/i;
+// "Specific Mismatches:" on a line of its own — a short label, not a sentence.
+const PLAIN_HEADING = /^[A-Z][^.!?]{0,60}:$/;
+// "Rewritten CTA: text" with no markdown — a short label before the colon.
+const PLAIN_LEAD = /^([A-Z][\w'’()/& -]{0,40}?)\s*:\s+(.+)$/;
+
+const unquote = (s: string) => s.replace(/^["“'‘]+|["”'’]+$/g, "").trim();
+
+function scoreOf(text: string): ReviewBlock | null {
+  const m = text.match(SCORE);
+  return m ? { type: "score", label: m[1].trim(), value: `${m[2]}/${m[3]}` } : null;
+}
 
 export function parseReview(raw: string): ReviewBlock[] {
   const blocks: ReviewBlock[] = [];
+  // A "Rewritten CTA" heading waiting for the line that holds the CTA itself.
+  let pendingCta: Extract<ReviewBlock, { type: "cta" }> | null = null;
+
   for (const line of raw.replace(/\r\n?/g, "\n").split("\n")) {
     const s = line.trim();
     if (!s || /^(-{3,}|\*{3,}|_{3,})$/.test(s)) continue;
 
     let m: RegExpMatchArray | null;
-    // "# Heading"
-    if ((m = s.match(/^#{1,6}\s+(.+)$/))) {
-      const text = clean(m[1]);
-      const score = text.match(SCORE);
-      blocks.push(score ? { type: "score", label: score[1].trim(), value: score[2].replace(/\s+/g, "") } : { type: "heading", text });
+    const flat = clean(s.replace(/^#{1,6}\s+/, "").replace(/^[-*•]\s+/, ""));
+
+    // The score, however it is marked up.
+    const score = scoreOf(flat);
+    if (score) {
+      blocks.push(score);
       continue;
     }
-    // A line that is entirely bold: "**Analysis:**", "**Coherence Score: 8/10**"
+
+    // The rewritten CTA: "Rewritten CTA: "…"" on one line, or a label line then the CTA.
+    const ctaLead = flat.match(/^(.+?)\s*:\s*(.*)$/);
+    if (CTA_LABEL.test(flat) && (ctaLead ? ctaLead[1].length : flat.length) <= 40) {
+      const text = unquote(ctaLead ? ctaLead[2] : "");
+      const cta = { type: "cta" as const, label: ctaLead ? ctaLead[1] : flat, text };
+      blocks.push(cta);
+      pendingCta = text ? null : cta;
+      continue;
+    }
+    if (pendingCta) {
+      const isHeading = /^#{1,6}\s/.test(s) || PLAIN_HEADING.test(plain(s));
+      if (!isHeading) pendingCta.text = unquote(flat);
+      pendingCta = null;
+      if (!isHeading) continue;
+    }
+
+    // "# Heading"
+    if ((m = s.match(/^#{1,6}\s+(.+)$/))) {
+      blocks.push({ type: "heading", text: clean(m[1]) });
+      continue;
+    }
+    // A line that is entirely bold: "**Analysis:**"
     if ((m = s.match(/^\*\*(.+?)\*\*\s*:?\s*$/))) {
-      const text = clean(m[1]);
-      const score = text.match(SCORE);
-      blocks.push(score ? { type: "score", label: score[1].trim(), value: score[2].replace(/\s+/g, "") } : { type: "heading", text });
+      blocks.push({ type: "heading", text: clean(m[1]) });
+      continue;
+    }
+    // A plain label on its own line: "Specific Mismatches:"
+    if (PLAIN_HEADING.test(plain(s))) {
+      blocks.push({ type: "heading", text: clean(s) });
       continue;
     }
     // "1) **CTA Logic**: explanation"  /  "1. CTA Logic: explanation"
@@ -67,9 +111,21 @@ export function parseReview(raw: string): ReviewBlock[] {
       continue;
     }
     const text = plain(s);
+    // "Label: text" with no markdown, when the label is a few words.
+    if ((m = text.match(PLAIN_LEAD)) && m[1].trim().split(/\s+/).length <= 5) {
+      blocks.push({ type: "point", title: m[1].trim(), text: m[2] });
+      continue;
+    }
     blocks.push(QUOTED.test(text) ? { type: "quote", text } : { type: "para", text });
   }
-  return blocks;
+  // A CTA label that never got its line is just a heading.
+  return blocks.map((b) => (b.type === "cta" && !b.text ? { type: "heading", text: b.label } : b));
+}
+
+// The model's rewritten CTA, if the review has one.
+export function rewrittenCta(blocks: ReviewBlock[]): string {
+  const cta = blocks.find((b): b is Extract<ReviewBlock, { type: "cta" }> => b.type === "cta" && Boolean(b.text));
+  return cta ? cta.text : "";
 }
 
 // Figma layers: the score as the headline, section headings as subheads,
@@ -91,7 +147,8 @@ export function reviewTextBlocks(blocks: ReviewBlock[]): TextBlock[] {
     else if (b.type === "bullet") {
       const item = body(b.title || "", b.text);
       out.push({ ...item, text: `• ${item.text}`, ...(item.boldPrefix ? { boldPrefix: item.boldPrefix + 2 } : {}) });
-    } else out.push({ role: "body", text: b.text });
+    } else if (b.type === "cta") out.push(body(b.label, `“${b.text}”`));
+    else out.push({ role: "body", text: b.text });
   }
   const usable = out.filter((b) => b.text.trim());
   // The insert request allows LIMITS.blocks layers; fold any overflow into the last one.

@@ -35,6 +35,28 @@ export function useCanvas(setStatus: SetStatus, refreshSelection: () => void) {
     [busy, setStatus, fail],
   );
 
+  // One layer per item, in order; each lands beside the one before it.
+  const insertAll = useCallback(
+    async (items: { name: string; blocks: TextBlock[] }[]) => {
+      const list = items.filter((item) => item.blocks.length);
+      if (busy || !list.length) return;
+      setBusy(true);
+      let added = 0;
+      try {
+        for (const item of list) {
+          await host.insertText(item.name, item.blocks);
+          added++;
+        }
+        setStatus(`Added ${added} ${added === 1 ? "copy" : "copies"} to the canvas.`, "ok");
+      } catch (err) {
+        fail(err, added ? `Added ${added} of ${list.length}, then couldn't add the rest.` : "Couldn't add the text to the canvas.");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, setStatus, fail],
+  );
+
   const replace = useCallback(
     async (target: SelectedText, text: string) => {
       if (busy || !text.trim()) return;
@@ -52,10 +74,10 @@ export function useCanvas(setStatus: SetStatus, refreshSelection: () => void) {
   );
 
   const copy = useCallback(
-    async (text: string) => {
+    async (text: string, done = "Copied.") => {
       try {
         await host.copyText(text);
-        setStatus("Copied.", "ok");
+        setStatus(done, "ok");
       } catch {
         setStatus("Couldn't copy. Select the text and copy it manually.", "err");
       }
@@ -63,5 +85,5 @@ export function useCanvas(setStatus: SetStatus, refreshSelection: () => void) {
     [setStatus],
   );
 
-  return { busy, insert, replace, copy };
+  return { busy, insert, insertAll, replace, copy };
 }

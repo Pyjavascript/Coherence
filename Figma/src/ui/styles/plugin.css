@@ -42,6 +42,13 @@
 * {
   box-sizing: border-box;
 }
+/* No visible scrollbars; panels still scroll with the wheel / trackpad. */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
 html,
 body,
 #root {
@@ -311,8 +318,6 @@ svg {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  scrollbar-width: thin;
-  scrollbar-color: #d5dbf5 transparent;
 }
 .brand-dd-opt {
   width: 100%;
@@ -480,8 +485,6 @@ svg {
 .body {
   flex: 1;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
 }
 .tab-body {
   padding: 14px;
@@ -501,7 +504,7 @@ svg {
 .footer {
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 14px;
   padding: 10px 14px 12px;
   border-top: 1px solid var(--line);
@@ -615,6 +618,47 @@ svg {
   letter-spacing: 0.02em;
   margin: 2px 2px -4px;
 }
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+/* Small text action beside a field label ("Pull from canvas", "Remove image"). */
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.link-btn svg {
+  width: 13px;
+  height: 13px;
+}
+.link-btn:hover:not(:disabled) {
+  background: var(--tint);
+}
+.link-btn:disabled {
+  color: var(--hint);
+  cursor: default;
+}
+.link-btn.is-quiet {
+  align-self: flex-start;
+  color: var(--muted);
+}
 
 input[type="text"],
 input[type="email"],
@@ -646,6 +690,13 @@ textarea:focus {
   background-color: #fff;
   border-color: #8fa0ff;
   outline: none;
+}
+input:disabled,
+select:disabled,
+textarea:disabled {
+  color: var(--muted);
+  background-color: #f6f7fb;
+  cursor: not-allowed;
 }
 select {
   appearance: none;
@@ -967,6 +1018,21 @@ summary:focus-visible {
   font-family: var(--mono);
   font-size: 11px;
 }
+.ext-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 14px;
+}
+.ext-body textarea {
+  margin-bottom: 0;
+  line-height: 1.55;
+}
+.ext-note {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
 
 /* ---------- results ---------- */
 .results {
@@ -1040,6 +1106,110 @@ summary:focus-visible {
 .pointers .muted {
   color: var(--ink-2);
 }
+.result-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+.results-head .section-label {
+  margin: 0 2px;
+}
+
+/* Copies per run: a stepper that turns red past the limit. */
+.copies {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+.copies-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.copies-hint {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--tint);
+  border: 1px solid transparent;
+  border-radius: 13px;
+}
+.stepper button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.stepper button:hover:not(:disabled) {
+  background: var(--tint-2);
+}
+.stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.stepper input[type="number"] {
+  width: 46px;
+  padding: 6px 2px;
+  background: transparent;
+  border: 0;
+  text-align: center;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.stepper input::-webkit-outer-spin-button,
+.stepper input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+.copies.is-over {
+  background: var(--danger-soft);
+  border-color: #f3b4bb;
+}
+.copies.is-over .copies-hint,
+.copies.is-over .field-label,
+.copies.is-over .stepper input {
+  color: var(--danger);
+}
+.copies.is-over .stepper {
+  border-color: #f3b4bb;
+  background: #fff;
+}
+
 .result-actions {
   display: flex;
   gap: 6px;
@@ -1168,10 +1338,193 @@ summary:focus-visible {
   font-size: 13px;
   font-weight: 600;
 }
+.rv-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .empty {
   text-align: center;
   padding: 8px 0;
   margin: 0;
+}
+
+/* ---------- Brand tab: the web app's brand panel, inline ---------- */
+.bp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 2px 0;
+}
+.bp-head h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.bp-unsaved {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  color: var(--warn);
+  background: var(--warn-soft);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.bp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bp-section-title {
+  margin: 0 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.bp-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+.bp-section-toggle:hover {
+  border-color: var(--line-strong);
+}
+.bp-section-toggle .bp-section-title {
+  flex: 1;
+  margin: 0;
+  color: var(--ink);
+}
+.lock-icon {
+  width: 14px;
+  height: 14px;
+  color: #a1661b;
+}
+.section-chevron {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+  transition: transform 250ms var(--ease);
+}
+.section-chevron.is-open {
+  transform: rotate(180deg);
+}
+.bp-card-cream {
+  background: #fffcf6;
+  border-color: #f4e6cc;
+  animation: rise 240ms var(--ease) both;
+}
+.bp-tag {
+  padding: 2px 8px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.bp-tag.is-required {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.bp-tag.is-premium {
+  color: #a1661b;
+  background: #fdf1dc;
+}
+.bp-name {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.bp-name input {
+  flex: 1;
+}
+.bp-name .btn {
+  height: 38px;
+  flex-shrink: 0;
+}
+.bp-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  color: var(--ink-2);
+  background: var(--tint);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+}
+.bp-stat b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.bp-stat.is-locked {
+  color: var(--muted);
+  background: #f6f7fb;
+}
+.bp-premium-note {
+  margin: 0;
+  color: #8a5a17;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+/* Save stays in reach while the long form scrolls. */
+.bp-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 -14px -14px;
+  padding: 10px 14px 14px;
+  background: linear-gradient(180deg, rgba(245, 247, 253, 0) 0%, var(--page) 30%);
+}
+.bp-savebar .btn {
+  width: 100%;
+  height: 42px;
+}
+/* Nothing to save: a quiet confirmation, not a greyed-out button. */
+.bp-saved {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--ok);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.bp-saved svg {
+  width: 15px;
+  height: 15px;
+}
+.bp-savebar-hint {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
 }
 
 /* ---------- empty + loading states ---------- */

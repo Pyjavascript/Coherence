@@ -9,6 +9,8 @@ const messageOf = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback;
 
 export type Brand = Awaited<ReturnType<typeof getBrands>>[number];
+// Every field the Brand tab edits: the web app's brand panel, minus id and scope.
+export type BrandFields = Omit<Brand, "id" | "scope">;
 export interface Note {
   id: string;
   type: string;
@@ -82,23 +84,17 @@ export function useBrandData(userId: string | null, brandId: string | null) {
   }, []);
 
   const saveBrand = useCallback(
-    async (draft: { id?: string; name: string; belief: string; message: string; industry: string }) => {
+    async ({ id, ...fields }: BrandFields & { id?: string }) => {
       if (!userId) return null;
-      const name = draft.name.trim();
+      const name = fields.name.trim();
       if (!name) {
         setError("Give the brand a name.");
         return null;
       }
       try {
-        if (draft.id) {
-          const current = brands.find((b) => b.id === draft.id);
-          const saved = await updateBrand(draft.id, {
-            ...(current || DEFAULT_BRAND),
-            name,
-            belief: draft.belief,
-            message: draft.message,
-            industry: draft.industry,
-          });
+        if (id) {
+          const current = brands.find((b) => b.id === id);
+          const saved = await updateBrand(id, { ...(current || DEFAULT_BRAND), ...fields, name });
           setBrands((list) => list.map((b) => (b.id === saved.id ? saved : b)));
           return saved.id as string;
         }
@@ -106,14 +102,7 @@ export function useBrandData(userId: string | null, brandId: string | null) {
           setError(`Free plan includes ${LIMITS.brands} brands.`);
           return null;
         }
-        const saved = await createBrand({
-          ...DEFAULT_BRAND,
-          name,
-          belief: draft.belief,
-          message: draft.message,
-          industry: draft.industry,
-          userId,
-        });
+        const saved = await createBrand({ ...DEFAULT_BRAND, ...fields, name, userId });
         setBrands((list) => [...list, saved]);
         return saved.id as string;
       } catch (err) {

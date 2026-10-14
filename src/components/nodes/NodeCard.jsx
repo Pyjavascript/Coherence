@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import NodeHeader from "./NodeHeader";
 import NodeActions from "./NodeActions";
 import NodeContent from "./NodeContent";
@@ -15,24 +15,26 @@ const StarIcon = ({ filled }) => (
 );
 
 // node = { id, type, status, items, version, message, width, fav, words, brief, requirements, component, pointerCount }
+// enterIndex = this card's place in the grid's entrance stagger (0 = no wait).
 export default function NodeCard({
-  node, meta, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
+  node, meta, enterIndex = 0, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
   onWordsChange, onSetting,
 }) {
   const [idx, setIdx] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const [fresh, setFresh] = useState(false);
+  // Fixed at mount: changing the delay mid-entrance would make the card jump.
+  const [enterAt] = useState(enterIndex);
+  const [entering, setEntering] = useState(true);
   const firstVersion = useRef(node.version);
 
   useEffect(() => setIdx(0), [node.version]);
 
-  // Lift + glow when new copy lands (not on mount). Set before paint, so the
-  // copy's delayed write-in never flashes in first. The CSS staggers each
-  // card by node.stagger, so the timer waits for that too.
-  useLayoutEffect(() => {
+  // Brief glow when new copy lands (not on mount).
+  useEffect(() => {
     if (node.version === firstVersion.current) return undefined;
     setFresh(true);
-    const timer = window.setTimeout(() => setFresh(false), 1600 + (node.stagger || 0) * 110);
+    const timer = window.setTimeout(() => setFresh(false), 1400);
     return () => window.clearTimeout(timer);
   }, [node.version]);
 
@@ -47,12 +49,17 @@ export default function NodeCard({
 
   return (
     <article
-      className={"ncard" + (node.width === "full" ? " is-full" : "") + (leaving ? " is-leaving" : "") + (busy && !leaving ? " is-busy" : "") + (fresh ? " is-fresh" : "")}
+      className={"ncard" + (node.width === "full" ? " is-full" : "") + (leaving ? " is-leaving" : "") + (fresh ? " is-fresh" : "")}
       data-flip-id={node.id}
       data-type={node.type}
-      style={{ "--node-color": meta.color, "--stagger": node.stagger || 0 }}
+      data-pl-enter={entering || undefined}
+      style={{ "--node-color": meta.color, "--pl-i": enterAt }}
       aria-label={`${meta.label} node`}
-      onAnimationEnd={(e) => { if (leaving && e.animationName === "ncard-out") onDelete(); }}
+      onAnimationEnd={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.animationName === "ncard-in") setEntering(false);
+        if (leaving && e.animationName === "ncard-out") onDelete();
+      }}
     >
       <NodeHeader
         meta={meta}

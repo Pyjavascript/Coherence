@@ -179,6 +179,9 @@ export default function Workspace({ userId, usage, onUsed, onChangeKey }: Props)
       <footer className="footer">
         <Meter label="Credits" used={usage.generations} total={LIMITS.generations} />
         <Meter label="Brands" used={Math.min(data.brands.length, LIMITS.brands)} total={LIMITS.brands} calm />
+        <p className="footer-note">
+          <span className="figma-word">Figma usage</span> · credits are shared with the web app
+        </p>
       </footer>
     </div>
   );

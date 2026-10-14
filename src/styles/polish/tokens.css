@@ -1,0 +1,91 @@
+/* ==========================================================================
+   Coherence polish layer — shared tokens (the contract for every polish file)
+   Additive only: no new colors, fonts or positions. Shadows are built from the
+   app's existing --shell-navy (#0c174f → rgb 12 23 79) and --shell-blue
+   (#173cf5 → rgb 23 60 245).
+   ========================================================================== */
+:root {
+  /* Easing */
+  --pl-ease-out: cubic-bezier(.22, 1, .36, 1);      /* default for enters / hovers */
+  --pl-ease-in: cubic-bezier(.55, 0, .75, .2);      /* exits */
+  --pl-ease-inout: cubic-bezier(.65, 0, .35, 1);    /* morphs, crossfades */
+  --pl-ease-spring: cubic-bezier(.34, 1.56, .64, 1); /* small overshoot: pops, toggles */
+  --pl-ease-soft-spring: cubic-bezier(.3, 1.3, .55, 1);
+
+  /* Durations */
+  --pl-d-1: 120ms;  /* press, color */
+  --pl-d-2: 200ms;  /* hover, small state change */
+  --pl-d-3: 320ms;  /* panels, menus, modals enter */
+  --pl-d-4: 480ms;  /* page-level transitions, stagger total */
+  --pl-d-loop: 2400ms; /* ambient loops (shimmer, breathe) */
+  --pl-stagger: 45ms;
+
+  /* Motion distances */
+  --pl-rise: 8px;
+  --pl-lift: -2px;
+  --pl-press-scale: .97;
+  --pl-press-scale-sm: .92; /* small (≤30px) controls */
+  --pl-pop-from: .96;
+
+  /* Elevation — layered, navy-tinted (replaces flat single shadows) */
+  --pl-shadow-0: 0 0 0 1px rgb(12 23 79 / .04);
+  --pl-shadow-1: 0 0 0 1px rgb(12 23 79 / .04), 0 1px 2px rgb(12 23 79 / .05), 0 2px 6px rgb(12 23 79 / .04);
+  --pl-shadow-2: 0 0 0 1px rgb(12 23 79 / .05), 0 2px 4px rgb(12 23 79 / .05), 0 8px 20px -4px rgb(12 23 79 / .10);
+  --pl-shadow-3: 0 0 0 1px rgb(12 23 79 / .05), 0 4px 8px rgb(12 23 79 / .06), 0 18px 40px -8px rgb(12 23 79 / .18);
+  --pl-shadow-4: 0 0 0 1px rgb(12 23 79 / .06), 0 8px 16px rgb(12 23 79 / .08), 0 32px 64px -12px rgb(12 23 79 / .30);
+  --pl-glow-accent: 0 0 0 3px rgb(23 60 245 / .14), 0 6px 18px -6px rgb(23 60 245 / .45);
+  --pl-focus-ring: 0 0 0 3px var(--focus-ring, #c9d2ff);
+  --pl-inset-hi: inset 0 1px 0 rgb(255 255 255 / .55); /* top highlight on solid buttons */
+
+  /* One radius for the whole app: 24px on desktop (~1000px+), fluid down to 14px on small phones */
+  --ui-r: clamp(14px, 8px + 1.6vw, 24px);
+  --pl-r-xs: var(--ui-r);
+  --pl-r-sm: var(--ui-r);
+  --pl-r-md: var(--ui-r);
+  --pl-r-lg: var(--ui-r);
+  --pl-r-xl: var(--ui-r);
+  --pl-r-pill: 999px;
+
+  /* Control sizes */
+  --pl-ctl-sm: 32px;
+  --pl-ctl-md: 36px;
+  --pl-ctl-lg: 40px;
+  --pl-icon-sm: 16px;
+  --pl-icon-md: 18px;
+
+  /* Fluid spacing rhythm (4px base) */
+  --pl-s-1: clamp(4px, .3vw, 6px);
+  --pl-s-2: clamp(8px, .55vw, 10px);
+  --pl-s-3: clamp(12px, .85vw, 14px);
+  --pl-s-4: clamp(14px, 1.1vw, 18px);
+  --pl-s-5: clamp(18px, 1.5vw, 24px);
+}
+
+[data-theme=dark] {
+  --pl-shadow-0: 0 0 0 1px rgb(255 255 255 / .04);
+  --pl-shadow-1: 0 0 0 1px rgb(255 255 255 / .05), 0 1px 2px rgb(0 0 0 / .3);
+  --pl-shadow-2: 0 0 0 1px rgb(255 255 255 / .06), 0 8px 20px -4px rgb(0 0 0 / .45);
+  --pl-shadow-3: 0 0 0 1px rgb(255 255 255 / .06), 0 18px 40px -8px rgb(0 0 0 / .55);
+  --pl-shadow-4: 0 0 0 1px rgb(255 255 255 / .07), 0 32px 64px -12px rgb(0 0 0 / .65);
+  --pl-inset-hi: inset 0 1px 0 rgb(255 255 255 / .12);
+}
+
+/* Shared keyframes every polish file may use */
+@keyframes pl-rise-in { from { opacity: 0; transform: translateY(var(--pl-rise)); } to { opacity: 1; transform: none; } }
+@keyframes pl-pop-in { from { opacity: 0; transform: scale(var(--pl-pop-from)); } to { opacity: 1; transform: none; } }
+@keyframes pl-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pl-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes pl-breathe { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.35); opacity: .7; } }
+@keyframes pl-spin { to { transform: rotate(360deg); } }
+
+/* Accessibility: reduced motion collapses everything to near-instant */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --pl-d-1: 1ms; --pl-d-2: 1ms; --pl-d-3: 1ms; --pl-d-4: 1ms; --pl-stagger: 0ms;
+    --pl-rise: 0px; --pl-lift: 0px; --pl-press-scale: 1; --pl-press-scale-sm: 1; --pl-pop-from: 1;
+  }
+  *, *::before, *::after {
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

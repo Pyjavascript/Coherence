@@ -343,7 +343,14 @@ Deno.serve(async (req) => {
   if (!content) return fail("OpenAI returned an empty response.", "malformed");
   
   // One credit per answered call: the daily limit and the Usage dialog both count these rows.
-  const { error: logError } = await admin.from("usage_events").insert({ user_id: userId, kind: type });
+  // source tells the Usage dialog which credits were spent in Figma.
+  let { error: logError } = await admin
+    .from("usage_events")
+    .insert({ user_id: userId, kind: type, source: pluginApiKey ? "figma" : "web" });
+  // Before the usage_events.source migration runs, still count the credit.
+  if (logError && /source/i.test(logError.message)) {
+    ({ error: logError } = await admin.from("usage_events").insert({ user_id: userId, kind: type }));
+  }
   if (logError) console.error("usage_events insert failed:", logError.message);
 
   if (!wantsJson) return reply({ success: true, data: { text: content.trim() } });

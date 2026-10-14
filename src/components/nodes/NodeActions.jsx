@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useCopyFeedback } from "../../hooks/useCopyFeedback";
+import { EASE_SPRING, reducedMotion, tokenMs } from "../../lib/motion";
 
 const RegenIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -83,7 +84,14 @@ export default function NodeActions({
 }) {
   const [copied, flashCopied] = useCopyFeedback();
 
-  const copy = async () => {
+  const copy = async (event) => {
+    // A small spring pop on press; restarts cleanly on rapid repeat clicks.
+    if (!reducedMotion()) {
+      event.currentTarget.animate(
+        [{ scale: 0.9 }, { scale: 1.08, offset: 0.55 }, { scale: 1 }],
+        { duration: tokenMs("--pl-d-3", 320), easing: EASE_SPRING },
+      );
+    }
     if (await onCopy()) flashCopied();
   };
 

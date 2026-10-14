@@ -81,17 +81,13 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     try {
       const data = await generateQuickGrid({ ctx, variantCount, tier, settings });
       const live = stillMine();
-      // stagger = reveal order, so the cards light up across the grid in turn.
-      setNodes((list) => {
-        let order = 0;
-        return list.map((n) => {
-          if (!live.has(n.id)) return n;
-          const items = data[n.type] || [];
-          return items.length
-            ? { ...n, status: "ready", items, version: n.version + 1, message: "", fav: null, stagger: order++ }
-            : failed(n, "No copy came back for this medium. Try regenerating it.");
-        });
-      });
+      setNodes((list) => list.map((n) => {
+        if (!live.has(n.id)) return n;
+        const items = data[n.type] || [];
+        return items.length
+          ? { ...n, status: "ready", items, version: n.version + 1, message: "", fav: null }
+          : failed(n, "No copy came back for this medium. Try regenerating it.");
+      }));
       await Promise.all(types.map((type) => saveGeneration({
         brandId,
         medium: type,
@@ -121,7 +117,7 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     try {
       const items = await regenerateOutput({ ctx, medium: node.type, variantCount, tier, settings: settingsOf(node) });
       if (!mine()) return;
-      setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "ready", items, version: n.version + 1, fav: null, stagger: 0 } : n)));
+      setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "ready", items, version: n.version + 1, fav: null } : n)));
       await saveGeneration({ brandId, medium: node.type, inputContext: { message: ctx.brand.message }, output: items });
       onGenerated({ type: "quick", medium: node.type });
     } catch (err) {
@@ -232,6 +228,11 @@ export default function QuickGrid({ quick, atGenLimit }) {
   const gridRef = useRef(null);
   useFlip(gridRef, quick.nodes.map((n) => n.id).join("|"));
 
+  // Cards on the grid when it first renders rise in one after another; a card
+  // added later enters straight away.
+  const firstRender = useRef(true);
+  useEffect(() => { firstRender.current = false; }, []);
+
   useEffect(() => {
     // Scroll only the grid's own scroller (scrollIntoView would also nudge ancestors).
     const scroller = gridRef.current?.parentElement;
@@ -266,11 +267,12 @@ export default function QuickGrid({ quick, atGenLimit }) {
         </div>
       )}
       <div className="qg-grid" ref={gridRef}>
-        {quick.nodes.map((n) => (
+        {quick.nodes.map((n, i) => (
           <NodeCard
             key={n.id}
             node={n}
             meta={MEDIA_BY_KEY[n.type]}
+            enterIndex={firstRender.current ? i : 0}
             onEdit={(index, field, text) => quick.editItem(n.id, index, field, text)}
             onWordsChange={(value) => quick.setWords(n.id, value)}
             onSetting={(field, value) => quick.setSetting(n.id, field, value)}

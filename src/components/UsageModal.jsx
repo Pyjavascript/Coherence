@@ -1,10 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { CloseBar, useDialogBehavior, useOverlayDismiss } from "./Modal";
-import { ModelIcon } from "./ModelIcons";
 import { MODEL_OPTIONS } from "../lib/constants";
 import { LIMITS } from "../lib/clientId";
-import { FREE_HOOKS_PER_DAY } from "../lib/hookQuota";
 import { getApiKey, setApiKey } from "../lib/apiKey";
+import { CountUp } from "../hooks/useCountUp";
 import { getUsageActivity } from "../services/brands";
 import { ACTIVITY_KINDS, creditDayStart, nextCreditReset, toKinds } from "../lib/usageActivity";
 
@@ -17,6 +16,12 @@ const ChartIcon = () => (
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </svg>
+);
+
+const ChevronIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m6 9 6 6 6-6" />
   </svg>
 );
 
@@ -47,11 +52,13 @@ function CreditLines({ total, kinds, loading }) {
 
 // Today's usage: a line per daily credit, coloured by what it was spent on, a
 // legend, detail rows and the model picker — in the profile dialog's skin.
-// usage = { generations, brands } (hooks/useUsage); hookQuota = { used, left } | null (premium).
-export default function UsageModal({ userId, usage, plan = "Free", hookQuota, tier, onTier, onClose }) {
+// usage = { generations } (hooks/useUsage).
+export default function UsageModal({ userId, usage, plan = "Free", tier, onTier, onClose }) {
   const titleId = useId();
   const modelLabelId = useId();
   const keyInputId = useId();
+  const modelsId = useId();
+  const [modelsOpen, setModelsOpen] = useState(false);
   const panelRef = useDialogBehavior(onClose);
   const dismiss = useOverlayDismiss(onClose);
   const [rows, setRows] = useState(null); // null while loading, false if they couldn't load
@@ -89,8 +96,8 @@ export default function UsageModal({ userId, usage, plan = "Free", hookQuota, ti
   const left = LIMITS.generations - used;
   const percent = Math.round((used / LIMITS.generations) * 100);
   const level = left === 0 ? "over" : percent >= 85 ? "near" : "ok";
-  const brands = clampCount(usage?.brands, LIMITS.brands);
-  const selected = MODEL_OPTIONS.some((m) => m.value === tier);
+  const currentModel = MODEL_OPTIONS.find((m) => m.value === tier);
+  const selected = Boolean(currentModel);
 
   // Used credits in spending order. The legend counts these same lines, so it
   // always adds up to the credits used.
@@ -129,9 +136,9 @@ export default function UsageModal({ userId, usage, plan = "Free", hookQuota, ti
 
           <div className="uc-card">
             <div className="uc-summary">
-              <p className="uc-big"><b>{used}</b><span>{used === 1 ? "credit" : "credits"} used</span></p>
+              <p className="uc-big"><b><CountUp value={used} /></b><span>{used === 1 ? "credit" : "credits"} used</span></p>
               <span className={"uc-left is-" + level}>
-                <b>{left}</b> of {LIMITS.generations} left
+                <b><CountUp value={left} /></b> of {LIMITS.generations} left
               </span>
             </div>
 
@@ -152,32 +159,39 @@ export default function UsageModal({ userId, usage, plan = "Free", hookQuota, ti
               {ACTIVITY_KINDS.map((k) => (
                 <div key={k.key} className={"uc-legend-item is-" + k.key}>
                   <span>{k.label}</span>
-                  <b>{loading ? "–" : countOf(k.key)}</b>
+                  <b>{loading ? "–" : <CountUp value={countOf(k.key)} />}</b>
                 </div>
               ))}
             </div>
             {!loading && other > 0 && (
               <p className="uc-other">
                 <i aria-hidden="true" />
-                {rows ? `${other} ${other === 1 ? "credit" : "credits"} on Figma generations` : "Couldn't load today's breakdown"}
+                {rows ? `${other} ${other === 1 ? "credit" : "credits"} on other generations` : "Couldn't load today's breakdown"}
               </p>
-            )}
-
-            <div className="uc-row">
-              <span>Brands</span>
-              <span>{brands} of {LIMITS.brands}</span>
-            </div>
-            {hookQuota && (
-              <div className="uc-row">
-                <span>Free hooks today</span>
-                <span>{hookQuota.left} of {FREE_HOOKS_PER_DAY} left</span>
-              </div>
             )}
           </div>
 
           <div className="usage-section">
+            {/* Collapsed by default, like the profile's Edit section; the line under
+                the title names the model in use. */}
             <div className="usage-section-head">
-              <h3 id={modelLabelId}>Choose a model</h3>
+              <h3>
+                <button
+                  type="button"
+                  className="usage-section-toggle"
+                  aria-expanded={modelsOpen}
+                  aria-controls={modelsId}
+                  onClick={() => setModelsOpen((open) => !open)}
+                >
+                  <span className="usage-section-text">
+                    <span id={modelLabelId} className="usage-section-name">Choose a model</span>
+                    <span className="usage-section-desc">
+                      {currentModel ? `Using ${currentModel.label}` : "Applies to everything you generate."}
+                    </span>
+                  </span>
+                  <span className="usage-section-chevron" aria-hidden="true"><ChevronIcon /></span>
+                </button>
+              </h3>
               <div className="usage-key">
                 {keyOpen && (
                   <input
@@ -208,6 +222,8 @@ export default function UsageModal({ userId, usage, plan = "Free", hookQuota, ti
                 </button>
               </div>
             </div>
+            <div id={modelsId} className="usage-models-collapse" data-open={modelsOpen} inert={modelsOpen ? undefined : ""}>
+            <div className="usage-models-inner">
             <div className="usage-models" role="radiogroup" aria-labelledby={modelLabelId} onKeyDown={onModelKey}>
               {MODEL_OPTIONS.map((model) => {
                 const on = model.value === tier;
@@ -222,13 +238,14 @@ export default function UsageModal({ userId, usage, plan = "Free", hookQuota, ti
                     onClick={() => onTier(model.value)}
                   >
                     <span className="usage-model-check" aria-hidden="true"><CheckIcon /></span>
-                    <span className="usage-model-icon" aria-hidden="true"><ModelIcon tier={model.value} /></span>
                     <span className="usage-model-name">{model.label}</span>
                     <span className="usage-model-tag">{MODEL_TAGS[model.value]}</span>
                     <span className="usage-model-desc">{model.description}</span>
                   </button>
                 );
               })}
+            </div>
+            </div>
             </div>
           </div>
         </div>

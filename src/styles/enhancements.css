@@ -385,58 +385,16 @@
   outline: none;
 }
 
-/* ---------- Node card: generating + fresh copy ---------- */
+/* ---------- Node card: fresh copy highlight ---------- */
 
-/* ncard-in stays first in each list: dropping it from the list would replay
-   the card's entrance when these states end. */
-
-/* While copy is being written the card breathes in its medium's colour. */
-.ncard.is-busy {
-  animation: ncard-in 280ms var(--shell-ease) both, ncard-busy 1.6s ease-in-out infinite;
-}
-
-@keyframes ncard-busy {
-  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--node-color) 25%, transparent); }
-  50% {
-    box-shadow:
-      0 0 0 2px color-mix(in srgb, var(--node-color) 65%, transparent),
-      0 10px 26px color-mix(in srgb, var(--node-color) 20%, transparent);
-  }
-}
-
-/* When copy lands the card lifts, rings in its colour and settles. Across a
-   full Generate the cards light up one after another (--stagger). */
 .ncard.is-fresh {
-  --fresh-delay: calc(var(--stagger, 0) * 110ms);
-  position: relative;
-  z-index: 1;
-  animation: ncard-in 280ms var(--shell-ease) both, ncard-fresh 1.5s var(--shell-ease) var(--fresh-delay) both;
+  animation: ncard-fresh 1.3s ease-out both;
 }
 
 @keyframes ncard-fresh {
-  0% { transform: none; box-shadow: 0 0 0 0 transparent; }
-  22% {
-    transform: translateY(-5px) scale(1.012);
-    box-shadow:
-      0 0 0 3px var(--node-color),
-      0 22px 44px color-mix(in srgb, var(--node-color) 32%, transparent);
-  }
-  60% {
-    transform: translateY(-2px);
-    box-shadow:
-      0 0 0 2px var(--node-color),
-      0 12px 28px color-mix(in srgb, var(--node-color) 16%, transparent);
-  }
-  100% { transform: none; box-shadow: 0 0 0 0 transparent; }
-}
-
-/* The copy writes in with the card: headline, then the supporting line. */
-.ncard.is-fresh .ncard-copy > * {
-  animation: ncard-content-in 420ms var(--shell-ease) calc(var(--fresh-delay) + 140ms) both;
-}
-
-.ncard.is-fresh .ncard-copy > * + * {
-  animation-delay: calc(var(--fresh-delay) + 240ms);
+  0% { box-shadow: 0 0 0 0 transparent; }
+  18% { box-shadow: 0 0 0 3px var(--node-color), 0 10px 30px rgba(13, 20, 69, 0.12); }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 
 /* ---------- Node card: length meter ---------- */
@@ -1688,17 +1646,16 @@
   }
 
   .ws-switch-btn {
-    min-height: 40px;
     font-size: 13px;
   }
 
-  /* Same size as the switch pill (40px tab + 5px padding each side) and on
-     the same bottom line, so the two read as one row. */
+  /* Same size as the switch pill (a Generate-height tab + 5px padding each
+     side) and on the same bottom line, so the two read as one row. */
   .tour-launch {
     right: 12px;
     bottom: 12px;
-    width: 50px;
-    height: 50px;
+    width: calc(var(--tb-h) + 10px);
+    height: calc(var(--tb-h) + 10px);
   }
 
   .tour-launch svg {
@@ -2448,6 +2405,15 @@
   color: var(--shell-ink);
   background: var(--shell-tint);
   border-color: var(--shell-tint-2);
+}
+
+/* Copy waits for the hook to arrive. */
+.hook-copy:disabled,
+.hook-copy:disabled:hover {
+  color: #a9aec9;
+  background: #fff;
+  border-color: #dfe3f2;
+  cursor: default;
 }
 
 .coherence-copy:active,
@@ -3391,6 +3357,7 @@
   --uc-regen: #ff9500;
   --uc-hook: #8b5cf6;
   --uc-other: var(--shell-navy);
+  --uc-figma: #0acf83; /* Figma's green */
   --uc-empty: #e6e9f3;
   --uc-grey: #8a8fa8;
 }
@@ -3485,6 +3452,7 @@
 .uc-lines i.is-regen { background: var(--uc-regen); }
 .uc-lines i.is-hook { background: var(--uc-hook); }
 .uc-lines i.is-other { background: var(--uc-other); }
+.uc-lines i.is-figma { background: var(--uc-figma); }
 
 .uc-lines.is-loading i {
   background: linear-gradient(90deg, #eceef5 0%, #f6f7fb 50%, #eceef5 100%) 0 0 / 200% 100%;
@@ -3503,7 +3471,7 @@
 
 .uc-legend {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   margin: 14px 0 12px;
 }
@@ -3526,6 +3494,7 @@
 .uc-legend-item.is-node span { color: var(--uc-node); }
 .uc-legend-item.is-regen span { color: var(--uc-regen); }
 .uc-legend-item.is-hook span { color: var(--uc-hook); }
+.uc-legend-item.is-figma span { color: var(--uc-figma); }
 
 .uc-legend-item b {
   color: var(--shell-ink);
@@ -4018,8 +3987,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ncard.is-fresh,
-  .ncard.is-busy,
-  .ncard.is-fresh .ncard-copy > *,
   .rsb .bp-textarea.is-invalid,
   .rsb .bp-upsell,
   .rsb-unsaved,
@@ -4247,7 +4214,7 @@
 .sn-vtab:not(.on):hover,
 .sn-mini:hover,
 .sn-toggle:hover,
-.sn-round:not(.active):hover,
+.sn-round:not(.active):not(.is-copied):hover:not(:disabled),
 .sn-col-gen:hover,
 .history-actions button:not(.is-primary):hover:not(:disabled),
 .canvas-controls button:hover,

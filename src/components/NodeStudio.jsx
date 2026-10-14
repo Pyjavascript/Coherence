@@ -7,19 +7,37 @@ import { Skeleton } from "./OutputCard";
 import host from "../hosts/browser";
 import { saveGeneration } from "../services/brands";
 import { useCopyFeedback } from "../hooks/useCopyFeedback";
+import { reducedMotion, tokenMs } from "../lib/motion";
 
-const uid = () => "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const uid =() => "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 // Vertical gap between a node and the node stacked below it.
 const NODE_GAP = 40;
 // Gap under a node that still shows its "+" button (it hangs ~72px below the
 // card), so a node added from the toolbar leaves the button visible.
 const NODE_GAP_FREE = 100;
-const NODE_W = 340;
+const NODE_W = 400;
+// Columns sit NODE_W + 40px apart: x of each category's first node.
+const COL_X = { email: 40, social: 480, website: 920, packaging: 1360, advertising: 1800 };
 // Where a column's first node sits, and how far above it the column title goes.
 const COL_LEFT = 40;
 const COL_TOP = 100;
 const COL_HEAD_OFFSET = 46;
 const wordCount = (v) => ((v && v.body) || "").trim().split(/\s+/).filter(Boolean).length;
+// Entrance cascade: how many nodes get their own stagger slot.
+const MAX_STAGGER = 8;
+
+// A link runs from the bottom-centre of its source node to the top-centre of
+// its target. Key "a>b" = a's copy feeds b.
+const linkKey = (src, tgt) => `${src}>${tgt}`;
+const curve = (x1, y1, x2, y2) => {
+  const a = Math.max(40, Math.abs(y2 - y1) / 2);
+  return `M ${x1} ${y1} C ${x1} ${y1 + a}, ${x2} ${y2 - a}, ${x2} ${y2}`;
+};
+const SR_ONLY = { position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" };
+const isTyping = (el) => Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
+const XIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+);
 
 // Textarea that grows with its content instead of scrolling inside the node.
 function AutoTextarea({ value, ...props }) {
@@ -52,11 +70,11 @@ function makeNode(category, existing, x = null, y = null) {
 }
 
 function seedNodes() {
-  const email = baseNode({ x: 40, y: 100, category: "email", label: "Launch email", brief: "Announce the new fragrance to warm subscribers who've browsed before but not bought.", words: 110 });
-  const social = baseNode({ x: 420, y: 100, category: "social", label: "Instagram launch post", brief: "Tease the fragrance's mood for a cold, scrolling audience.", words: 40, platform: "Instagram" });
-  const website = baseNode({ x: 800, y: 100, category: "website", label: "Homepage hero", brief: "Set the emotional frame for a first-time visitor landing on the homepage.", words: 30, component: "hero" });
-  const packaging = baseNode({ x: 1180, y: 100, category: "packaging", label: "Box front line", brief: "A short line for the front of the box that sells the mood at a glance.", words: NODE_DEFAULT_WORDS.packaging });
-  const advertising = baseNode({ x: 1560, y: 100, category: "advertising", label: "Launch ad", brief: "Stop a cold audience mid-scroll and make them curious about the fragrance.", words: NODE_DEFAULT_WORDS.advertising });
+  const email = baseNode({ x: COL_X.email, y: 100, category: "email", label: "Launch email", brief: "Announce the new fragrance to warm subscribers who've browsed before but not bought.", words: 110 });
+  const social = baseNode({ x: COL_X.social, y: 100, category: "social", label: "Instagram launch post", brief: "Tease the fragrance's mood for a cold, scrolling audience.", words: 40, platform: "Instagram" });
+  const website = baseNode({ x: COL_X.website, y: 100, category: "website", label: "Homepage hero", brief: "Set the emotional frame for a first-time visitor landing on the homepage.", words: 30, component: "hero" });
+  const packaging = baseNode({ x: COL_X.packaging, y: 100, category: "packaging", label: "Box front line", brief: "A short line for the front of the box that sells the mood at a glance.", words: NODE_DEFAULT_WORDS.packaging });
+  const advertising = baseNode({ x: COL_X.advertising, y: 100, category: "advertising", label: "Launch ad", brief: "Stop a cold audience mid-scroll and make them curious about the fragrance.", words: NODE_DEFAULT_WORDS.advertising });
   return [email, social, website, packaging, advertising];
 }
 
@@ -75,8 +93,8 @@ const CAT_ICONS = {
 };
 
 const Chevron = () => svg(<path d="m6 9 6 6 6-6" />);
-const LinkIcon = () => svg(<><path d="M10 14a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7l-1.1 1.1" /><path d="M14 10a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.1-1.1" /></>);
-const ShareIcon = () => svg(<path d="M7 17 17 7M9 7h8v8" />);
+const CopyIcon = () => svg(<><rect x="8.5" y="8.5" width="11" height="11" rx="3" /><path d="M15.5 5.6c0-1.3-.9-2.1-2.1-2.1H6.1C4.8 3.5 4 4.4 4 5.6v7.3c0 1.2.8 2.1 2 2.1h.5" /></>);
+const CheckIcon = () => svg(<path d="m4.5 12.5 5 5L19.5 7" />);
 const TrashIcon = () => svg(<path d="M4 7h16M9 7V4.5h6V7m3 0-.8 12.5H6.8L6 7m4 4v5m4-5v5" />);
 
 /* ---------- node pieces ---------- */
@@ -115,25 +133,44 @@ function NodeOutput({ node, onVariant }) {
   );
 }
 
-function StudioNode({ node, expanded, onToggle, labelOf, linking, shareOpen, onField, onGenerate, onLink, onDelete, onToggleShare, onCopy, onVariant }) {
+// linkEnd: "src" / "tgt" while a link touching this node is hovered or selected.
+// drop: "ok" / "no" while a new link is dragged over this node.
+function StudioNode({
+  node, expanded, onToggle, labelOf, linkEnd, drop, onField, onGenerate, onUnlink, onTagHover, onDelete, onCopy, onVariant,
+}) {
   const cat = NODE_CATS[node.category];
   const comp = node.component || "hero";
   const [leaving, setLeaving] = useState(false);
   const [copied, flashCopied] = useCopyFeedback();
   const bodyId = `${node.id}-body`;
+  const canCopy = node.variants.length > 0 && !node.generating;
+  const copy = async () => { if (await onCopy()) flashCopied(); };
 
   return (
     <article
-      className={"node sn-node" + (expanded ? " is-open" : "") + (linking ? " linking" : "") + (leaving ? " is-leaving" : "")}
+      className={"node sn-node" + (expanded ? " is-open" : "") + (leaving ? " is-leaving" : "")}
       data-id={node.id}
+      data-pl-link-end={linkEnd || undefined}
+      data-pl-drop={drop || undefined}
       style={{ "--cat": cat.color }}
       onAnimationEnd={(e) => { if (leaving && e.animationName === "studio-node-out") onDelete(); }}
     >
       <header className="sn-head">
         <span className="sn-icon">{CAT_ICONS[node.category]}</span>
         <input className="sn-title" type="text" aria-label="Node name" value={node.label} onChange={(e) => onField("label", e.target.value)} />
-        {node.variants.length > 0 && !node.generating && <span className="sn-done" title="Generated" aria-label="Generated" />}
         <div className="sn-head-actions">
+          {/* Minimised, the Copy button beside Generate is hidden, so it moves up here. */}
+          {!expanded && canCopy && (
+            <button
+              type="button"
+              className={"sn-mini" + (copied ? " is-copied" : "")}
+              title={copied ? "Copied" : "Copy output"}
+              aria-label={copied ? "Output copied" : "Copy output"}
+              onClick={copy}
+            >
+              {copied ? <CheckIcon /> : <CopyIcon />}
+            </button>
+          )}
           <button type="button" className="sn-mini danger" title="Delete node" aria-label="Delete node" onClick={() => setLeaving(true)}><TrashIcon /></button>
         </div>
         <button type="button" className="sn-toggle" aria-expanded={expanded} aria-controls={bodyId} aria-label={expanded ? "Collapse node" : "Expand node"} onClick={onToggle}>
@@ -177,42 +214,60 @@ function StudioNode({ node, expanded, onToggle, labelOf, linking, shareOpen, onF
             </div>
             {node.connections.length > 0 && (
               <div className="sn-tags">
-                {node.connections.map((id) => <span className="sn-tag" key={id}>🔗 {labelOf(id)}</span>)}
+                {/* Each "linked to" tag disconnects its link; hovering it lights the line. */}
+                {node.connections.map((id) => (
+                  <span
+                    className="sn-tag"
+                    key={id}
+                    role="button"
+                    tabIndex={0}
+                    title={`Disconnect from ${labelOf(id)}`}
+                    aria-label={`Disconnect from ${labelOf(id)}`}
+                    onClick={(e) => { e.stopPropagation(); onUnlink(id); }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      onUnlink(id);
+                    }}
+                    onPointerEnter={() => onTagHover(id)}
+                    onPointerLeave={() => onTagHover(null)}
+                    onFocus={() => onTagHover(id)}
+                    onBlur={() => onTagHover(null)}
+                  >
+                    🔗 {labelOf(id)}
+                  </span>
+                ))}
               </div>
             )}
             <div className="sn-actions">
               <button type="button" className="sn-gen" disabled={node.generating} onClick={onGenerate}>
                 {node.generating ? "Generating..." : node.variants.length ? "Regenerate" : "Generate"}
               </button>
-              <button type="button" className={"sn-round" + (linking ? " active" : "")} title="Correlate with another node" aria-label="Link with another node" aria-pressed={linking} onClick={onLink}><LinkIcon /></button>
-              <div className="sharewrap">
-                <button type="button" className="sn-round" title="Send to design tool" aria-label="Send to design tool" aria-expanded={shareOpen} onClick={onToggleShare}><ShareIcon /></button>
-                {shareOpen && (
-                  <div className="share-menu">
-                    <div className="share-note">Copies this node's copy, then opens the tool to paste it in.</div>
-                    <button type="button" onClick={async () => { if (await onCopy()) flashCopied(); }}>
-                      {copied ? "Copied ✓" : "Copy text"}
-                    </button>
-                    <a href="https://www.canva.com/create/" target="_blank" rel="noopener noreferrer"
-                      onClick={(e) => { e.preventDefault(); host.openExternal(e.currentTarget.href); }}>Open Canva</a>
-                    <a href="https://new.express.adobe.com/" target="_blank" rel="noopener noreferrer"
-                      onClick={(e) => { e.preventDefault(); host.openExternal(e.currentTarget.href); }}>Open Adobe Express</a>
-                  </div>
-                )}
-              </div>
+              <button
+                type="button"
+                className={"sn-round" + (copied ? " is-copied" : "")}
+                title={copied ? "Copied" : "Copy output"}
+                aria-label={copied ? "Output copied" : "Copy output"}
+                disabled={!canCopy}
+                onClick={copy}
+              >
+                {copied ? <CheckIcon /> : <CopyIcon />}
+              </button>
             </div>
-            {(node.generating || node.variants.length > 0) && (
-              <div className="sn-out" aria-live="polite"><NodeOutput node={node} onVariant={onVariant} /></div>
-            )}
           </div>
         </div>
       </div>
+      {/* Output stays visible when the node is minimised. */}
+      {(node.generating || node.variants.length > 0) && (
+        <div className="sn-out" aria-live="polite"><NodeOutput node={node} onVariant={onVariant} /></div>
+      )}
     </article>
   );
 }
 
 // Draggable Wrapper based on HTML functionality
-function DraggableNode({ node, dragging, onSize, onPointerDown, onClickCapture, onAddChild, children }) {
+// enterIdx = the node's slot in the studio's entrance cascade.
+function DraggableNode({ node, dragging, enterIdx, onSize, onPointerDown, onClickCapture, onAddChild, children }) {
   const ref = useRef(null);
 
   useLayoutEffect(() => {
@@ -231,9 +286,11 @@ function DraggableNode({ node, dragging, onSize, onPointerDown, onClickCapture, 
     <div
       ref={ref}
       className={`cn${dragging ? " dragging" : ""}`}
+      data-id={node.id}
       style={{
         transform: `translate(${node.x}px, ${node.y}px)`,
         zIndex: dragging ? 40 : node.z,
+        "--pl-i": enterIdx,
       }}
       onPointerDown={onPointerDown}
       onClickCapture={onClickCapture}
@@ -260,10 +317,29 @@ function DraggableNode({ node, dragging, onSize, onPointerDown, onClickCapture, 
 
 const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, tier, aiAvailable, setStatus, onGenerated, refreshUsage, brandId, ensureAuth }, ref) {
   const [nodes, setNodes] = useState(seedNodes);
-  const [linkingFrom, setLinkingFrom] = useState(null);
-  const [shareId, setShareId] = useState(null);
   const [sizes, setSizes] = useState({});
   const [draggingId, setDraggingId] = useState(null);
+
+  // Links: hover a node to show its ports, drag a port onto another node to
+  // link; hover / click a line for its Disconnect chip.
+  const [hoverKey, setHoverKey] = useState(null);       // line under the pointer / focus / tag
+  const [selectedKey, setSelectedKey] = useState(null); // line the person clicked
+  const [hotId, setHotId] = useState(null);             // node whose ports show
+  const [linkDrag, setLinkDrag] = useState(null);       // { id, side, pointer, hit } while dragging a new link
+  const [flashKey, setFlashKey] = useState(null);
+  const [said, setSaid] = useState("");                 // screen-reader announcement
+  const canvasRef = useRef(null);
+  const uiRef = useRef(null);
+  const chipRef = useRef(null);
+  const chipPos = useRef({ x: 0, y: 0 });
+  const hideTimer = useRef(0);
+  const hotTimer = useRef(0);
+  const cancelLinkDrag = useRef(null);
+
+  // Entering the studio: nodes cascade in, then the links draw themselves.
+  const [entering, setEntering] = useState(false);
+  const [enterOrder, setEnterOrder] = useState({});     // node id -> stagger slot
+  const [drawing, setDrawing] = useState({});           // line key -> draw-in delay (ms)
 
   const nodesRef = useRef(nodes);
   const sizesRef = useRef(sizes);
@@ -271,6 +347,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   const lastNodeRef = useRef(null);
   const zCounter = useRef(10);
   const dragGuard = useRef(false);
+  const enterRef = useRef(active);
 
   ctxRef.current = ctx;
 
@@ -315,30 +392,58 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   }, [commit]);
 
   /* ----- curved bezier lines: derived from node positions and sizes ----- */
+  const boxOf = (n, sz = sizes) => ({ x: n.x, y: n.y, ...(sz[n.id] || { w: NODE_W, h: 46 }) });
   const lines = [];
   nodes.forEach((n) => {
     n.connections.forEach((tid) => {
       const b = nodes.find((x) => x.id === tid);
       if (!b) return;
-      const s1 = sizes[n.id] || { w: NODE_W, h: 46 };
-      const s2 = sizes[b.id] || { w: NODE_W, h: 46 };
-      lines.push({
-        key: n.id + tid,
-        x1: n.x + s1.w / 2,
-        y1: n.y + s1.h, // Bottom of parent
-        x2: b.x + s2.w / 2,
-        y2: b.y, // Top of child
-      });
+      const s1 = boxOf(n);
+      const s2 = boxOf(b);
+      const x1 = n.x + s1.w / 2;
+      const y1 = n.y + s1.h; // Bottom of parent
+      const x2 = b.x + s2.w / 2;
+      const y2 = b.y; // Top of child
+      lines.push({ key: linkKey(n.id, tid), src: n.id, tgt: tid, x1, y1, x2, y2, d: curve(x1, y1, x2, y2) });
     });
   });
+  const lineKeys = lines.map((l) => l.key).join("|");
+
+  // A line drawn while working in the studio draws itself in.
+  const seenKeys = useRef(null);
+  useLayoutEffect(() => {
+    const keys = lineKeys ? lineKeys.split("|") : [];
+    const seen = seenKeys.current;
+    seenKeys.current = new Set(keys);
+    if (!seen || !active || reducedMotion()) return;
+    const fresh = keys.filter((k) => !seen.has(k));
+    if (fresh.length) setDrawing((d) => ({ ...d, ...Object.fromEntries(fresh.map((k) => [k, 0])) }));
+  }, [lineKeys, active]);
+  const doneDrawing = (key) => setDrawing(({ [key]: _, ...rest }) => rest);
 
   useEffect(() => {
-    const close = (e) => {
-      if (!e.target.closest(".sharewrap")) setShareId(null);
-    };
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
-  }, []);
+    const wasActive = enterRef.current;
+    enterRef.current = active;
+    if (!active || wasActive || reducedMotion()) {
+      setEntering(false);
+      return undefined;
+    }
+    const stagger = tokenMs("--pl-stagger", 45);
+    const order = {};
+    [...nodesRef.current]
+      .sort((a, b) => a.y - b.y || a.x - b.x)
+      .forEach((n, i) => { order[n.id] = Math.min(i, MAX_STAGGER); });
+    setEnterOrder(order);
+    setEntering(false);
+    // Re-adding the attribute next frame restarts the cascade.
+    const raf = requestAnimationFrame(() => setEntering(true));
+    const linkDelay = 80 + tokenMs("--pl-d-3", 320);
+    setDrawing(Object.fromEntries(seenKeys.current ? [...seenKeys.current].map((k) => [k, linkDelay]) : []));
+    const count = Math.min(nodesRef.current.length, MAX_STAGGER);
+    const timer = setTimeout(() => setEntering(false), 80 + tokenMs("--pl-d-4", 480) + count * stagger + 50);
+    return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
+  }, [active]);
+
 
   /* ----- drag interaction handler ----- */
   const handlePointerDown = (e, node) => {
@@ -415,11 +520,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
       const next = [...list];
       const catNodes = next.filter(x => x.category === category);
        
-      let startX = 40;
-      if (category === 'social') startX = 420;
-      if (category === 'website') startX = 800;
-      if (category === 'packaging') startX = 1180;
-      if (category === 'advertising') startX = 1560;
+      let startX = COL_X[category] ?? COL_X.email;
 
       let maxY = 100;
       if (catNodes.length > 0) {
@@ -472,24 +573,189 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     setOpen(id, false);
   };
 
+  /* ----- links ----- */
+  const say = (msg) => {
+    setSaid("");
+    setTimeout(() => setSaid(msg), 30);
+  };
+
+  const flash = (key) => {
+    setFlashKey(null);
+    requestAnimationFrame(() => setFlashKey(key));
+    setTimeout(() => setFlashKey((k) => (k === key ? null : k)), 1000);
+  };
+
   // Linking A -> B hands A's job requirement to B and writes B from A's copy,
-  // adapted to B's channel. Unlinking only removes the line.
-  const handleLink = (id) => {
-    if (linkingFrom === id) return setLinkingFrom(null);
-    if (linkingFrom === null) return setLinkingFrom(id);
-    const fromId = linkingFrom;
+  // adapted to B's channel. One link per direction: an existing one just lights up.
+  const linkNodes = (fromId, toId) => {
     const source = nodesRef.current.find((n) => n.id === fromId);
-    const target = nodesRef.current.find((n) => n.id === id);
-    const isNew = Boolean(source && target) && !source.connections.includes(id);
+    const target = nodesRef.current.find((n) => n.id === toId);
+    if (!source || !target || fromId === toId) return;
+    if (source.connections.includes(toId)) {
+      setSelectedKey(linkKey(fromId, toId));
+      flash(linkKey(fromId, toId));
+      return;
+    }
     commit((l) => l.map((n) => {
-      if (n.id === fromId) {
-        return { ...n, connections: isNew ? [...n.connections, id] : n.connections.filter((c) => c !== id) };
-      }
-      if (isNew && n.id === id && source.brief.trim()) return { ...n, brief: source.brief };
+      if (n.id === fromId) return { ...n, connections: [...n.connections, toId] };
+      if (n.id === toId && source.brief.trim()) return { ...n, brief: source.brief };
       return n;
     }));
-    setLinkingFrom(null);
-    if (isNew && !target.generating) generateNode(id, { sourceId: fromId });
+    say(`Linked ${source.label || "node"} to ${target.label || "node"}`);
+    if (!target.generating) generateNode(toId, { sourceId: fromId });
+  };
+
+  // Unlinking only removes the line.
+  const unlinkNodes = (fromId, toId) => {
+    if (!nodesRef.current.find((n) => n.id === fromId)?.connections.includes(toId)) return;
+    commit((l) => l.map((n) => (n.id === fromId ? { ...n, connections: n.connections.filter((c) => c !== toId) } : n)));
+    setSelectedKey(null);
+    setHoverKey(null);
+    say(`Disconnected ${labelOf(fromId) || "node"} from ${labelOf(toId) || "node"}`);
+  };
+  const unlinkKey = (key) => {
+    const [src, tgt] = key.split(">");
+    unlinkNodes(src, tgt);
+  };
+
+  // Hover clears after a beat, so the pointer can travel from a line to its chip.
+  const scheduleHoverClear = () => {
+    clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => {
+      if (chipRef.current?.matches(":hover")) return;
+      setHoverKey(null);
+    }, 220);
+  };
+  const hoverLine = (key) => {
+    clearTimeout(hideTimer.current);
+    setHoverKey(key);
+  };
+
+  // Ports and the chip keep a constant on-screen size at any canvas zoom.
+  const syncZoom = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !uiRef.current) return;
+    const zoom = canvas.getBoundingClientRect().width / canvas.offsetWidth || 1;
+    uiRef.current.style.setProperty("--pl-inv", String(Math.min(2.2, Math.max(0.7, 1 / zoom))));
+  };
+
+  const nodeIdAt = (target) => (target instanceof Element ? target.closest(".cn, .pl-port")?.dataset.id ?? null : null);
+  const onCanvasOver = (e) => {
+    const id = nodeIdAt(e.target);
+    if (!id) return;
+    clearTimeout(hotTimer.current);
+    syncZoom();
+    setHotId(id);
+  };
+  const onCanvasOut = () => {
+    clearTimeout(hotTimer.current);
+    hotTimer.current = setTimeout(() => {
+      if (cancelLinkDrag.current) return;
+      if (canvasRef.current?.querySelector(".cn:hover, .pl-port:hover")) return;
+      setHotId(null);
+    }, 180);
+  };
+  // A click on empty canvas clears the selected line.
+  const onCanvasClick = (e) => {
+    if (e.target instanceof Element && e.target.closest(".pl-chip, .pl-link-hit")) return;
+    setSelectedKey(null);
+  };
+
+  // Escape cancels a link drag or clears the selection; Delete removes the
+  // selected line. A press anywhere else drops the selection.
+  useEffect(() => {
+    if (!active) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        if (cancelLinkDrag.current) { cancelLinkDrag.current(); return; }
+        setSelectedKey(null);
+        setHoverKey(null);
+        return;
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedKey && !isTyping(e.target)) {
+        e.preventDefault();
+        unlinkKey(selectedKey);
+      }
+    };
+    const onDown = (e) => {
+      if (!selectedKey) return;
+      if (e.target instanceof Element && e.target.closest(".pl-chip, .pl-link-hit")) return;
+      setSelectedKey(null);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown, true);
+    };
+  });
+
+  // Pointer position in canvas space (the canvas is scaled by the viewport).
+  const toCanvas = (e) => {
+    const canvas = canvasRef.current;
+    const r = canvas.getBoundingClientRect();
+    const s = r.width / canvas.offsetWidth || 1;
+    return { x: (e.clientX - r.left) / s, y: (e.clientY - r.top) / s };
+  };
+
+  // What dropping the dragged port here would do.
+  const dropAt = (e, id, side) => {
+    for (const el of document.elementsFromPoint(e.clientX, e.clientY)) {
+      const otherId = el.closest?.(".cn")?.dataset.id;
+      const other = otherId && nodesRef.current.find((n) => n.id === otherId);
+      if (!other) continue;
+      const src = side === "out" ? id : otherId;
+      const tgt = side === "out" ? otherId : id;
+      if (otherId === id) return { id: otherId, state: "no", msg: "Can't link a node to itself" };
+      if (nodesRef.current.find((n) => n.id === src)?.connections.includes(tgt)) {
+        return { id: otherId, state: "no", msg: "Already linked", src, tgt };
+      }
+      return { id: otherId, state: "ok", msg: `Link ${side === "out" ? "to" : "from"} ${other.label || "Untitled node"}`, src, tgt };
+    }
+    return null;
+  };
+
+  // Drag from a node's bottom port (sends its copy on) or top port (receives).
+  const startLinkDrag = (e, id, side) => {
+    if ((e.pointerType === "mouse" && e.button !== 0) || !e.isPrimary) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const pid = e.pointerId;
+    let last = null;
+    setHoverKey(null);
+    setSelectedKey(null);
+    syncZoom();
+
+    const move = (ev) => {
+      if (ev.pointerId !== pid) return;
+      last = { id, side, pointer: toCanvas(ev), hit: dropAt(ev, id, side) };
+      setLinkDrag(last);
+    };
+    const end = (ev) => {
+      if (ev && ev.pointerId !== pid) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", end);
+      cancelLinkDrag.current = null;
+      setLinkDrag(null);
+      return last;
+    };
+    const up = (ev) => {
+      if (ev.pointerId !== pid) return;
+      const hit = dropAt(ev, id, side) || last?.hit;
+      end(ev);
+      if (!hit) return;
+      if (hit.state === "ok") linkNodes(hit.src, hit.tgt);
+      else if (hit.msg === "Already linked") {
+        setSelectedKey(linkKey(hit.src, hit.tgt));
+        flash(linkKey(hit.src, hit.tgt));
+      }
+    };
+    cancelLinkDrag.current = () => end(null);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", end);
+    move(e);
   };
 
   const announce = (n, idx) => {
@@ -621,28 +887,170 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     }
   });
 
-  return (
-    <div className="studio">
-      <div className="nodebar">
-        <div className={"linkhint" + (linkingFrom ? " on" : "")} role="status">
-          Linking mode — click another node's link button to send this node's input and copy to it, or click this node's again to cancel.
-        </div>
-      </div>
+  /* ----- link overlay state ----- */
+  const activeKey = hoverKey || selectedKey;
+  const activeLine = activeKey ? lines.find((l) => l.key === activeKey) : null;
+  const chipVisible = Boolean(activeLine) && !linkDrag;
+  // The chip sits on the line's midpoint (the curve is symmetric, so that's
+  // halfway between its ends) and stays put while it fades out.
+  if (chipVisible) chipPos.current = { x: (activeLine.x1 + activeLine.x2) / 2, y: (activeLine.y1 + activeLine.y2) / 2 };
+  const portsFor = linkDrag ? linkDrag.id : hotId;
+  const linkEndOf = (id) => (activeLine ? (activeLine.src === id ? "src" : activeLine.tgt === id ? "tgt" : null) : null);
+  const dotLag = Object.keys(drawing).length ? tokenMs("--pl-d-3", 320) : 0;
 
-      <div className="nodecanvas" style={{ position: 'relative', width: '3200px', minHeight: '2400px' }}>
+  // The rubber band ends on the target's matching edge when over one, else at the pointer.
+  let rubber = null;
+  const dragFrom = linkDrag && nodes.find((n) => n.id === linkDrag.id);
+  if (dragFrom) {
+    const out = linkDrag.side === "out";
+    const fb = boxOf(dragFrom);
+    const anchor = { x: fb.x + fb.w / 2, y: out ? fb.y + fb.h : fb.y };
+    const over = linkDrag.hit?.state === "ok" && nodes.find((n) => n.id === linkDrag.hit.id);
+    const hb = over && boxOf(over);
+    const end = hb ? { x: hb.x + hb.w / 2, y: out ? hb.y : hb.y + hb.h } : linkDrag.pointer;
+    rubber = {
+      d: out ? curve(anchor.x, anchor.y, end.x, end.y) : curve(end.x, end.y, anchor.x, anchor.y),
+      end,
+      state: linkDrag.hit?.state || "",
+    };
+  }
+
+  return (
+    <div className={"studio" + (linkDrag ? " pl-canvas-linking" : "")} data-pl-studio-enter={entering || undefined}>
+      <div
+        className="nodecanvas"
+        ref={canvasRef}
+        style={{ position: 'relative', width: '3200px', minHeight: '2400px' }}
+        onPointerOver={onCanvasOver}
+        onPointerOut={onCanvasOut}
+        onClick={onCanvasClick}
+      >
         <svg className="nodesvg" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible', zIndex: 0 }} aria-hidden="true">
           {lines.map((l) => {
-            const a = Math.max(40, Math.abs(l.y2 - l.y1) / 2);
-            const d = `M ${l.x1} ${l.y1} C ${l.x1} ${l.y1 + a}, ${l.x2} ${l.y2 - a}, ${l.x2} ${l.y2}`;
+            // A line drawing itself in: the path traces, then its end dots pop.
+            const delay = drawing[l.key];
+            const draws = delay !== undefined;
+            const drawAttrs = (ms) => (draws ? { "data-pl-draw": "", style: { "--pl-draw-delay": `${ms}ms` } } : {});
             return (
               <g key={l.key}>
-                <path d={d} fill="none" stroke="#1A1F36" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round" />
-                <circle cx={l.x1} cy={l.y1} r="4" fill="#1A1F36" />
-                <circle cx={l.x2} cy={l.y2} r="4" fill="#1A1F36" />
+                <path d={l.d} fill="none" stroke="#1A1F36" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round"
+                  pathLength={draws ? 1 : undefined} {...drawAttrs(delay)} />
+                <circle cx={l.x1} cy={l.y1} r="4" fill="#1A1F36" {...drawAttrs(delay + dotLag)} />
+                <circle cx={l.x2} cy={l.y2} r="4" fill="#1A1F36" {...drawAttrs(delay + dotLag)}
+                  onAnimationEnd={draws ? () => doneDrawing(l.key) : undefined} />
               </g>
             );
           })}
         </svg>
+
+        {/* Under the nodes: a wide invisible hit path per line, plus its highlight. */}
+        <svg className="pl-links" role="group" aria-label="Node connections">
+          {lines.map((l) => {
+            const cls = [
+              hoverKey === l.key && "is-hover",
+              selectedKey === l.key && "is-selected",
+              hotId && (l.src === hotId || l.tgt === hotId) && "is-related",
+              flashKey === l.key && "is-flash",
+            ].filter(Boolean).join(" ");
+            return (
+              <g key={l.key} className={cls || undefined}>
+                <path className="pl-link-hl" d={l.d} />
+                <path
+                  className="pl-link-hit"
+                  d={l.d}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Link: ${labelOf(l.src) || "node"} to ${labelOf(l.tgt) || "node"}. Press Enter to select it, then Delete to disconnect.`}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onPointerEnter={() => hoverLine(l.key)}
+                  onPointerLeave={scheduleHoverClear}
+                  onFocus={() => hoverLine(l.key)}
+                  onBlur={scheduleHoverClear}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedKey((k) => (k === l.key ? null : l.key));
+                    hoverLine(l.key);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" && e.key !== " ") return;
+                    e.preventDefault();
+                    const next = selectedKey === l.key ? null : l.key;
+                    setSelectedKey(next);
+                    if (next) requestAnimationFrame(() => chipRef.current?.focus({ preventScroll: true }));
+                  }}
+                />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Over the nodes: link ports, the Disconnect chip, the drag rubber band and its tooltip. */}
+        <div className="pl-link-ui" ref={uiRef} data-dragging={linkDrag ? "" : undefined}>
+          <svg className="pl-rubber" aria-hidden="true" data-state={rubber?.state} style={rubber ? undefined : { display: "none" }}>
+            {rubber && (
+              <>
+                <path d={rubber.d} />
+                <circle r="5" cx={rubber.end.x} cy={rubber.end.y} />
+              </>
+            )}
+          </svg>
+          {nodes.map((n) => {
+            const b = boxOf(n);
+            const vis = n.id === portsFor;
+            const name = n.label || "Untitled node";
+            return (
+              <Fragment key={n.id}>
+                <button
+                  type="button"
+                  className="pl-port"
+                  data-id={n.id}
+                  data-vis={vis ? "" : undefined}
+                  tabIndex={vis ? 0 : -1}
+                  style={{ left: b.x + b.w / 2, top: b.y + b.h }}
+                  title="Drag to another node to link"
+                  aria-label={`Link from ${name}: drag to another node`}
+                  onPointerDown={(e) => startLinkDrag(e, n.id, "out")}
+                />
+                <button
+                  type="button"
+                  className="pl-port"
+                  data-id={n.id}
+                  data-vis={vis ? "" : undefined}
+                  tabIndex={vis ? 0 : -1}
+                  style={{ left: b.x + b.w / 2, top: b.y }}
+                  title="Drag from another node to link here"
+                  aria-label={`Link into ${name}: drag from another node`}
+                  onPointerDown={(e) => startLinkDrag(e, n.id, "in")}
+                />
+              </Fragment>
+            );
+          })}
+          <button
+            ref={chipRef}
+            type="button"
+            className="pl-chip"
+            data-vis={chipVisible ? "" : undefined}
+            tabIndex={chipVisible ? 0 : -1}
+            style={{ left: chipPos.current.x, top: chipPos.current.y }}
+            aria-label={activeLine ? `Disconnect ${labelOf(activeLine.src) || "node"} from ${labelOf(activeLine.tgt) || "node"}` : "Disconnect"}
+            onPointerEnter={() => clearTimeout(hideTimer.current)}
+            onPointerLeave={scheduleHoverClear}
+            onClick={() => { if (activeLine) unlinkKey(activeLine.key); }}
+          >
+            <span className="pl-chip-x"><XIcon /></span>
+            <span>Disconnect</span>
+          </button>
+          <div
+            className="pl-tip"
+            aria-hidden="true"
+            data-vis={linkDrag?.hit ? "" : undefined}
+            data-state={linkDrag?.hit?.state}
+            style={linkDrag ? { left: linkDrag.pointer.x, top: linkDrag.pointer.y } : undefined}
+          >
+            {linkDrag?.hit?.msg}
+          </div>
+        </div>
+        <div role="status" aria-live="polite" style={SR_ONLY}>{said}</div>
 
         {/* Visual column headers for empty states only (nodes are absolutely positioned).
             Lined up with where a column's title sits when it has nodes. */}
@@ -652,7 +1060,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
             const list = nodes.filter((n) => n.category === key);
             
             return (
-              <section className="sn-col" key={key} style={{ pointerEvents: 'auto', position: 'relative', flex: '0 0 340px', width: '340px' }}>
+              <section className="sn-col" key={key} style={{ pointerEvents: 'auto', position: 'relative', flex: `0 0 ${NODE_W}px`, width: NODE_W }}>
                 {list.length === 0 && !cat.comingSoon && (
                   <>
                     <header className="sn-col-head" style={{ "--cat": cat.color, position: 'absolute', top: 0, left: 0, right: 0 }}>
@@ -686,13 +1094,14 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
               key={n.id}
               node={n}
               dragging={draggingId === n.id}
+              enterIdx={enterOrder[n.id] ?? 0}
               onSize={onSize}
               onPointerDown={(e) => handlePointerDown(e, n)}
               onClickCapture={handleClickCapture}
               onAddChild={() => handleAddChild(n.id, n.category)}
             >
               {topInfo && (
-                <header className="sn-col-head" style={{ "--cat": NODE_CATS[n.category].color, position: 'absolute', top: -COL_HEAD_OFFSET, left: 0, right: 0, width: '340px', cursor: 'grab' }}>
+                <header className="sn-col-head" style={{ "--cat": NODE_CATS[n.category].color, position: 'absolute', top: -COL_HEAD_OFFSET, left: 0, right: 0, width: NODE_W, cursor: 'grab' }}>
                   <span className="sn-col-dot" aria-hidden="true" />
                   <h2>{NODE_CATS[n.category].label}</h2>
                 
@@ -703,12 +1112,13 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
                 node={n} labelOf={labelOf}
                 expanded={expanded.has(n.id)}
                 onToggle={() => setOpen(n.id, !expanded.has(n.id))}
-                linking={linkingFrom === n.id} shareOpen={shareId === n.id}
+                linkEnd={linkEndOf(n.id)}
+                drop={linkDrag?.hit?.id === n.id ? linkDrag.hit.state : null}
                 onField={(f, v) => patch(n.id, { [f]: v })}
                 onGenerate={() => generateNode(n.id)}
-                onLink={() => handleLink(n.id)}
+                onUnlink={(tid) => unlinkNodes(n.id, tid)}
+                onTagHover={(tid) => (tid ? hoverLine(linkKey(n.id, tid)) : scheduleHoverClear())}
                 onDelete={() => deleteNode(n.id)}
-                onToggleShare={() => setShareId((s) => (s === n.id ? null : n.id))}
                 onCopy={() => copyNode(n)}
                 onVariant={(i) => {
                   patch(n.id, { activeIdx: i });

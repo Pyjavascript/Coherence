@@ -1654,8 +1654,6 @@ body {
   border-radius: var(--r);
   transform: translateX(-50%);
   isolation: isolate;
-  max-height: 70px;
-  scale:0.95;
 }
 
 .ws-switch-thumb {
@@ -1672,7 +1670,9 @@ body {
 }
 
 .ws-switch-btn {
-  min-height: clamp(40px, 3.8vw, 56px);
+  /* Same height as the toolbar's Generate button, at every size. */
+  height: var(--tb-h);
+  min-height: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2007,7 +2007,7 @@ body {
 
 #root .app .ncard-headline {
   color: var(--shell-ink);
-  font-family: "Playfair Display", Georgia, "Times New Roman", serif !important;
+  font-family: "Times New Roman", Times, serif !important;
   font-size: clamp(17px, 1.6vw, 24px);
   font-style: italic;
   font-weight: 700;
@@ -2294,6 +2294,8 @@ body {
 .sn-joint::after { bottom: -4px; }
 
 .ws-view-nodes .sn-node {
+  /* flow-root keeps the output box's bottom margin inside the card. */
+  display: flow-root;
   position: relative;
   z-index: 1;
   color: var(--shell-ink);
@@ -2368,13 +2370,6 @@ body {
   outline: 2px solid #c9d3ff;
 }
 
-.sn-done {
-  width: 8px;
-  height: 8px;
-  flex: none;
-  border-radius: var(--r);
-  background: #07b67c;
-}
 
 .sn-head-actions {
   display: flex;
@@ -2610,8 +2605,21 @@ body {
   height: 20px;
 }
 
-.sn-round:hover {
+.sn-round:hover:not(:disabled) {
   background: var(--shell-tint-2);
+}
+
+.sn-round:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* Copied: same blue as the Generate button. */
+.sn-round.is-copied,
+.sn-mini.is-copied,
+.sn-mini.is-copied:hover {
+  color: #fff;
+  background: var(--shell-blue);
 }
 
 .sn-round.active {
@@ -2630,13 +2638,15 @@ body {
   border-radius: var(--r);
 }
 
-/* Generated copy sits in a white result box inside the node panel. */
+/* Generated copy sits under the node's fields, in the same tinted box as a
+   Quick Grid card, so it stays visible when the node is minimised. */
 .sn-out {
-  padding: 10px 14px;
+  margin: 0 12px 12px;
+  padding: 16px 18px;
   color: var(--shell-ink);
-  background: #fff;
+  background: var(--shell-tint);
   border-radius: var(--r);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -2653,14 +2663,19 @@ body {
   font-size: 13px;
 }
 
-.sn-out-headline {
+/* Same headline face as the Quick Grid cards (.ncard-headline). */
+#root .app .sn-out-headline {
   color: var(--shell-ink);
-  font-size: 14px;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 22px;
+  font-style: italic;
   font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.005em;
 }
 
 .sn-out-body {
-  margin-top: 6px !important;
+  margin-top: 10px !important;
   color: #3b4170;
   white-space: pre-wrap;
 }
@@ -2700,7 +2715,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 340px;
+  width: 400px; /* NODE_W in NodeStudio.jsx */
   cursor: grab;
   touch-action: none;
   will-change: transform;

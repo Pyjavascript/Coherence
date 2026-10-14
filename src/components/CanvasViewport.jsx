@@ -25,7 +25,8 @@ export default function CanvasViewport({ children }) {
           autoZoom.current = 1;
           return current.zoom === 1 && current.x === 0 && current.y === 0 ? current : { x: 0, y: 0, zoom: 1 };
         }
-        const zoom = clampZoom((el.clientWidth - 24) / 400);
+        // First column: 40px inset + a 400px node (NODE_W) + a little air.
+        const zoom = clampZoom((el.clientWidth - 24) / 460);
         autoZoom.current = zoom;
         return { x: 8, y: 0, zoom };
       });

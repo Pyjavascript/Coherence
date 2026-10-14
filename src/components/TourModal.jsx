@@ -1,5 +1,39 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useDialogBehavior, useOverlayDismiss } from "./Modal";
+import { EASE_OUT, reducedMotion, tokenMs } from "../lib/motion";
+
+// The active dot is wider than the rest. Its size change snaps in layout, so
+// each dot plays from where it was to where it is now (FLIP).
+function useDotFlip(dotsRef, step) {
+  const geom = useRef(null);
+  const measure = () => {
+    geom.current = [...(dotsRef.current?.children || [])].map((b) => ({ x: b.offsetLeft, w: b.offsetWidth }));
+  };
+
+  useLayoutEffect(() => {
+    const dots = [...(dotsRef.current?.children || [])];
+    const old = geom.current;
+    measure();
+    if (!old || reducedMotion()) return;
+    dots.forEach((b, i) => {
+      const was = old[i];
+      const now = geom.current[i];
+      if (!was || !now.w) return;
+      const dx = (was.x + was.w / 2) - (now.x + now.w / 2);
+      const sx = was.w / now.w;
+      if (Math.abs(dx) < 0.5 && Math.abs(sx - 1) < 0.01) return;
+      b.animate(
+        [{ translate: `${dx}px 0`, scale: `${sx} 1` }, { translate: "0 0", scale: "1 1" }],
+        { duration: tokenMs("--pl-d-3", 320), easing: EASE_OUT },
+      );
+    });
+  }, [step]);
+
+  useEffect(() => {
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+}
 
 // Product tour: a centred card with an illustration, copy, step dots and
 // Skip / Continue. Opens by itself on a browser's first visit and from the
@@ -117,17 +151,21 @@ export const TOUR_STEPS = [
 ];
 
 export default function TourModal({ onClose, onSample }) {
-  const [step, setStep] = useState(0);
+  // dir: 1 moving forward, -1 back — the step copy slides in from that side.
+  const [{ step, dir }, setNav] = useState({ step: 0, dir: 1 });
   const titleId = useId();
   const bodyId = useId();
   const primaryRef = useRef(null);
+  const dotsRef = useRef(null);
   const panelRef = useDialogBehavior(onClose, primaryRef);
   const dismiss = useOverlayDismiss(onClose);
   const last = step === TOUR_STEPS.length - 1;
   const { Art } = TOUR_STEPS[step];
+  useDotFlip(dotsRef, step);
 
-  const next = () => (last ? onClose() : setStep((s) => s + 1));
-  const back = () => setStep((s) => Math.max(0, s - 1));
+  const goTo = (to) => setNav((cur) => (to === cur.step ? cur : { step: to, dir: to > cur.step ? 1 : -1 }));
+  const next = () => (last ? onClose() : goTo(step + 1));
+  const back = () => goTo(Math.max(0, step - 1));
 
   useEffect(() => { primaryRef.current?.focus(); }, [step]);
 
@@ -147,7 +185,15 @@ export default function TourModal({ onClose, onSample }) {
 
   return (
     <div className="overlay tour-overlay" {...dismiss}>
-      <section ref={panelRef} className="tour" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={bodyId}>
+      <section
+        ref={panelRef}
+        className="tour"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={bodyId}
+        style={{ "--pl-dir": dir }}
+      >
         <div className="tour-art" key={step} aria-hidden="true">
           <Art />
         </div>
@@ -172,7 +218,7 @@ export default function TourModal({ onClose, onSample }) {
           })}
         </div>
 
-        <div className="tour-dots" role="group" aria-label="Tour steps">
+        <div className="tour-dots" role="group" aria-label="Tour steps" ref={dotsRef}>
           {TOUR_STEPS.map((s, i) => (
             <button
               key={s.title}
@@ -180,7 +226,7 @@ export default function TourModal({ onClose, onSample }) {
               className={i === step ? "is-on" : ""}
               aria-label={`Step ${i + 1} of ${TOUR_STEPS.length}: ${s.title}`}
               aria-current={i === step ? "step" : undefined}
-              onClick={() => setStep(i)}
+              onClick={() => goTo(i)}
             />
           ))}
         </div>

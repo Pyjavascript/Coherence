@@ -295,12 +295,14 @@ Rules:
 After this, keep following the brief for anything else I ask you to write.`;
 }
 
+// With no requirement, the hook is written from the brand's own message.
 export function buildHookPrompt(ctx, requirement) {
   const c = clean(ctx);
+  const brief = String(requirement || "").trim() || c.message || c.belief || `the brand ${c.name || "itself"}`;
   return `You are a copywriter who writes hooks: one short, catchy line that stops someone scrolling and makes them want to know more.
 
 The user's brief — this is what the hook is about:
-${requirement}
+${brief}
 
 Voice guidance (background only — shape the tone with it, never quote or mention it):
 Brand name: ${c.name || "(not set)"}

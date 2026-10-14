@@ -162,15 +162,19 @@ export async function getGenerations(brandId, limit = 40) {
 
 // The signed-in user's charged AI calls since `since` (Date), oldest first.
 // The generate Edge Function writes one usage_events row per credit, with
-// kind = the generation type ("quick-grid", "regenerate", "node", "hook", ...).
+// kind = the generation type ("quick-grid", "regenerate", "node", "hook", ...)
+// and source = where it was spent ("web" or "figma").
 export async function getUsageActivity(userId, since) {
-  const { data, error } = await requireSupabase()
+  const query = (columns) => requireSupabase()
     .from("usage_events")
-    .select("kind,created_at")
+    .select(columns)
     .eq("user_id", userId)
     .gte("created_at", since.toISOString())
     .order("created_at", { ascending: true })
     .limit(2000);
+  let { data, error } = await query("kind,source,created_at");
+  // Before the usage_events.source migration runs, every credit reads as web.
+  if (error && /source/i.test(error.message || "")) ({ data, error } = await query("kind,created_at"));
   if (error) throw error;
   return data || [];
 }

@@ -3,6 +3,7 @@ import { Skeleton } from "./OutputCard";
 import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { timeUntilReset } from "../lib/hookQuota";
 import { describeError } from "../services/ai";
+import { EASE_OUT, reducedMotion } from "../lib/motion";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -55,6 +56,39 @@ export function useDialogBehavior(onClose, focusRef) {
       if (opener instanceof HTMLElement && document.contains(opener)) opener.focus();
     };
   }, [focusRef]);
+
+  // Dialogs size to their content, and CSS can't tween between two
+  // `height: auto` values: when the height changes (e.g. a hook result lands),
+  // play the old height to the new one.
+  useEffect(() => {
+    const shell = panelRef.current;
+    if (!shell?.animate || typeof ResizeObserver === "undefined") return undefined;
+    const born = performance.now();
+    let last = null;
+    let anim = null;
+    const ro = new ResizeObserver(() => {
+      if (anim) return; // ignore the sizes our own animation produces
+      const h = shell.offsetHeight; // layout height, free of the entrance scale
+      // A section already sliding open (grid-template-rows transition) animates
+      // the height itself; tweening on top of it would fight it.
+      const sliding = shell.getAnimations?.({ subtree: true }).some((a) => a.transitionProperty === "grid-template-rows");
+      if (sliding) {
+        last = h;
+        return;
+      }
+      // Don't tween while the dialog is still entering, or for sub-pixel jitter.
+      if (last === null || performance.now() - born < 500 || Math.abs(h - last) < 2 || reducedMotion()) {
+        last = h;
+        return;
+      }
+      const from = last;
+      last = h;
+      anim = shell.animate([{ height: `${from}px` }, { height: `${h}px` }], { duration: 320, easing: EASE_OUT });
+      anim.onfinish = anim.oncancel = () => { anim = null; last = shell.offsetHeight; };
+    });
+    ro.observe(shell);
+    return () => ro.disconnect();
+  }, []);
 
   return panelRef;
 }
@@ -212,64 +246,65 @@ export function CoherenceModal({ text, onCopy, onClose }) {
   );
 }
 
+// Opening the dialog generates the hook straight from the brand (no brief to
+// write); the only action is Copy.
 export function HookModal({ aiAvailable, quota, onGenerate, onUsed, onCopy, onClose }) {
-  const [input, setInput] = useState("");
   const usedUp = Boolean(quota) && quota.left <= 0;
+  const usedUpText = () => `You've used today's free hook. The next one unlocks in ${timeUntilReset()}.`;
   const [out, setOut] = useState(() => (usedUp
-    ? { state: "msg", text: `You've used today's free hook. The next one unlocks in ${timeUntilReset()}.` }
-    : { state: "idle", text: "" }));
+    ? { state: "msg", text: usedUpText() }
+    : !aiAvailable
+      ? { state: "msg", text: "AI generation isn't available here." }
+      : { state: "loading", text: "" }));
   const [copied, flashCopied] = useCopyFeedback();
+  // One request per opening, even when StrictMode runs the effect twice.
+  const started = useRef(false);
+  const mounted = useRef(true);
 
-  const run = async () => {
-    const req = input.trim();
-    if (usedUp) return setOut({ state: "msg", text: `You've used today's free hook. The next one unlocks in ${timeUntilReset()}.` });
-    if (!req) return setOut({ state: "msg", text: "Describe what the hook is for first." });
-    if (!aiAvailable) return setOut({ state: "msg", text: "AI generation isn't available here." });
-    setOut({ state: "loading", text: "" });
-    try {
-      setOut({ state: "ready", text: await onGenerate(req) });
-      onUsed?.();
-    } catch (e) {
-      if (e?.code === "hook_limit") {
-        onUsed?.();
-        return setOut({ state: "msg", text: `You've used today's free hook. The next one unlocks in ${timeUntilReset()}.` });
-      }
-      if (e?.code === "limit_reached") return setOut({ state: "msg", text: describeError(e) });
-      setOut({ state: "msg", text: "Couldn't generate — try again." });
+  useEffect(() => {
+    mounted.current = true;
+    if (!started.current && out.state === "loading") {
+      started.current = true;
+      (async () => {
+        let next;
+        try {
+          next = { state: "ready", text: await onGenerate() };
+          onUsed?.();
+        } catch (e) {
+          if (e?.code === "hook_limit") onUsed?.();
+          next = {
+            state: "msg",
+            text: e?.code === "hook_limit" ? usedUpText()
+              : e?.code === "limit_reached" ? describeError(e)
+              : "Couldn't generate a hook. Close and try again.",
+          };
+        }
+        if (mounted.current) setOut(next);
+      })();
     }
-  };
+    return () => { mounted.current = false; };
+  }, []); // on open only
 
   const copyHook = async () => {
-    if (await onCopy(out.state === "ready" ? out.text : "")) flashCopied();
+    if (out.state === "ready" && await onCopy(out.text)) flashCopied();
   };
 
   return (
     <Modal title="Hook Generator" onClose={onClose} modalClassName="hook-modal">
       <div className="hook-modal-content">
-        <p className="hook-description">Describe the moment. Get a brand-aligned hook.</p>
+        <p className="hook-description">A brand-aligned hook, written from your brand's message.</p>
         <div className="hook-panel">
-          <label className="hook-label" htmlFor="hook-brief">What should this hook be about?</label>
-          <textarea
-            id="hook-brief"
-            className="hook-brief"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Describe the moment, audience, or idea…"
-          />
-          <button className="hook-generate" type="button" onClick={run} disabled={out.state === "loading" || usedUp}>
-            {out.state === "loading" ? "Generating…" : usedUp ? `Next free hook in ${timeUntilReset()}` : "Generate hook"}
-          </button>
-          <section className="hook-result" aria-live="polite">
+          <section className="hook-result" aria-live="polite" aria-busy={out.state === "loading"}>
             <span className="hook-result-label">Your hook</span>
             {out.state === "loading" && <Skeleton />}
             {out.state === "ready" && <div className="hook-result-text">{out.text}</div>}
             {out.state === "msg" && <div className="hook-result-message">{out.text}</div>}
-            {out.state === "idle" && <div className="hook-result-message">Your generated hook will appear here.</div>}
           </section>
           <button
             className="hook-copy"
             type="button"
             onClick={copyHook}
+            disabled={out.state !== "ready"}
           >
             {copied ? "Copied ✓" : "Copy hook"}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

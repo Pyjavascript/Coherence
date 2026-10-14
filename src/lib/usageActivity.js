@@ -1,11 +1,13 @@
 // Turns usage_events rows (services/brands getUsageActivity) into the Usage
 // dialog's credit-line data. One row = one credit, so the lines always add up
-// to the credits used. Generation types without their own colour show as "other".
+// to the credits used. Credits spent in the Figma plugin show as "figma";
+// generation types without their own colour show as "other".
 export const ACTIVITY_KINDS = [
   { key: "quick", label: "Quick Grid" },
   { key: "node", label: "Node Studio" },
   { key: "regen", label: "Regenerations" },
   { key: "hook", label: "Hooks" },
+  { key: "figma", label: "Figma" },
 ];
 
 const KIND_BY_TYPE = { "quick-grid": "quick", node: "node", regenerate: "regen", hook: "hook" };
@@ -21,4 +23,6 @@ export const creditDayStart = (now = new Date()) => {
 
 export const nextCreditReset = (now = new Date()) => new Date(creditDayStart(now).getTime() + DAY_MS);
 
-export const toKinds = (rows) => (rows || []).map((row) => KIND_BY_TYPE[row.kind] || "other");
+export const toKinds = (rows) => (rows || []).map((row) => (
+  row.source === "figma" ? "figma" : KIND_BY_TYPE[row.kind] || "other"
+));

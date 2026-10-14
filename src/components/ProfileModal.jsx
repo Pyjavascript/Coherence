@@ -49,6 +49,13 @@ const LogoutIcon = () => (
   </svg>
 );
 
+const PencilIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 20h4L18.5 9.5a2.8 2.8 0 0 0-4-4L4 16z" />
+    <path d="m13.5 6.5 4 4" />
+  </svg>
+);
+
 const MailIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="3.5" y="5.5" width="17" height="13" rx="3" />
@@ -273,9 +280,7 @@ function PluginAccess({ userId }) {
           <div className="pa-body">
             <div className="pa-info" role="note">
               <InfoIcon />
-              <p>
-                Your plugin key connects Brand Language OS to your account and credits, Keep it private.
-              </p>
+              <p>This key links Figma to your account. Keep it private.</p>
             </div>
 
             {row || freshKey ? (
@@ -311,15 +316,15 @@ function PluginAccess({ userId }) {
                 </div>
                 <p className={"pa-key-note" + (freshKey ? " is-warn" : "")}>
                   {freshKey
-                    ? "Copy this key now. It won't be shown again."
-                    : "For your security the key is only shown once. Generate a new one if you've lost it."}
+                    ? "Copy it now. It won't be shown again."
+                    : "Shown only once. Lost it? Generate a new one."}
                 </p>
               </div>
             ) : (
               <div className="pa-empty">
                 <span className="pa-empty-icon"><KeyIcon /></span>
-                <strong>You haven't created a plugin key yet</strong>
-                <span>The Figma plugin needs a key to reach your brands.</span>
+                <strong>No plugin key yet</strong>
+                <span>Create one to use your brands in Figma.</span>
               </div>
             )}
 
@@ -337,9 +342,9 @@ function PluginAccess({ userId }) {
             </div>
 
             <ol className="pa-steps" aria-label="Connect the plugin">
-              <li><span>Copy your plugin key.</span></li>
-              <li><span>In Figma, open <b>Plugins › Brand Language OS › Set API key</b>.</span></li>
-              <li><span>Paste the key and save. You're connected.</span></li>
+              <li><span>Copy your key.</span></li>
+              <li><span>In Figma: <b>Plugins › Brand Language OS › Set API key</b>.</span></li>
+              <li><span>Paste and save.</span></li>
             </ol>
           </div>
         </div>
@@ -357,13 +362,17 @@ export default function ProfileModal({ user, onClose, onLogout, onSaved, onDelet
   const [lastName, setLastName] = useState(initial.lastName);
   const [avatar, setAvatar] = useState(initial.avatar);
   const [step, setStep] = useState("edit"); // "edit" | "delete"
+  const [editing, setEditing] = useState(false); // name + email fields shown
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const titleId = useId();
+  const editId = useId();
+  const editRef = useRef(null);
   const deleteTitleId = useId();
   const deleteBodyId = useId();
   const fileRef = useRef(null);
+  const firstNameRef = useRef(null);
   const keepRef = useRef(null);
   const deleteRef = useRef(null);
 
@@ -390,6 +399,25 @@ export default function ProfileModal({ user, onClose, onLogout, onSaved, onDelet
     || avatar !== initial.avatar;
 
   const pickPhoto = () => fileRef.current?.click();
+
+  // Cancel puts the saved values back and tucks the fields away, without
+  // closing the dialog.
+  const revert = () => {
+    setFirstName(initial.firstName);
+    setLastName(initial.lastName);
+    setAvatar(initial.avatar);
+    setError("");
+    setEditing(false);
+    editRef.current?.focus({ preventScroll: true });
+  };
+
+  // Opening the editor puts the cursor in the first name field.
+  const shownEditing = useRef(editing);
+  useEffect(() => {
+    if (shownEditing.current === editing) return;
+    shownEditing.current = editing;
+    if (editing) firstNameRef.current?.focus({ preventScroll: true });
+  }, [editing]);
 
   const onPhoto = async (event) => {
     const file = event.target.files?.[0];
@@ -448,7 +476,7 @@ export default function ProfileModal({ user, onClose, onLogout, onSaved, onDelet
             <h2 id={deleteTitleId} className="confirm-title">Delete your account?</h2>
             <div id={deleteBodyId} className="confirm-text">
               <p className="confirm-body">
-                All saved brands, research notes, and generation history associated with <b>{user.email}</b> will be permanently deleted.
+                All brands, notes and history for <b>{user.email}</b> will be deleted.
               </p>
               <p className="confirm-note">This can't be undone.</p>
             </div>
@@ -474,9 +502,16 @@ export default function ProfileModal({ user, onClose, onLogout, onSaved, onDelet
                 <span className="profile-photo-badge"><CameraIcon /></span>
               </button>
               <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPhoto} />
-              <button type="button" className="profile-pill" onClick={onLogout}>
-                <LogoutIcon />
-                Log out
+              <button
+                type="button"
+                ref={editRef}
+                className={"profile-pill profile-edit-btn" + (editing ? " is-on" : "")}
+                aria-expanded={editing}
+                aria-controls={editId}
+                onClick={() => setEditing((open) => !open)}
+              >
+                <PencilIcon />
+                Edit profile
               </button>
             </div>
 
@@ -485,11 +520,15 @@ export default function ProfileModal({ user, onClose, onLogout, onSaved, onDelet
               <p title={user.email}>{user.email}</p>
             </div>
 
+            {/* Name + email stay tucked away until Edit profile slides them open. */}
+            <div id={editId} className="profile-edit" data-open={editing} inert={editing ? undefined : ""}>
+            <div className="profile-edit-inner">
             <div className="profile-rows">
               <div className="profile-row" role="group" aria-labelledby={`${titleId}-name`}>
                 <span className="profile-row-label" id={`${titleId}-name`}>Name</span>
                 <div className="profile-name-fields">
                   <input
+                    ref={firstNameRef}
                     className="profile-input"
                     aria-label="First name"
                     placeholder="First name"
@@ -511,30 +550,62 @@ export default function ProfileModal({ user, onClose, onLogout, onSaved, onDelet
               </div>
 
               <div className="profile-row">
-                <label className="profile-row-label" htmlFor={`${titleId}-email`}>Email address</label>
+                <label className="profile-row-label" htmlFor={`${titleId}-email`}>Email</label>
                 <div className="profile-input-icon">
                   <MailIcon />
-                  <input id={`${titleId}-email`} className="profile-input" type="email" value={user.email || ""} readOnly />
+                  <input
+                    id={`${titleId}-email`}
+                    className="profile-input"
+                    type="email"
+                    value={user.email || ""}
+                    readOnly
+                    title="Used to sign in. Can't be changed."
+                  />
                 </div>
               </div>
+            </div>
+            </div>
             </div>
 
             <PluginAccess userId={user.id} />
 
             {error && <p className="auth-error profile-error" role="alert">{error}</p>}
 
-            <div className="profile-actions">
-              <button type="button" ref={deleteRef} className="profile-delete" onClick={() => setStep("delete")} disabled={busy}>
-                <TrashIcon />
-                Delete account
-              </button>
-              <div className="profile-actions-end">
-                <button type="button" className="profile-cancel" onClick={onClose} disabled={busy}>Cancel</button>
-                <button type="submit" className="profile-save" disabled={busy || !dirty}>
-                  {busy ? "Saving…" : "Save changes"}
+            {/* Account actions: copy left, button right. */}
+            <div className="pl-acct-rows">
+              <div className="pl-acct-row">
+                <div className="pl-acct-copy">
+                  <strong>Log out</strong>
+                  <p>Sign out on this device.</p>
+                </div>
+                <button type="button" className="profile-pill" onClick={onLogout}>
+                  <LogoutIcon />
+                  Log out
+                </button>
+              </div>
+              <div className="pl-acct-row">
+                <div className="pl-acct-copy">
+                  <strong>Delete account</strong>
+                  <p>Erase your account and all its data.</p>
+                </div>
+                <button type="button" ref={deleteRef} className="profile-delete" onClick={() => setStep("delete")} disabled={busy}>
+                  <TrashIcon />
+                  Delete account
                 </button>
               </div>
             </div>
+
+            {/* Cancel / Save only while there's something to save. */}
+            {(dirty || busy) && (
+              <div className="profile-actions">
+                <div className="profile-actions-end">
+                  <button type="button" className="profile-cancel" onClick={revert} disabled={busy}>Cancel</button>
+                  <button type="submit" className="profile-save" disabled={busy || !dirty}>
+                    {busy ? "Saving…" : "Save changes"}
+                  </button>
+                </div>
+              </div>
+            )}
           </form>
         )}
       </section>

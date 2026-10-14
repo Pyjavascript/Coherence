@@ -147,11 +147,10 @@ export default function BrandPanel({
   researchCount, isSaved, dirty, saving, focusRequest, hookQuota,
   onSave, onDelete, onResearch, onCoherence, onHook, onHistory, onStatus, onClose,
 }) {
-  // Style & Output and Advanced Behaviour are Premium sections and start collapsed.
-  const [styleOpen, setStyleOpen] = useState(false);
+  // Advanced Behaviour (including the style pack) is Premium and starts collapsed.
   const [advOpen, setAdvOpen] = useState(false);
   const [messageFlagged, setMessageFlagged] = useState(false);
-  const [upsell, setUpsell] = useState(null); // { name, where: "style" | "advanced" }
+  const [upsell, setUpsell] = useState(null); // { name, where: "advanced" }
   const fileInputRef = useRef(null);
   const bind = (k) => ({ value: brand[k] ?? "", onChange: (e) => onField(k, e.target.value) });
   const opts = (list) => list.map((option) => ({ value: option, label: option }));
@@ -194,13 +193,6 @@ export default function BrandPanel({
       onStatus?.("That file couldn't be read as an image. Try a PNG, JPG or SVG.", "err");
     }
   };
-
-  const pickStyle = (value) => {
-    if (value !== "classic" && !premium) return setUpsell({ name: STYLE_PACKS[value]?.label || "This style pack", where: "style" });
-    setUpsell(null);
-    onStylePack(value);
-  };
-
 
   // Gold Premium callout shown in the card the user just tried to use.
   const renderUpsell = (where, note, detail) => (upsell?.where === where ? (
@@ -245,10 +237,11 @@ export default function BrandPanel({
             onHistory();
           }}
         >
+          {/* A list of past entries with a clock: a log of what was generated. */}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" />
-            <path d="M3.5 4.5V8H7" />
-            <path d="M12 7.5V12l3 2" />
+            <path d="M4 5.5h14M4 10.5h6.5M4 15.5h4.5" />
+            <circle cx="16.5" cy="16" r="5" />
+            <path d="M16.5 13.6V16l1.6 1.1" />
           </svg>
         </button>
         <button type="button" aria-label="Collapse brand panel" title="Collapse" onClick={onClose}>
@@ -355,45 +348,6 @@ export default function BrandPanel({
         </div>
       </section>
 
-      <section className="bp-section bp-section-premium bp-advanced-section bp-style-section">
-        <button
-          type="button"
-          className="bp-section-toggle"
-          aria-expanded={styleOpen}
-          aria-controls="bp-style"
-          onClick={() => setStyleOpen((isOpen) => !isOpen)}
-        >
-          <span className="bp-toggle-label">
-            <LockIcon className="bp-toggle-lock" />
-            <span className="bp-section-title">Style &amp; Output</span>
-          </span>
-          <span className="bp-chevron-slot" aria-hidden="true">
-            <svg className={"bp-section-chevron" + (styleOpen ? " open" : "")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </span>
-        </button>
-        {styleOpen && (
-        <div className="bp-card bp-card-cream" id="bp-style">
-          <div className="bp-field">
-            <span className="bp-label">Style Pack</span>
-            <BrandSelect
-              label="Style pack"
-              premium
-              value={stylePack}
-              onChange={pickStyle}
-              options={Object.entries(STYLE_PACKS).map(([value, pack]) => ({ value, label: pack.label, locked: !premium && value !== "classic" }))}
-            />
-          </div>
-          {renderUpsell(
-            "style",
-            "Style packs are Premium.",
-            "Premium unlocks every style pack.",
-          )}
-        </div>
-        )}
-      </section>
-
       <section className="bp-section bp-section-premium bp-advanced-section">
         <button
           type="button"
@@ -468,12 +422,22 @@ export default function BrandPanel({
                 <BrandSelect label="Output language" locked={advLocked} onLocked={lockAdvanced} value={brand.language || "English"} onChange={(value) => onField("language", value)} options={opts(LANGUAGES)} />
               </div>
             </div>
+            <div className="bp-field">
+              <span className="bp-label">Style Pack</span>
+              <BrandSelect
+                label="Style pack"
+                locked={advLocked}
+                onLocked={lockAdvanced}
+                value={stylePack}
+                onChange={onStylePack}
+                options={Object.entries(STYLE_PACKS).map(([value, pack]) => ({ value, label: pack.label }))}
+              />
+            </div>
             {renderUpsell(
               "advanced",
               "Advanced behaviour is Premium.",
-              "Premium unlocks location, output language, pain points, emotions, objections, CTA intensity, avoid words and research notes.",
+              "Premium unlocks style packs, location, output language, pain points, emotions, objections, CTA intensity, avoid words and research notes.",
             )}
-           
           </div>
         )}
       </section>

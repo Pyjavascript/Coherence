@@ -539,8 +539,22 @@ svg {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #3a5bff, var(--accent));
+  /* Figma's logo colours, left to right. */
+  background: linear-gradient(90deg, #f24e1e, #ff7262 25%, #a259ff 50%, #1abcfe 75%, #0acf83);
   transition: width 500ms var(--ease);
+}
+.footer-note {
+  grid-column: 1 / -1;
+  margin: -2px 0 0;
+  font-size: 10px;
+  color: var(--muted);
+}
+.figma-word {
+  font-weight: 700;
+  background: linear-gradient(90deg, #f24e1e, #a259ff 50%, #1abcfe);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .meter.is-full .meter-track span {
   background: var(--warn);

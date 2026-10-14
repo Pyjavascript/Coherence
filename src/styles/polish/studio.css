@@ -1,0 +1,187 @@
+/* ==========================================================================
+   Coherence polish — Node Studio + Quick Grid <-> Node Studio mode switch
+   Owned by the studio agent. Additive only: transform / translate / scale,
+   opacity, box-shadow, filter, stroke-dashoffset. The canvas transform
+   (.canvas-world) and the app's .cn drag transform are never touched.
+   ========================================================================== */
+
+/* ---------- Segmented mode switch (.ws-switch) ------------------------- */
+/* The app already slides .ws-switch-thumb via transform: translate(var(--i)).
+   Give it a soft spring; clip the overshoot inside the pill. */
+.ws-switch { overflow: clip; }
+.ws-switch-thumb {
+  transition: transform var(--pl-d-3) var(--pl-ease-soft-spring);
+}
+.ws-switch-btn {
+  transition:
+    color var(--pl-d-2) var(--pl-ease-out),
+    background-color var(--pl-d-2) var(--pl-ease-out),
+    scale var(--pl-d-1) var(--pl-ease-out);
+}
+.ws-switch-btn:active { scale: var(--pl-press-scale); }
+
+/* ---------- Mode change: crossfade + slight scale ----------------------- */
+.ws-view {
+  scale: .985;
+  transition:
+    opacity var(--pl-d-2) var(--pl-ease-out),
+    transform var(--pl-d-3) var(--pl-ease-out),
+    scale var(--pl-d-3) var(--pl-ease-out),
+    visibility 0s linear var(--pl-d-3);
+}
+.ws-view[data-active=true] {
+  scale: none;
+  transition:
+    opacity var(--pl-d-3) var(--pl-ease-out) 60ms,
+    transform var(--pl-d-3) var(--pl-ease-out) 60ms,
+    scale var(--pl-d-3) var(--pl-ease-out) 60ms,
+    visibility 0s;
+}
+
+/* Entering the studio: node cards cascade in (NodeStudio sets the attribute
+   for one pass and an index --pl-i per .cn). Uses the independent `translate`
+   property so the app's inline drag transform is untouched. */
+@keyframes studio-pl-cn-in {
+  from { opacity: 0; translate: 0 var(--pl-rise); }
+  to   { opacity: 1; translate: none; }
+}
+.studio[data-pl-studio-enter] .cn {
+  animation: studio-pl-cn-in var(--pl-d-4) var(--pl-ease-out) backwards;
+  animation-delay: calc(80ms + var(--pl-i, 0) * var(--pl-stagger));
+}
+
+/* ---------- Nodes ------------------------------------------------------- */
+.ws-view-nodes .sn-node {
+  transition:
+    outline-color var(--pl-d-2) var(--pl-ease-out),
+    background-color var(--pl-d-2) var(--pl-ease-out),
+    color var(--pl-d-2) var(--pl-ease-out),
+    box-shadow var(--pl-d-2) var(--pl-ease-out),
+    translate var(--pl-d-2) var(--pl-ease-out),
+    scale var(--pl-d-2) var(--pl-ease-out);
+}
+/* Mount pop: same name/feel as the app's studio-node-in, slightly softer
+   curve + scale; overrides only the timing so the keyframes stay app-owned. */
+@keyframes studio-pl-node-in {
+  from { opacity: 0; transform: translateY(var(--pl-rise)) scale(var(--pl-pop-from)); }
+  to   { opacity: 1; transform: none; }
+}
+.ws-view-nodes .sn-node {
+  animation: studio-pl-node-in var(--pl-d-3) var(--pl-ease-out) backwards;
+}
+.ws-view-nodes .sn-node.is-leaving {
+  animation: studio-node-out var(--pl-d-2) var(--pl-ease-in) both;
+}
+/* The app flattens everything with `#root * { box-shadow: none !important }`.
+   Elevation is shown only for interaction states, so the resting look stays flat. */
+#root .ws-view-nodes .sn-node:hover { box-shadow: var(--pl-shadow-2) !important; }
+/* While the app drags a card (.cn.dragging is set after its 4px threshold) */
+.ws-view-nodes .cn.dragging .sn-node {
+  scale: 1.01;
+  translate: 0 var(--pl-lift);
+}
+#root .ws-view-nodes .cn.dragging .sn-node { box-shadow: var(--pl-shadow-3) !important; }
+
+/* Linking (the app's "selected" state): a soft halo snaps in behind the
+   existing outline. Pseudo-element only — no DOM changes. */
+.ws-view-nodes .sn-node::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--pl-d-2) var(--pl-ease-out);
+}
+#root .ws-view-nodes .sn-node::after { box-shadow: var(--pl-glow-accent) !important; }
+@keyframes studio-pl-ring-in {
+  from { opacity: 0; scale: 1.04; }
+  to   { opacity: 1; scale: none; }
+}
+.ws-view-nodes .sn-node.linking::after {
+  opacity: 1;
+  animation: studio-pl-ring-in var(--pl-d-3) var(--pl-ease-spring) backwards;
+}
+
+/* Fields rise in when a node opens (and on first mount when open) */
+.sn-collapse[data-open=true] .sn-body > * {
+  animation: pl-rise-in var(--pl-d-3) var(--pl-ease-out) backwards;
+}
+.sn-collapse[data-open=true] .sn-body > :nth-child(1) { animation-delay: calc(var(--pl-stagger) * 1); }
+.sn-collapse[data-open=true] .sn-body > :nth-child(2) { animation-delay: calc(var(--pl-stagger) * 2); }
+.sn-collapse[data-open=true] .sn-body > :nth-child(3) { animation-delay: calc(var(--pl-stagger) * 3); }
+.sn-collapse[data-open=true] .sn-body > :nth-child(4) { animation-delay: calc(var(--pl-stagger) * 4); }
+.sn-collapse[data-open=true] .sn-body > :nth-child(5) { animation-delay: calc(var(--pl-stagger) * 5); }
+.sn-collapse[data-open=true] .sn-body > :nth-child(n+6) { animation-delay: calc(var(--pl-stagger) * 6); }
+
+/* Node controls: press feedback + consistent timing */
+.sn-gen, .sn-round, .sn-mini, .sn-toggle {
+  transition:
+    background-color var(--pl-d-1) var(--pl-ease-out),
+    color var(--pl-d-1) var(--pl-ease-out),
+    opacity var(--pl-d-1) var(--pl-ease-out),
+    box-shadow var(--pl-d-2) var(--pl-ease-out),
+    scale var(--pl-d-1) var(--pl-ease-out);
+}
+#root .sn-gen:hover:not(:disabled) { box-shadow: var(--pl-glow-accent) !important; }
+.sn-gen:active:not(:disabled),
+.sn-round:active,
+.sn-mini:active,
+.sn-toggle:active { scale: var(--pl-press-scale); }
+.sn-head-actions { transition: opacity var(--pl-d-2) var(--pl-ease-out); }
+.sn-field input, .sn-field textarea, .sn-field select {
+  transition: box-shadow var(--pl-d-2) var(--pl-ease-out), background-color var(--pl-d-2) var(--pl-ease-out);
+}
+#root .sn-field input:hover, #root .sn-field textarea:hover, #root .sn-field select:hover { box-shadow: var(--pl-shadow-0) !important; }
+
+/* "+" add buttons: elevation on hover only (app keeps its scale behaviour) */
+.sn-add { transition: var(--hover-transition), box-shadow var(--pl-d-2) var(--pl-ease-out), transform var(--pl-d-1) var(--pl-ease-out), scale var(--pl-d-2) var(--pl-ease-out); }
+#root .sn-add:hover { box-shadow: var(--pl-shadow-2) !important; }
+
+/* ---------- Connectors -------------------------------------------------- */
+/* NodeStudio sets pathLength="1" + data-pl-draw on new / re-entered paths */
+@keyframes studio-pl-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes studio-pl-dot-in { from { opacity: 0; scale: 0; } to { opacity: 1; scale: none; } }
+.ws-view-nodes .nodesvg path[data-pl-draw] {
+  stroke-dasharray: 1 1;
+  animation: studio-pl-draw var(--pl-d-4) var(--pl-ease-inout) backwards;
+  animation-delay: var(--pl-draw-delay, 0ms);
+}
+.ws-view-nodes .nodesvg circle[data-pl-draw] {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: studio-pl-dot-in var(--pl-d-3) var(--pl-ease-spring) backwards;
+  animation-delay: var(--pl-draw-delay, 0ms);
+}
+
+/* ---------- Add-node menu (top bar "Add node" dropdown) ----------------- */
+.toolbar-node-menu button {
+  animation: pl-rise-in var(--pl-d-3) var(--pl-ease-out) backwards;
+}
+.toolbar-node-menu button:nth-child(2) { animation-delay: calc(var(--pl-stagger) * 1); }
+.toolbar-node-menu button:nth-child(3) { animation-delay: calc(var(--pl-stagger) * 2); }
+.toolbar-node-menu button:nth-child(4) { animation-delay: calc(var(--pl-stagger) * 3); }
+.toolbar-node-menu button:nth-child(5) { animation-delay: calc(var(--pl-stagger) * 4); }
+.toolbar-node-menu button:nth-child(n+6) { animation-delay: calc(var(--pl-stagger) * 5); }
+
+/* ---------- Zoom controls ---------------------------------------------- */
+/* Size left at the app's 30px: the "?" launcher is offset by a fixed 132px
+   from this pill, so growing it would crowd the launcher. */
+.canvas-controls button {
+  transition:
+    background-color var(--pl-d-1) var(--pl-ease-out),
+    color var(--pl-d-1) var(--pl-ease-out),
+    scale var(--pl-d-1) var(--pl-ease-out);
+}
+.canvas-controls button:active { scale: var(--pl-press-scale-sm); }
+
+/* ---------- "?" tour launcher on the stage ----------------------------- */
+.tour-launch {
+  transition:
+    background-color var(--pl-d-2) var(--pl-ease-out),
+    color var(--pl-d-2) var(--pl-ease-out),
+    box-shadow var(--pl-d-2) var(--pl-ease-out),
+    transform var(--pl-d-1) var(--pl-ease-out);
+}
+#root .tour-launch:hover { box-shadow: var(--pl-shadow-2) !important; }
+.tour-launch:active { transform: scale(var(--pl-press-scale)); }

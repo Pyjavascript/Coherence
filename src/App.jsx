@@ -442,7 +442,6 @@ export default function App() {
           userId={user.id}
           usage={usage}
           plan={premium ? "Premium" : "Free"}
-          hookQuota={premium ? null : hookQuota}
           tier={tier}
           onTier={setTier}
           onClose={() => setShowUsage(false)}
@@ -479,7 +478,7 @@ export default function App() {
         <HookModal
           aiAvailable={aiAvailable}
           quota={premium ? null : hookQuota}
-          onGenerate={(requirement) => generateHook({ ctx, requirement, tier })}
+          onGenerate={() => generateHook({ ctx, tier })}
           onUsed={refreshUsage}
           onCopy={(t) => copy(t, "Hook copied.")}
           onClose={() => setModal(null)}

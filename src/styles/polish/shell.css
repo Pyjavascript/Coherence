@@ -281,27 +281,32 @@ html body .rsb .bp-section-chevron.open { transform: rotate(180deg); }
 /* ==========================================================================
    TOUR
    ========================================================================== */
-/* art: keep the app's tour-pop entrance, then each chip drifts on its own loop */
-.tour-art > :is(.tour-chip, .tour-pill) {
+/* art: keep the app's tour-pop entrance, then every piece floats on its own
+   loop (its own speed, drift and tilt), so the scene never moves in lockstep.
+   translate / rotate compose with the inline positioning transforms. */
+@keyframes tour-float {
+  0%, 100% { translate: 0 0; rotate: 0deg; }
+  50% { translate: var(--pl-fx, 0px) var(--pl-fy, -6px); rotate: var(--pl-fr, 0deg); }
+}
+@keyframes tour-dash { to { stroke-dashoffset: -16; } }
+
+.tour-art > :not(.tour-links) {
   animation:
     tour-pop var(--pl-d-4) var(--pl-ease-out) var(--d, 0ms) both,
-    pl-sh-float calc(var(--pl-d-loop) * var(--pl-fk, 1)) var(--pl-ease-inout) calc(var(--d, 0ms) + var(--pl-d-4)) infinite;
+    tour-float calc(3600ms * var(--pl-fk, 1)) var(--pl-ease-inout) calc(var(--d, 0ms) + var(--pl-d-4)) infinite;
 }
-.tour-art > .tour-card {
-  --pl-fy: -2px;
-  animation:
-    tour-pop var(--pl-d-4) var(--pl-ease-out) var(--d, 0ms) both,
-    pl-sh-float calc(var(--pl-d-loop) * 1.6) var(--pl-ease-inout) calc(var(--d, 0ms) + var(--pl-d-4)) infinite;
-}
-.tour-art > :nth-child(1) { --pl-fk: 1.05; --pl-fx: 1px;  --pl-fy: -4px; }
-.tour-art > :nth-child(2) { --pl-fk: 1.3;  --pl-fx: -1px; --pl-fy: -3px; }
-.tour-art > :nth-child(3) { --pl-fk: 1.15; --pl-fx: 1px;  --pl-fy: 3px; }
-.tour-art > :nth-child(4) { --pl-fk: 1.4;  --pl-fx: -2px; --pl-fy: -3px; }
-.tour-art > :nth-child(5) { --pl-fk: 0.95; --pl-fx: 0px;  --pl-fy: 4px; }
-.tour-art > :nth-child(n+6) { --pl-fk: 1.2; --pl-fx: 1px;  --pl-fy: -3px; }
-.tour-art > :is(:not(.tour-chip, .tour-pill, .tour-card)) {
-  animation: tour-pop var(--pl-d-4) var(--pl-ease-out) var(--d, 0ms) both;
-}
+.tour-art > :nth-child(1) { --pl-fk: 1.05; --pl-fx: 2px;  --pl-fy: -7px; --pl-fr: -1.5deg; }
+.tour-art > :nth-child(2) { --pl-fk: 1.3;  --pl-fx: -3px; --pl-fy: -6px; --pl-fr: 1.5deg; }
+.tour-art > :nth-child(3) { --pl-fk: 1.15; --pl-fx: 2px;  --pl-fy: 6px;  --pl-fr: -1deg; }
+.tour-art > :nth-child(4) { --pl-fk: 1.4;  --pl-fx: -3px; --pl-fy: -7px; --pl-fr: 1deg; }
+.tour-art > :nth-child(5) { --pl-fk: 0.95; --pl-fx: 1px;  --pl-fy: 7px;  --pl-fr: -1.5deg; }
+.tour-art > :nth-child(n+6) { --pl-fk: 1.2; --pl-fx: 2px;  --pl-fy: -6px; --pl-fr: 1deg; }
+/* Big pieces (cards, grids, the Figma tile) drift slower and tilt less. */
+.tour-art > :is(.tour-card, .tour-grid, .tour-figma) { --pl-fk: 1.5; --pl-fx: 0px; --pl-fy: -5px; --pl-fr: 0.6deg; }
+.tour-art > .tour-figma { --pl-fy: -8px; --pl-fr: 3deg; }
+/* The node links stay put; their dashes flow from one node to the next. */
+.tour-art > .tour-links { animation: tour-pop var(--pl-d-4) var(--pl-ease-out) var(--d, 0ms) both; }
+.tour-links path { animation: tour-dash 1.1s linear infinite; }
 
 /* step copy: directional crossfade (TourModal sets --pl-dir on .tour) */
 .tour-copy {
@@ -347,7 +352,7 @@ html body .rsb .bp-section-chevron.open { transform: rotate(180deg); }
 
 /* ---------- reduced motion: no ambient loops / FLIP ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .tour-art > *, .tour-copy[data-active=true], .overlay, .coherence-overlay,
+  .tour-art > *, .tour-links path, .tour-copy[data-active=true], .overlay, .coherence-overlay,
   .overlay > [role], .rsb[data-pl-enter-rsb] .rsb-scroll > *,
   .lnav .rail-credits-meter::before, .lnav .rail-credits-meter::after { animation: none !important; }
 }

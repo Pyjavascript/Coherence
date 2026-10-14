@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { CloseBar, useDialogBehavior, useOverlayDismiss } from "./Modal";
+import FigmaLogo from "./FigmaLogo";
 import { useAuth } from "../hooks/useAuth";
 import { resizeAvatarFile } from "../lib/image";
 import { requireSupabase } from "../lib/supabase";
@@ -67,17 +68,6 @@ const TrashIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l.8 12.2a1.5 1.5 0 0 0 1.5 1.3h6.4a1.5 1.5 0 0 0 1.5-1.3l.8-12.2" />
     <path d="M10 10.5v6M14 10.5v6" />
-  </svg>
-);
-
-// Figma's mark, so the row reads as "the Figma plugin" at a glance.
-const FigmaLogo = () => (
-  <svg viewBox="0 0 38 57" aria-hidden="true">
-    <path fill="#1abcfe" d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0z" />
-    <path fill="#0acf83" d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0z" />
-    <path fill="#ff7262" d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19z" />
-    <path fill="#f24e1e" d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5z" />
-    <path fill="#a259ff" d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5z" />
   </svg>
 );
 

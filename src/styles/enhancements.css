@@ -1455,6 +1455,22 @@
   background: var(--shell-blue);
 }
 
+/* Figma step: the logo on a white tile. */
+.tour-figma {
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 16px 36px rgba(13, 20, 69, 0.16);
+}
+
+.tour-figma svg {
+  width: 30px;
+  height: 45px;
+}
+
 /* All steps' copy stacks in one cell: the card takes the tallest step's height. */
 .tour-body {
   display: grid;

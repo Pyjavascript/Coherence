@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useDialogBehavior, useOverlayDismiss } from "./Modal";
+import FigmaLogo from "./FigmaLogo";
 import { EASE_OUT, reducedMotion, tokenMs } from "../lib/motion";
 
 // The active dot is wider than the rest. Its size change snaps in layout, so
@@ -122,31 +123,48 @@ const ArtTools = () => (
   </>
 );
 
+const ArtFigma = () => (
+  <>
+    <div className="tour-figma" style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%) rotate(-3deg)" }}>
+      <FigmaLogo />
+    </div>
+    <span className="tour-pill" style={{ left: "6%", top: "14%" }}>Figma plugin</span>
+    <span className="tour-chip" style={{ right: "6%", top: "16%", "--c": "#0ACF83" }}><b />Your brands</span>
+    <div className="tour-node" style={{ left: "6%", bottom: "10%", width: "26%" }}><span>Hero layer</span><Lines n={2} /></div>
+    <span className="tour-pill is-blue" style={{ right: "6%", bottom: "16%" }}>Write into layers</span>
+  </>
+);
+
 export const TOUR_STEPS = [
   {
     title: "Welcome to Coherence",
-    body: "Write your brand's message once and get on-brand copy for packaging, marketing, ads, website and email — all in one go.",
+    body: "Write your brand's message once. Get on-brand copy for every medium.",
     Art: ArtWelcome,
   },
   {
     title: "Start with your brand",
-    body: "Open the brand panel on the right. Give your brand a name and write the one message every medium should carry — tone, audience and style pack are optional extras.",
+    body: "Name your brand and write its message in the panel on the right.",
     Art: ArtBrand,
   },
   {
     title: "Generate every medium at once",
-    body: "Press Generate (or Ctrl + Enter) and the Quick Grid fills with copy for each medium. Edit inline, star your favourite variant, or regenerate a single card.",
+    body: "Press Generate or Ctrl + Enter to fill the Quick Grid in one go.",
     Art: ArtGenerate,
   },
   {
     title: "Build freely in Node Studio",
-    body: "Switch to Node Studio at the bottom of the screen to lay out copy as connected nodes — heroes, FAQs, CTAs — on a canvas you can pan and zoom.",
+    body: "Lay out copy as connected nodes on a canvas you can pan and zoom.",
     Art: ArtNodes,
   },
   {
     title: "Sharpen, save and export",
-    body: "Add research notes, run hooks, check LLM alignment, revisit brand history, and export as text or CSV.",
+    body: "Add research notes, write hooks, revisit history and export your copy.",
     Art: ArtTools,
+  },
+  {
+    title: "Use it in Figma",
+    body: "Write on-brand copy straight into your designs with the Figma plugin.",
+    Art: ArtFigma,
   },
 ];
 

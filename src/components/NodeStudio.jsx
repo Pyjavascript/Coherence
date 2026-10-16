@@ -315,7 +315,7 @@ function DraggableNode({ node, dragging, enterIdx, onSize, onPointerDown, onClic
   );
 }
 
-const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, tier, aiAvailable, setStatus, onGenerated, refreshUsage, brandId, ensureAuth }, ref) {
+const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, tier, aiAvailable, setStatus, onGenerated, refreshUsage, brandId, ensureAuth, ensureBrand }, ref) {
   const [nodes, setNodes] = useState(seedNodes);
   const [sizes, setSizes] = useState({});
   const [draggingId, setDraggingId] = useState(null);
@@ -513,6 +513,8 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   /* ----- node actions ----- */
   // Top-bar "Add Node" inserts into an empty space
   const addNodes = (category, count) => {
+    // Nodes are written for a brand, so one has to be picked (or started) first.
+    if (ensureBrand && !ensureBrand()) return;
     const n = Math.max(1, Math.min(8, parseInt(count, 10) || 1));
     let added = null;
 
@@ -765,9 +767,12 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
 
   const canGenerate = () => {
     if (!aiAvailable) { setStatus("AI generation isn't available here.", "err"); return false; }
-    return !ensureAuth || ensureAuth();
+    if (ensureAuth && !ensureAuth()) return false;
+    // Copy is written for the brand: its name and message to adapt come first.
+    return !ensureBrand || ensureBrand({ generate: true });
   };
-  const hasJob = (n) => Boolean(n.brief.trim() || ctxRef.current.brand.message.trim());
+  // ...then each node's own job requirement.
+  const hasJob = (n) => Boolean(n.brief.trim());
 
   // Writes one node's copy. Throws the AI error so callers can report it.
   const runNode = async (id, { sourceId } = {}) => {
@@ -808,7 +813,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   const generateNode = async (id, opts) => {
     const n = nodesRef.current.find((x) => x.id === id);
     if (!n || !canGenerate()) return;
-    if (!hasJob(n)) return setStatus("Add a job requirement (or a brand message) first.", "err");
+    if (!hasJob(n)) return setStatus("Add a job requirement to this node first.", "err");
     try {
       await runNode(id, opts);
       if (refreshUsage) refreshUsage();
@@ -826,7 +831,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     const idle = nodesRef.current.filter((n) => !n.generating);
     const targets = idle.filter(hasJob);
     const skipped = idle.length - targets.length;
-    if (!targets.length) return setStatus("Add a job requirement (or a brand message) first.", "err");
+    if (!targets.length) return setStatus("Add a job requirement to a node first.", "err");
 
     const total = targets.length;
     setStatus(`Generating ${total} node${total === 1 ? "" : "s"}...`);
@@ -851,7 +856,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     }
     if (refreshUsage) refreshUsage();
 
-    const skipNote = skipped ? ` ${skipped} skipped — no job requirement or brand message.` : "";
+    const skipNote = skipped ? ` ${skipped} skipped — no job requirement.`: "";
     if (firstErr) setStatus(`Generated ${done} of ${total} nodes. ${describeError(firstErr)}${skipNote}`, "err");
     else setStatus(`Generated ${done} node${done === 1 ? "" : "s"}.${skipNote}`, skipped ? "warn" : "ok");
   };

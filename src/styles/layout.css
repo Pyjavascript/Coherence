@@ -878,17 +878,6 @@ body {
   color: #d89a32;
 }
 
-/* Muted trigger reads like a filled-in hint (Audience Posture). */
-.rsb .bp-dd-muted .bp-dd-trigger {
-  color: #a9aec9;
-  font-size: 13px;
-  font-weight: 400;
-}
-
-.rsb .bp-dd-muted .bp-dd-chev {
-  display: none;
-}
-
 .rsb .bp-dd-menu {
   border-radius: var(--r);
 }

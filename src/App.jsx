@@ -136,6 +136,36 @@ export default function App() {
     }
   };
 
+  // Node Studio works for a brand. Adding a node needs one picked (saved, or a new
+  // one already started); generating also needs its name and message to adapt.
+  // Returns false after pointing at whatever is missing.
+  const ensureBrand = ({ generate = false } = {}) => {
+    const name = ws.brand.name.trim();
+    const message = ws.brand.message.trim();
+    if (!ws.currentId && !name && !message) {
+      if (ws.brands.length) {
+        setStatus("Select a brand first.", "err");
+        layout.open("left");
+      } else {
+        setStatus("Create a brand first.", "err");
+        focusPanelField("bp-name");
+      }
+      return false;
+    }
+    if (!generate) return true;
+    if (!name) {
+      setStatus("Add the brand name first.", "err");
+      focusPanelField("bp-name");
+      return false;
+    }
+    if (!message) {
+      setStatus("Add a message to adapt first.", "err");
+      focusPanelField("bp-message", true);
+      return false;
+    }
+    return true;
+  };
+
   // The grid holds one node per medium; it only offers mediums that aren't on it yet.
   const quickAddOptions = QUICK_ADD_OPTIONS.filter((o) => !quick.cards[o.type]);
 
@@ -318,6 +348,7 @@ export default function App() {
           refreshUsage={refreshUsage}
           brandId={ws.currentId}
           ensureAuth={ensureAuth}
+          ensureBrand={ensureBrand}
         />
       </CanvasViewport>
     ),

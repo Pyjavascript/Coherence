@@ -36,7 +36,7 @@ function LockedField({ locked, onLocked, as: Tag = "input", className = "", ...p
 // premium: lock + centred value (Style & Output). locked: lock + left-aligned value;
 // the menu still opens so the options can be browsed, but picking one calls
 // onLocked instead of onChange (Advanced Behaviour).
-function BrandSelect({ value, onChange, options, label, premium = false, muted = false, locked = false, onLocked }) {
+function BrandSelect({ value, onChange, options, label, premium = false, locked = false, onLocked }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
@@ -83,7 +83,7 @@ function BrandSelect({ value, onChange, options, label, premium = false, muted =
   };
 
   return (
-    <div className={"bp-dd" + (open ? " open" : "") + (premium ? " bp-dd-premium" : "") + (locked ? " bp-dd-locked" : "") + (muted ? " bp-dd-muted" : "")} ref={rootRef}>
+    <div className={"bp-dd" + (open ? " open" : "") + (premium ? " bp-dd-premium" : "") + (locked ? " bp-dd-locked" : "")} ref={rootRef}>
       <button
         type="button"
         ref={triggerRef}
@@ -257,7 +257,7 @@ export default function BrandPanel({
           <div className="bp-field">
             <label className="bp-label" htmlFor="bp-name">Brand Name</label>
             <div className="bp-inline bp-name-input">
-              <input id="bp-name" className="bp-input" type="text" placeholder="Write Brand name" {...bind("name")} />
+              <input id="bp-name" className="bp-input" type="text" placeholder="e.g. Ferox Parfums" {...bind("name")} />
               <button type="button" className="bp-addimg" onClick={() => fileInputRef.current?.click()}>
                 {brand.logo ? "Change image" : "Add image"}
               </button>
@@ -266,7 +266,7 @@ export default function BrandPanel({
           </div>
           <div className="bp-field">
             <label className="bp-label" htmlFor="bp-belief">Core Belief</label>
-            <textarea id="bp-belief" className="bp-textarea" rows={2} placeholder="eg.Scent is memory not marketing and assume ...." {...bind("belief")} />
+            <textarea id="bp-belief" className="bp-textarea" rows={2} placeholder="e.g. Scent is memory, not marketing." {...bind("belief")} />
           </div>
           <div className="bp-field">
             <div className="bp-label-row">
@@ -277,7 +277,7 @@ export default function BrandPanel({
               id="bp-message"
               className={"bp-textarea" + (showMessageError ? " is-invalid" : "")}
               rows={2}
-              placeholder="Questions about cooperation, you will need to fill"
+              placeholder="e.g. Our new fragrance is built around bergamot, cedar and musk."
               aria-required="true"
               aria-invalid={showMessageError || undefined}
               aria-describedby={showMessageError ? "bp-message-error" : undefined}
@@ -343,7 +343,7 @@ export default function BrandPanel({
           </div>
           <div className="bp-field">
             <span className="bp-label">Audience Posture</span>
-            <BrandSelect label="Audience posture" muted value={brand.audience} onChange={(value) => onField("audience", value)} options={opts(AUDIENCES)} />
+            <BrandSelect label="Audience posture" value={brand.audience} onChange={(value) => onField("audience", value)} options={opts(AUDIENCES)} />
           </div>
         </div>
       </section>

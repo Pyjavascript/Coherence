@@ -8,6 +8,7 @@ import host from "../hosts/browser";
 import { saveGeneration } from "../services/brands";
 import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { reducedMotion, tokenMs } from "../lib/motion";
+import BannedCheck from "./nodes/BannedCheck";
 
 const uid =() => "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 // Vertical gap between a node and the node stacked below it.
@@ -69,12 +70,14 @@ function makeNode(category, existing, x = null, y = null) {
   });
 }
 
+// Starter briefs describe each channel's job, never a product: the product
+// comes from the brand's message, so they work for any brand.
 function seedNodes() {
-  const email = baseNode({ x: COL_X.email, y: 100, category: "email", label: "Launch email", brief: "Announce the new fragrance to warm subscribers who've browsed before but not bought.", words: 110 });
-  const social = baseNode({ x: COL_X.social, y: 100, category: "social", label: "Instagram launch post", brief: "Tease the fragrance's mood for a cold, scrolling audience.", words: 40, platform: "Instagram" });
+  const email = baseNode({ x: COL_X.email, y: 100, category: "email", label: "Launch email", brief: "Announce the brand message to subscribers who've browsed before but haven't bought yet.", words: 110 });
+  const social = baseNode({ x: COL_X.social, y: 100, category: "social", label: "Instagram launch post", brief: "Tease the brand message for a cold audience scrolling past.", words: 40, platform: "Instagram" });
   const website = baseNode({ x: COL_X.website, y: 100, category: "website", label: "Homepage hero", brief: "Set the emotional frame for a first-time visitor landing on the homepage.", words: 30, component: "hero" });
-  const packaging = baseNode({ x: COL_X.packaging, y: 100, category: "packaging", label: "Box front line", brief: "A short line for the front of the box that sells the mood at a glance.", words: NODE_DEFAULT_WORDS.packaging });
-  const advertising = baseNode({ x: COL_X.advertising, y: 100, category: "advertising", label: "Launch ad", brief: "Stop a cold audience mid-scroll and make them curious about the fragrance.", words: NODE_DEFAULT_WORDS.advertising });
+  const packaging = baseNode({ x: COL_X.packaging, y: 100, category: "packaging", label: "Box front line", brief: "A short line for the front of the pack that sells the product at a glance.", words: NODE_DEFAULT_WORDS.packaging });
+  const advertising = baseNode({ x: COL_X.advertising, y: 100, category: "advertising", label: "Launch ad", brief: "Stop a cold audience mid-scroll and make them curious about the brand message.", words: NODE_DEFAULT_WORDS.advertising });
   return [email, social, website, packaging, advertising];
 }
 
@@ -98,7 +101,7 @@ const CheckIcon = () => svg(<path d="m4.5 12.5 5 5L19.5 7" />);
 const TrashIcon = () => svg(<path d="M4 7h16M9 7V4.5h6V7m3 0-.8 12.5H6.8L6 7m4 4v5m4-5v5" />);
 
 /* ---------- node pieces ---------- */
-function NodeOutput({ node, onVariant }) {
+function NodeOutput({ node, banned, onVariant }) {
   if (node.generating) return <Skeleton />;
   if (!node.variants.length) return <p className="sn-out-empty">No output yet.</p>;
   const idx = node.activeIdx || 0;
@@ -119,6 +122,7 @@ function NodeOutput({ node, onVariant }) {
           {v.pointers.map((p, i) => <li key={i}><b>{p.title}</b> — {p.detail}</li>)}
         </ul>
         <div className="sn-out-meta">{v.pointers.length} pointers</div>
+        <BannedCheck copy={v} banned={banned} />
         {tabs}
       </>
     );
@@ -128,6 +132,7 @@ function NodeOutput({ node, onVariant }) {
       <p className="sn-out-headline">{v.headline}</p>
       <p className="sn-out-body">{v.body}</p>
       <div className="sn-out-meta">{wordCount(v)} / {node.words} words target</div>
+      <BannedCheck copy={v} banned={banned} />
       {tabs}
     </>
   );
@@ -136,7 +141,7 @@ function NodeOutput({ node, onVariant }) {
 // linkEnd: "src" / "tgt" while a link touching this node is hovered or selected.
 // drop: "ok" / "no" while a new link is dragged over this node.
 function StudioNode({
-  node, expanded, onToggle, labelOf, linkEnd, drop, onField, onGenerate, onUnlink, onTagHover, onDelete, onCopy, onVariant,
+  node, banned, expanded, onToggle, labelOf, linkEnd, drop, onField, onGenerate, onUnlink, onTagHover, onDelete, onCopy, onVariant,
 }) {
   const cat = NODE_CATS[node.category];
   const comp = node.component || "hero";
@@ -181,7 +186,7 @@ function StudioNode({
         <div className="sn-collapse-inner">
           <div className="sn-body">
             <div className="sn-field"><label>Job Requirement</label>
-              <AutoTextarea placeholder="What must this piece do?" value={node.brief} onChange={(e) => onField("brief", e.target.value)} />
+              <AutoTextarea placeholder="What must this piece do? e.g. Win back customers who haven't ordered in 3 months. Leave empty to use the brand message." value={node.brief} onChange={(e) => onField("brief", e.target.value)} />
             </div>
             {node.category === "social" && (
               <div className="sn-field"><label>Platform</label>
@@ -259,7 +264,7 @@ function StudioNode({
       </div>
       {/* Output stays visible when the node is minimised. */}
       {(node.generating || node.variants.length > 0) && (
-        <div className="sn-out" aria-live="polite"><NodeOutput node={node} onVariant={onVariant} /></div>
+        <div className="sn-out" aria-live="polite"><NodeOutput node={node} banned={banned} onVariant={onVariant} /></div>
       )}
     </article>
   );
@@ -520,26 +525,59 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
 
     commit((list) => {
       const next = [...list];
-      const catNodes = next.filter(x => x.category === category);
-       
-      let startX = COL_X[category] ?? COL_X.email;
-
-      let maxY = 100;
-      if (catNodes.length > 0) {
-        const last = catNodes[catNodes.length - 1];
-        const lastSize = sizesRef.current[last.id] || { h: 300 };
-        startX = last.x;
-        maxY = last.y + lastSize.h + NODE_GAP_FREE;
-      }
-
+      const { x, y } = columnEnd(next, category);
       for (let i = 0; i < n; i++) {
-        next.push(makeNode(category, next, startX, maxY + (i * 340)));
+        next.push(makeNode(category, next, x, y + (i * 340)));
       }
       added = next[next.length - 1].id;
       return next;
     });
 
     if (added) setOpen(added, true);
+  };
+
+  // Where the next node of a column goes: below its last node, or at the top.
+  const columnEnd = (list, category) => {
+    const catNodes = list.filter((x) => x.category === category);
+    if (!catNodes.length) return { x: COL_X[category] ?? COL_X.email, y: 100 };
+    const last = catNodes[catNodes.length - 1];
+    const lastSize = sizesRef.current[last.id] || { h: 300 };
+    return { x: last.x, y: last.y + lastSize.h + NODE_GAP_FREE };
+  };
+
+  // Puts copy from history back on the canvas: into the node it came from
+  // (same column and name) if it's still here, else into a new node.
+  // input = the entry's input_context ({ label, brief }). Returns false if
+  // the entry can't be restored.
+  const restoreNode = (category, items, input = {}) => {
+    const cat = NODE_CATS[category];
+    if (!cat || cat.comingSoon) return false;
+    const variants = (items || []).filter((v) => v && (Array.isArray(v.pointers) || v.headline || v.body));
+    if (!variants.length) return false;
+    const label = String(input?.label || "").trim();
+    const brief = String(input?.brief || "");
+    const pointers = variants[0].pointers;
+    const existing = label && nodesRef.current.find((n) => n.category === category && n.label === label);
+    let target = existing?.id;
+    if (existing) {
+      patch(existing.id, { variants, activeIdx: 0, ...(brief && !existing.brief.trim() ? { brief } : {}) });
+    } else {
+      commit((list) => {
+        const { x, y } = columnEnd(list, category);
+        const node = {
+          ...makeNode(category, list, x, y),
+          ...(label ? { label } : {}),
+          brief,
+          variants,
+          ...(pointers ? { component: "pointers", pointerCount: Math.max(2, Math.min(6, pointers.length)) } : {}),
+        };
+        target = node.id;
+        return [...list, node];
+      });
+    }
+    setOpen(target, true);
+    lastNodeRef.current = target;
+    return true;
   };
 
   // Adds a node physically connected below the parent
@@ -771,8 +809,9 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     // Copy is written for the brand: its name and message to adapt come first.
     return !ensureBrand || ensureBrand({ generate: true });
   };
-  // ...then each node's own job requirement.
-  const hasJob = (n) => Boolean(n.brief.trim());
+  // ...then a job: the node's own requirement, or else the brand message
+  // (the prompt falls back to it).
+  const hasJob = (n) => Boolean(n.brief.trim() || ctxRef.current.brand.message.trim());
 
   // Writes one node's copy. Throws the AI error so callers can report it.
   const runNode = async (id, { sourceId } = {}) => {
@@ -813,7 +852,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   const generateNode = async (id, opts) => {
     const n = nodesRef.current.find((x) => x.id === id);
     if (!n || !canGenerate()) return;
-    if (!hasJob(n)) return setStatus("Add a job requirement to this node first.", "err");
+    if (!hasJob(n)) return setStatus("Add a job requirement (or a brand message) first.", "err");
     try {
       await runNode(id, opts);
       if (refreshUsage) refreshUsage();
@@ -831,7 +870,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     const idle = nodesRef.current.filter((n) => !n.generating);
     const targets = idle.filter(hasJob);
     const skipped = idle.length - targets.length;
-    if (!targets.length) return setStatus("Add a job requirement to a node first.", "err");
+    if (!targets.length) return setStatus("Add a job requirement (or a brand message) first.", "err");
 
     const total = targets.length;
     setStatus(`Generating ${total} node${total === 1 ? "" : "s"}...`);
@@ -856,7 +895,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     }
     if (refreshUsage) refreshUsage();
 
-    const skipNote = skipped ? ` ${skipped} skipped — no job requirement.`: "";
+    const skipNote = skipped ? ` ${skipped} skipped — no job requirement or brand message.` : "";
     if (firstErr) setStatus(`Generated ${done} of ${total} nodes. ${describeError(firstErr)}${skipNote}`, "err");
     else setStatus(`Generated ${done} node${done === 1 ? "" : "s"}.${skipNote}`, skipped ? "warn" : "ok");
   };
@@ -864,6 +903,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   useImperativeHandle(ref, () => ({
     addNode: (category) => addNodes(category, 1),
     generateAllNodes,
+    restore: restoreNode,
   }));
 
   const generateColumn = async (category) => {
@@ -1115,6 +1155,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
               )}
               <StudioNode
                 node={n} labelOf={labelOf}
+                banned={ctx.brand.banned}
                 expanded={expanded.has(n.id)}
                 onToggle={() => setOpen(n.id, !expanded.has(n.id))}
                 linkEnd={linkEndOf(n.id)}

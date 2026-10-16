@@ -228,14 +228,8 @@ export default function BrandPanel({
           type="button"
           className="rsb-history"
           aria-label="Generation history"
-          title={isSaved ? "Generation history" : "Save the brand to keep a generation history"}
-          onClick={() => {
-            if (!isSaved) {
-              onStatus("Save the brand to keep a generation history.", "warn");
-              return;
-            }
-            onHistory();
-          }}
+          title={isSaved ? "Generation history" : "Generation history — save the brand to keep it"}
+          onClick={onHistory}
         >
           {/* A list of past entries with a clock: a log of what was generated. */}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

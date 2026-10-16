@@ -2675,6 +2675,16 @@ body {
   font-size: 12px;
 }
 
+/* Generated copy checked against the brand's "Never use" list. */
+.banned-check {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.banned-check.is-clean { color: var(--ok); }
+.banned-check.is-hit { color: var(--danger); }
+.ncard-banned { margin: 0; padding: 0 2px; }
+
 .sn-vtabs {
   display: flex;
   gap: 6px;

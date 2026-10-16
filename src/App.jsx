@@ -270,7 +270,16 @@ export default function App() {
     }
   };
 
-  const handleRestore = (medium, items) => {
+  // Quick Grid entries go back on the grid; Node Studio ones ("node-email", ...)
+  // back on the canvas. input = the entry's input_context.
+  const handleRestore = (medium, items, input) => {
+    const category = String(medium).startsWith("node-") ? medium.slice(5) : null;
+    if (category) {
+      if (!nodeStudioRef.current?.restore(category, items, input)) return setStatus("That entry can't be restored to the studio.", "err");
+      layout.setView("nodes");
+      setModal(null);
+      return setStatus(`${NODE_CATS[category]?.label || "Copy"} restored to Node Studio.`, "ok");
+    }
     if (!quick.restore(medium, items)) return setStatus("That entry can't be restored to the grid.", "err");
     layout.setView("quick");
     setModal(null);
@@ -487,7 +496,7 @@ export default function App() {
         <ResearchNotes notes={ws.notes} onAdd={ws.addNote} onDelete={ws.removeNote} onClose={() => setModal(null)} />
       )}
 
-      {modal === "history" && ws.currentId && (
+      {modal === "history" && (
         <HistoryModal
           brandId={ws.currentId}
           brandName={ws.brand.name}

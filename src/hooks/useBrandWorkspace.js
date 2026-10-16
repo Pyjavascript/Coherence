@@ -7,6 +7,8 @@ import {
   createBrand,
   updateBrand,
   deleteBrand,
+  clearPendingGenerations,
+  flushPendingGenerations,
 } from "../services/brands";
 import {
   getResearchNotes,
@@ -87,12 +89,15 @@ export function useBrandWorkspace(setStatus, userId) {
     const prev = prevUserId.current;
     prevUserId.current = userId;
     if (!prev || prev === userId) return;
+    clearPendingGenerations();
     setCurrentId(null);
     setScope("regular");
     fill({}, "regular", []);
   }, [userId]);
 
+  // Opening or starting another brand drops the unsaved brand's history with it.
   const newBrand = (nextScope) => {
+    clearPendingGenerations();
     setScope(nextScope);
     setCurrentId(null);
     fill({}, nextScope, []);
@@ -102,6 +107,7 @@ export function useBrandWorkspace(setStatus, userId) {
   const selectBrand = async (id) => {
     const b = brands.find((x) => x.id === id);
     if (!b) return;
+    clearPendingGenerations();
     setCurrentId(id);
     setScope(b.scope || "regular");
     fill(b, b.scope, []);
@@ -132,6 +138,8 @@ export function useBrandWorkspace(setStatus, userId) {
       const pending = notes.filter((n) => n.local);
       for (const n of pending)
         await createResearchNote(saved.id, { type: n.type, text: n.text });
+      // Copy generated before the first save becomes this brand's history.
+      if (!currentId) await flushPendingGenerations(saved.id);
       setCurrentId(saved.id);
       setBrand((prev) => ({ ...prev, ...saved }));
       setSavedSnap(snapshot({ ...DEFAULT_BRAND, ...saved }));

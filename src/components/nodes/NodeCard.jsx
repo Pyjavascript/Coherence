@@ -3,6 +3,7 @@ import NodeHeader from "./NodeHeader";
 import NodeActions from "./NodeActions";
 import NodeContent from "./NodeContent";
 import NodeComponentSelect from "./NodeComponentSelect";
+import BannedCheck from "./BannedCheck";
 import { toDisplay, measure, cardLimits } from "../../lib/copyItems";
 
 // Kept for existing imports; the helper now lives in lib/copyItems.
@@ -16,8 +17,9 @@ const StarIcon = ({ filled }) => (
 
 // node = { id, type, status, items, version, message, width, fav, words, brief, requirements, component, pointerCount }
 // enterIndex = this card's place in the grid's entrance stagger (0 = no wait).
+// banned = the brand's "Never use" list; the shown copy is checked against it.
 export default function NodeCard({
-  node, meta, enterIndex = 0, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
+  node, meta, enterIndex = 0, banned, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
   onWordsChange, onSetting,
 }) {
   const [idx, setIdx] = useState(0);
@@ -97,6 +99,7 @@ export default function NodeCard({
         onRetry={onRegenerate}
         onEdit={onEdit ? (field, text) => onEdit(shown, field, text) : undefined}
       />
+      {!busy && item && <BannedCheck copy={item} banned={banned} className="ncard-banned" />}
       {!busy && node.items.length > 1 && (
         <div className="ncard-vtabs">
           <div className="ncard-vtabs-list" role="tablist" aria-label={`${meta.label} variants`}>

@@ -25,7 +25,13 @@ React (Vite) port of the original HTML prototype. OpenAI is called only from a S
    supabase secrets set OPENAI_API_KEY=sk-...
    ```
    NEVER put this in `.env`, and never as `VITE_OPENAI_API_KEY`.
-7. **Deploy the function**: `supabase functions deploy generate`
+7. **Deploy the function**: run every file in `supabase/migrations/` first (the function needs `reserve_credits`), then
+   ```
+   npm run build:function           # bundles handler.ts + supabase/functions/_shared into index.ts
+   supabase functions deploy generate
+   ```
+   Edit `supabase/functions/generate/handler.ts` and `supabase/functions/_shared/*`, never `index.ts`: it's generated.
+   Deploying from the dashboard editor instead? Paste the whole generated `index.ts` there.
    (If you use the newer `sb_publishable_...` key instead of the anon JWT, deploy with `--no-verify-jwt`.)
 8. **Run**: `npm run dev` → http://localhost:5173
 

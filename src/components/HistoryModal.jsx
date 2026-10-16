@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Modal } from "./Modal";
-import { getGenerations } from "../services/brands";
+import { getGenerations, getPendingGenerations } from "../services/brands";
 import { MEDIA_BY_KEY, NODE_CATS } from "../lib/constants";
 import { itemToText } from "../lib/copyItems";
 import { useCopyFeedback } from "../hooks/useCopyFeedback";
@@ -50,11 +50,9 @@ function Entry({ entry, onCopy, onRestore }) {
         <button type="button" disabled={!text} onClick={async () => { if (await onCopy(text)) flashCopied(); }}>
           {copied ? "Copied ✓" : "Copy"}
         </button>
-        {meta.quick && (
-          <button type="button" className="is-primary" onClick={() => onRestore(entry.medium, items)}>
-            Restore to grid
-          </button>
-        )}
+        <button type="button" className="is-primary" onClick={() => onRestore(entry.medium, items, entry.input_context)}>
+          {meta.quick ? "Restore to grid" : "Restore to studio"}
+        </button>
       </div>
     </article>
   );
@@ -68,11 +66,16 @@ const scrollSideways = (e) => {
   row.scrollLeft += e.deltaY;
 };
 
+// brandId = null: a brand that isn't saved yet, whose history is kept in
+// memory until its first save.
 export default function HistoryModal({ brandId, brandName, onCopy, onRestore, onClose }) {
-  const [state, setState] = useState({ status: "loading", rows: [] });
+  const [state, setState] = useState(() => (brandId
+    ? { status: "loading", rows: [] }
+    : { status: "ready", rows: getPendingGenerations() }));
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
+    if (!brandId) return undefined;
     let live = true;
     getGenerations(brandId)
       .then((rows) => { if (live) setState({ status: "ready", rows }); })
@@ -86,6 +89,11 @@ export default function HistoryModal({ brandId, brandName, onCopy, onRestore, on
   return (
     <Modal title="History" onClose={onClose} modalClassName="research-modal history-modal">
       <p className="hook-description">Everything generated for {brandName || "this brand"}, newest first.</p>
+      {!brandId && (
+        <p className="hook-description history-unsaved">
+          This brand isn't saved yet. Save it to keep this history — it's lost if you open another brand first.
+        </p>
+      )}
       {mediums.length > 1 && (
         <div className="history-filters" role="group" aria-label="Filter by medium" onWheel={scrollSideways}>
           {["all", ...mediums].map((m) => (

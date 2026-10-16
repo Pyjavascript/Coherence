@@ -71,31 +71,39 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     const ids = new Set(targets.map((n) => n.id));
     ids.forEach((id) => tokens.current.set(id, token));
     const stillMine = () => new Set([...ids].filter((id) => tokens.current.get(id) === token));
-    const types = [...new Set(targets.map((n) => n.type))];
-    // One request covers every medium, so each uses its first node's settings.
-    const settings = {};
-    targets.forEach((n) => { if (!(n.type in settings)) settings[n.type] = settingsOf(n); });
+    // One request, one entry per card: a medium's first card is keyed by the
+    // medium, a duplicate gets "website_2" etc., so each card gets its own copy
+    // from its own settings. Every card costs one credit.
+    const keyOf = new Map();
+    const count = {};
+    targets.forEach((n) => {
+      count[n.type] = (count[n.type] || 0) + 1;
+      keyOf.set(n.id, count[n.type] === 1 ? n.type : `${n.type}_${count[n.type]}`);
+    });
+    const cards = targets.map((n) => ({ key: keyOf.get(n.id), medium: n.type, settings: settingsOf(n) }));
+    const credits = cards.length;
 
     setNodes((list) => list.map((n) => (ids.has(n.id) ? { ...n, status: "loading", message: "" } : n)));
-    setStatus(`Generating ${variantCount} variant(s) across ${types.length} medium${types.length === 1 ? "" : "s"}...`);
+    setStatus(`Generating ${credits} card${credits === 1 ? "" : "s"} (${credits} credit${credits === 1 ? "" : "s"})...`);
     try {
-      const data = await generateQuickGrid({ ctx, variantCount, tier, settings });
+      const data = await generateQuickGrid({ ctx, variantCount, tier, cards });
       const live = stillMine();
       setNodes((list) => list.map((n) => {
         if (!live.has(n.id)) return n;
-        const items = data[n.type] || [];
+        const items = data[keyOf.get(n.id)] || [];
         return items.length
           ? { ...n, status: "ready", items, version: n.version + 1, message: "", fav: null }
-          : failed(n, "No copy came back for this medium. Try regenerating it.");
+          : failed(n, "No copy came back for this card. Try regenerating it.");
       }));
-      await Promise.all(types.map((type) => saveGeneration({
+      // History: one entry per card, so a duplicate never overwrites the original.
+      await Promise.all(cards.filter((c) => data[c.key]?.length).map((c) => saveGeneration({
         brandId,
-        medium: type,
-        inputContext: { message: ctx.brand.message, stage: ctx.brand.stage, mode: ctx.brand.mode },
-        output: data[type],
+        medium: c.medium,
+        inputContext: { message: ctx.brand.message, stage: ctx.brand.stage, mode: ctx.brand.mode, brief: c.settings.brief || undefined },
+        output: data[c.key],
       })));
-      onGenerated({ type: "quick", medium: types[0] });
-      setStatus("Generated just now.", "ok");
+      onGenerated({ type: "quick", medium: cards[0].medium });
+      setStatus(`Generated just now — ${credits} credit${credits === 1 ? "" : "s"} used.`, "ok");
     } catch (err) {
       const live = stillMine();
       setStatus(describeError(err), "err");
@@ -219,7 +227,7 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
   const hasCopy = nodes.some((n) => n.items.length > 0);
 
   return {
-    nodes, cards, busy, lastAdded, hasCopy,
+    nodes, cards, busy, lastAdded, hasCopy, banned: ctx.brand.banned,
     generateAll, regenerate, add, duplicate, remove, restoreDefaults, editItem, setWords, setSetting, resetSettings, toggleFav, restore, setStatus,
   };
 }
@@ -273,6 +281,7 @@ export default function QuickGrid({ quick, atGenLimit }) {
             node={n}
             meta={MEDIA_BY_KEY[n.type]}
             enterIndex={firstRender.current ? i : 0}
+            banned={quick.banned}
             onEdit={(index, field, text) => quick.editItem(n.id, index, field, text)}
             onWordsChange={(value) => quick.setWords(n.id, value)}
             onSetting={(field, value) => quick.setSetting(n.id, field, value)}

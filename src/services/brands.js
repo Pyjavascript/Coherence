@@ -179,14 +179,47 @@ export async function getUsageActivity(userId, since) {
   return data || [];
 }
 
-// Best-effort history of what was generated for a saved brand.
+// History for a brand that isn't saved yet: kept in memory (newest last) and
+// written to the database with the brand on its first save. Discarded when
+// another brand is opened or a new one started.
+const MAX_PENDING = 40;
+let pending = [];
+let pendingSeq = 0;
+
+// Newest first, the same shape as getGenerations() rows.
+export const getPendingGenerations = () => [...pending].reverse();
+
+export function clearPendingGenerations() {
+  pending = [];
+}
+
+// Writes the unsaved brand's history to the brand it was just saved as.
+export async function flushPendingGenerations(brandId) {
+  const list = pending;
+  pending = [];
+  for (const g of list) {
+    await saveGeneration({ brandId, medium: g.medium, inputContext: g.input_context, output: g.output });
+  }
+}
+
+// Best-effort history of what was generated for a brand.
 export async function saveGeneration({
   brandId,
   medium,
   inputContext,
   output,
 }) {
-  if (!brandId) return;
+  if (!brandId) {
+    pending.push({
+      id: `pending-${++pendingSeq}`,
+      medium,
+      input_context: inputContext ?? null,
+      output: output ?? null,
+      created_at: new Date().toISOString(),
+    });
+    pending = pending.slice(-MAX_PENDING);
+    return;
+  }
   try {
     if (usesPluginKey()) {
       await callFunction("generations.save", { brandId, medium, inputContext, output });

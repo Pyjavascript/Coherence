@@ -1,13 +1,12 @@
 // The ONLY frontend module that talks to the generation Edge Function.
 // The Edge Function holds the default OpenAI key; a user may set their own
 // (lib/apiKey), which is sent along and used in its place.
+// The prompts themselves are built by the Edge Function (supabase/functions/
+// _shared): this module sends the brand fields and settings they're made from.
 import { requireSupabase } from "../lib/supabase";
 import { AI_MODELS, DEFAULT_TIER } from "../lib/constants";
 import { getApiKey } from "../lib/apiKey";
 import { getPluginApiKey } from "../lib/pluginApiKey";
-import {
-  buildQuickGridPrompt, buildNodePrompt, buildHookPrompt, buildCoherencePrompt,
-} from "../lib/prompts";
 
 export class AIError extends Error {
   constructor(message, code = "generation") {
@@ -18,6 +17,7 @@ export class AIError extends Error {
 
 export function describeError(err) {
   if (err?.code === "limit_reached") return `Daily generation limit reached (40/day). Resets tomorrow.`;
+  if (err?.code === "not_enough_credits") return `${err.message} Remove some cards, or regenerate them one at a time.`;
   if (err?.code === "hook_limit") return "Today's free hook is used. It resets with your credits.";
   if (err?.code === "unauthorized") return "That plugin key isn't valid. Generate a new one in your profile.";
   return err?.message ? `Generation failed — ${err.message}` : "Generation failed. Try again.";
@@ -38,8 +38,7 @@ export async function callFunction(type, payload = {}) {
   console.log(pluginApiKey ? "[Figma AI Request]" : "[AI Request]", {
     type,
     tier: payload.tier,
-    model: payload.model,
-    hasPrompt: Boolean(payload.prompt),
+    model: AI_MODELS[payload.tier],
     hasPluginKey: Boolean(pluginApiKey),
   });
   // supabase-js serialises `body` itself: pass the flat payload, never { body: {...} }.
@@ -62,9 +61,16 @@ export async function callFunction(type, payload = {}) {
   return data.data;
 }
 
-function invoke(type, prompt, tier) {
-  const tierToUse = AI_MODELS[tier] ? tier : DEFAULT_TIER;
-  return callFunction(type, { prompt, tier: tierToUse, model: AI_MODELS[tierToUse] });
+// ctx = { brand, notes, stylePack }. The brand's logo (an image) never goes along.
+function invoke(type, ctx, tier, params = {}) {
+  const { logo, ...brand } = ctx?.brand || {};
+  return callFunction(type, {
+    ...params,
+    brand,
+    notes: (ctx?.notes || []).map(({ type: noteType, text }) => ({ type: noteType, text })),
+    stylePack: ctx?.stylePack,
+    tier: AI_MODELS[tier] ? tier : DEFAULT_TIER,
+  });
 }
 
 /* ---------- response normalisation (handles malformed AI output) ---------- */
@@ -107,15 +113,17 @@ function normalizeVariants(data) {
 const malformed = () => new AIError("The AI returned an unexpected format. Try again.", "malformed");
 
 /* ---------- public API ---------- */
-// Returns { packaging:[...], marketing:[...], advertising:[...], website:[...], email:[...] }
-// settings = { [medium]: { words, brief, requirements, component, pointerCount } } per-card settings (optional).
-export async function generateQuickGrid({ ctx, variantCount, tier, settings }) {
-  const data = await invoke("quick-grid", buildQuickGridPrompt(ctx, variantCount, undefined, settings), tier);
+// cards = [{ key, medium, settings }], one per Quick Grid card. key names the
+// card's copy in the answer ("website", "website_2", ...); settings =
+// { words, brief, requirements, component, pointerCount }. Costs one credit per card.
+// Returns { [key]: items[] }.
+export async function generateQuickGrid({ ctx, variantCount, tier, cards }) {
+  const data = await invoke("quick-grid", ctx, tier, { variantCount, cards });
   const out = {};
   let any = false;
-  ["packaging", "marketing", "advertising", "website", "email"].forEach((m) => {
-    out[m] = toItems(m, data?.[m]);
-    if (out[m].length) any = true;
+  cards.forEach(({ key, medium }) => {
+    out[key] = toItems(medium, data?.[key]);
+    if (out[key].length) any = true;
   });
   if (!any) throw malformed();
   return out;
@@ -123,7 +131,7 @@ export async function generateQuickGrid({ ctx, variantCount, tier, settings }) {
 
 // Returns an array of items for one medium. settings = that card's settings (optional).
 export async function regenerateOutput({ ctx, medium, variantCount, tier, settings }) {
-  const data = await invoke("regenerate", buildQuickGridPrompt(ctx, variantCount, medium, settings ? { [medium]: settings } : {}), tier);
+  const data = await invoke("regenerate", ctx, tier, { medium, variantCount, settings });
   const items = toItems(medium, data?.[medium]);
   if (!items.length) throw malformed();
   return items;
@@ -131,7 +139,7 @@ export async function regenerateOutput({ ctx, medium, variantCount, tier, settin
 
 // Returns an array of variants: [{headline, body}] or [{pointers:[{title,detail}]}]
 export async function generateNode({ ctx, node, variantCount, linkedNodes, source, tier }) {
-  const data = await invoke("node", buildNodePrompt(ctx, node, variantCount, linkedNodes, source), tier);
+  const data = await invoke("node", ctx, tier, { node, variantCount, linkedNodes, source });
   const variants = normalizeVariants(data);
   if (!variants.length) throw malformed();
   return variants;
@@ -139,20 +147,21 @@ export async function generateNode({ ctx, node, variantCount, linkedNodes, sourc
 
 // Returns the hook string.
 export async function generateHook({ ctx, requirement, tier }) {
-  const data = await invoke("hook", buildHookPrompt(ctx, requirement), tier);
+  const data = await invoke("hook", ctx, tier, { requirement });
   const hook = String(data?.hook || "").trim();
   if (!hook) throw malformed();
   return hook;
 }
 
 // Optional: run the CTA <-> copy coherence QA inside the app (returns text).
+// described = { sampleCopy, sourceLabel }: the copy to check.
 export async function generateCoherenceCheck({ ctx, described, tier }) {
-  const data = await invoke("coherence", buildCoherencePrompt(ctx, described), tier);
+  const data = await invoke("coherence", ctx, tier, { described });
   return String(data?.text || "").trim();
 }
 
 // Figma opens with this. It does not spend a credit. Returns
 // { userId, generations, hooks, brands }.
 export async function pluginPing() {
-  return invoke("ping", "ping", DEFAULT_TIER);
+  return callFunction("ping", { tier: DEFAULT_TIER });
 }

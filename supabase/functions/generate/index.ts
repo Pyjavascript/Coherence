@@ -145,6 +145,66 @@ var PLATFORMS = [
   "TikTok",
   "Pinterest"
 ];
+var GEN_PLATFORMS = [
+  {
+    key: "instagram",
+    label: "Instagram",
+    color: "#E1306C",
+    media: ["marketing", "advertising"],
+    nodes: ["social", "advertising"],
+    rules: "Instagram (feed and Reels): a thumb-stopping first line, visual and sensory, warm and conversational; no hashtags in headlines."
+  },
+  {
+    key: "tiktok",
+    label: "TikTok",
+    color: "#111111",
+    media: ["marketing", "advertising"],
+    nodes: ["social", "advertising"],
+    rules: "TikTok: native and spoken-feeling, the hook lands in the first three words, casual and playful, never sounds like an ad."
+  },
+  {
+    key: "linkedin",
+    label: "LinkedIn",
+    color: "#0A66C2",
+    media: ["marketing", "advertising"],
+    nodes: ["social", "advertising"],
+    rules: "LinkedIn: professional and insight-led, open with an outcome or a sharp observation, credible, no slang or emoji."
+  },
+  {
+    key: "x",
+    label: "X / Twitter",
+    color: "#000000",
+    media: ["marketing", "advertising"],
+    nodes: ["social", "advertising"],
+    rules: "X / Twitter: punchy and witty, one idea that reads at a glance, a conversational edge."
+  },
+  {
+    key: "facebook",
+    label: "Facebook",
+    color: "#0866FF",
+    media: ["marketing", "advertising"],
+    nodes: ["social", "advertising"],
+    rules: "Facebook: warm and community-minded, a clear everyday benefit, easy to share."
+  },
+  {
+    key: "pinterest",
+    label: "Pinterest",
+    color: "#E60023",
+    media: ["marketing", "advertising"],
+    nodes: ["social", "advertising"],
+    rules: "Pinterest: aspirational and idea-led, describe the outcome or the look, discovery-friendly keywords."
+  },
+  {
+    key: "google",
+    label: "Google Ads",
+    color: "#4285F4",
+    media: ["advertising"],
+    nodes: ["advertising"],
+    rules: "Google search ads: intent-driven, lead with the searcher's need and a concrete benefit, a clear action, headline within 30 characters."
+  }
+];
+var GEN_PLATFORMS_BY_KEY = Object.fromEntries(GEN_PLATFORMS.map((p) => [p.key, p]));
+var platformsFor = (keys, field, value) => (keys || []).map((k) => GEN_PLATFORMS_BY_KEY[k]).filter((p) => p && p[field].includes(value));
 var WEBSITE_COMPONENTS = {
   hero: { label: "Hero (headline + support)" },
   pointers: { label: "Feature pointers (list)" },
@@ -308,32 +368,44 @@ function cardBrief(s = {}) {
   if (t(s.requirements)) lines.push(`specific requirements: ${t(s.requirements)}`);
   return lines.join("; ");
 }
+function platformRules(picked) {
+  if (!picked.length) return "";
+  const all = picked.length === 2 ? "both" : `all ${picked.length}`;
+  const both = picked.length > 1 ? ` The same copy runs on ${all} platforms, so it must feel native on each.` : "";
+  return picked.map((p) => p.rules).join(" ") + both;
+}
 var GRID_MEDIA = ["packaging", "marketing", "advertising", "website", "email"];
 var itemShape = (medium) => medium === "packaging" || medium === "marketing" ? '"..."' : medium === "email" ? '{"subject":"...","preview":"..."}' : '{"headline":"...","sub":"..."}';
-function buildQuickGridPrompt(ctx, n, cards) {
+function buildQuickGridPrompt(ctx, n, cards, platforms = []) {
   const base = buildBasePrompt(ctx);
+  const rulesFor = (medium) => platformRules(platformsFor(platforms, "media", medium));
   if (cards.length === 1) {
     const [{ key, medium, settings }] = cards;
     const brief = cardBrief(settings);
+    const rules = rulesFor(medium);
     return `${base}
 Generate exactly ${n} distinct variant(s) for the ${medium} medium only \u2014 different angles, not synonyms.
 Return ONLY this JSON, no markdown fences: {"${key}":[${itemShape(medium)}]}  (array length ${n})
-Constraint: ${lengthSpec(medium, settings)}.${brief ? `
+Constraint: ${lengthSpec(medium, settings)}.${rules ? `
+Platform \u2014 write it natively for this: ${rules}` : ""}${brief ? `
 Instructions for this ${medium} copy \u2014 ${brief}.` : ""}`;
   }
   const label = ({ key, medium }) => key === medium ? key : `${key} (${medium})`;
   const shared = cards.some((c, i) => cards.findIndex((o) => o.medium === c.medium) !== i);
   const briefs = cards.map((c) => [c, cardBrief(c.settings)]).filter(([, b]) => b);
+  const targeted = cards.map((c) => [c, rulesFor(c.medium)]).filter(([, r]) => r);
   return `${base}
 Generate exactly ${n} distinct variant(s) for every output below \u2014 different angles, not synonyms of each other.${shared ? "\nSome outputs share a medium (e.g. website and website_2): give each its own angle, never the same line twice." : ""}
 Return ONLY valid JSON, no markdown fences, an array of length ${n} for every key:
 {${cards.map((c) => `"${c.key}":[${itemShape(c.medium)}]`).join(",")}}
 Constraints:
-${cards.map((c) => `- ${label(c)}: ${lengthSpec(c.medium, c.settings)}`).join("\n")}${briefs.length ? `
+${cards.map((c) => `- ${label(c)}: ${lengthSpec(c.medium, c.settings)}`).join("\n")}${targeted.length ? `
+Platform targeting (write each output natively for its platform):
+${targeted.map(([c, r]) => `- ${label(c)}: ${r}`).join("\n")}` : ""}${briefs.length ? `
 Per-output instructions (follow them for that output only):
 ${briefs.map(([c, b]) => `- ${label(c)}: ${b}`).join("\n")}` : ""}`;
 }
-function buildNodePrompt(ctx, node, vCount, linkedNodes = [], source = null) {
+function buildNodePrompt(ctx, node, vCount, linkedNodes = [], source = null, platforms = []) {
   const c = clean(ctx);
   const cat = NODE_CATS[node.category];
   let p = `You are a brand language engine generating one specific content node inside a larger node-based content system. Keep this piece coherent with the brand's constant while doing its own specific job.
@@ -360,6 +432,9 @@ Try to naturally include: ${c.must}`;
 This node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
 Target length: about ${node.words || 60} words for the body copy (soft target, stay within 20%).`;
+  const rules = platformRules(node.platform ? GEN_PLATFORMS.filter((pl) => pl.label === node.platform) : platformsFor(platforms, "nodes", node.category));
+  if (rules) p += `
+Platform \u2014 write it natively for this: ${rules}`;
   if (t(node.requirements))
     p += `
 Specific requirements for this node: ${t(node.requirements)}`;
@@ -570,30 +645,32 @@ function cleanSource(input) {
     variant: s.variant ? cleanVariant(s.variant) : null
   };
 }
+var cleanPlatforms = (input) => [...new Set(list(input, GEN_PLATFORMS.length).filter((k) => typeof k === "string" && GEN_PLATFORMS_BY_KEY[k]))];
 var needsMessage = (ctx) => {
   if (!ctx.brand.message.trim()) throw new RequestError("Add a message to adapt first.");
 };
 function buildGeneration(type, body = {}) {
   const ctx = cleanCtx(body);
+  const platforms = cleanPlatforms(body.platforms);
   switch (type) {
     case "quick-grid": {
       needsMessage(ctx);
       const cards = cleanCards(body.cards);
       const n = int(body.variantCount, 1, MAX_GRID_VARIANTS, 1);
-      return { ctx, credits: cards.length, prompt: buildQuickGridPrompt(ctx, n, cards) };
+      return { ctx, credits: cards.length, prompt: buildQuickGridPrompt(ctx, n, cards, platforms) };
     }
     case "regenerate": {
       needsMessage(ctx);
       if (!GRID_MEDIA.includes(body.medium)) throw new RequestError("Unknown medium.");
       const card = { key: body.medium, medium: body.medium, settings: cleanGridSettings(body.settings, body.medium) };
       const n = int(body.variantCount, 1, MAX_GRID_VARIANTS, 1);
-      return { ctx, credits: 1, prompt: buildQuickGridPrompt(ctx, n, [card]) };
+      return { ctx, credits: 1, prompt: buildQuickGridPrompt(ctx, n, [card], platforms) };
     }
     case "node": {
       const node = cleanNode(body.node);
       const linked = list(body.linkedNodes, 6).filter((l) => obj(l).variant).map((l) => ({ label: str(l.label, 120), variant: cleanVariant(l.variant) }));
       const n = int(body.variantCount, 1, MAX_NODE_VARIANTS, 1);
-      return { ctx, credits: 1, prompt: buildNodePrompt(ctx, node, n, linked, cleanSource(body.source)) };
+      return { ctx, credits: 1, prompt: buildNodePrompt(ctx, node, n, linked, cleanSource(body.source), platforms) };
     }
     case "hook":
       return { ctx, credits: 1, prompt: buildHookPrompt(ctx, str(body.requirement, 2e3)) };

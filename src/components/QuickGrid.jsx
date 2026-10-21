@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import NodeCard from "./nodes/NodeCard";
-import { MEDIA, MEDIA_BY_KEY } from "../lib/constants";
+import { MEDIA, MEDIA_BY_KEY, GEN_PLATFORMS_BY_KEY } from "../lib/constants";
 import { applyEdit, cardLimits, defaultWords, minWordsFor, MAX_WORDS } from "../lib/copyItems";
 import { generateQuickGrid, regenerateOutput, describeError } from "../services/ai";
 import { saveGeneration } from "../services/brands";
@@ -37,9 +37,13 @@ const seedNodes = () => MEDIA.map((m) => createNode(m.key));
 // A failed request keeps whatever copy the node already had.
 const failed = (n, message) => (n.items.length ? { ...n, status: "ready" } : { ...n, status: "error", message });
 
+// The mediums the picked platforms write for; null = no pick, every medium.
+export const mediaForPlatforms = (platforms) =>
+  platforms?.length ? new Set(platforms.flatMap((k) => GEN_PLATFORMS_BY_KEY[k]?.media || [])) : null;
+
 // Quick Grid state + generation logic. Lives in App so the toolbar's Generate
 // button can drive it and so the data survives switching views.
-export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, setStatus, onGenerated, ensureAuth, onMissingMessage }) {
+export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAvailable, setStatus, onGenerated, ensureAuth, onMissingMessage }) {
   const [nodes, setNodes] = useState(seedNodes);
   const [busy, setBusy] = useState(false);
   const [lastAdded, setLastAdded] = useState(null);
@@ -62,8 +66,11 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
 
   const generateAll = async () => {
     if (busyRef.current || !precheck()) return;
-    const targets = nodesRef.current;
-    if (!targets.length) return setStatus("Add a node to generate into.", "err");
+    // Picked platforms limit the run to the cards they write for.
+    const media = mediaForPlatforms(platforms);
+    const targets = nodesRef.current.filter((n) => !media || media.has(n.type));
+    if (!nodesRef.current.length) return setStatus("Add a node to generate into.", "err");
+    if (!targets.length) return setStatus("None of the picked platforms has a card on the grid — add one, or change the platforms.", "err");
 
     busyRef.current = true;
     setBusy(true);
@@ -86,7 +93,7 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     setNodes((list) => list.map((n) => (ids.has(n.id) ? { ...n, status: "loading", message: "" } : n)));
     setStatus(`Generating ${credits} card${credits === 1 ? "" : "s"} (${credits} credit${credits === 1 ? "" : "s"})...`);
     try {
-      const data = await generateQuickGrid({ ctx, variantCount, tier, cards });
+      const data = await generateQuickGrid({ ctx, variantCount, tier, cards, platforms });
       const live = stillMine();
       setNodes((list) => list.map((n) => {
         if (!live.has(n.id)) return n;
@@ -99,7 +106,10 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
       await Promise.all(cards.filter((c) => data[c.key]?.length).map((c) => saveGeneration({
         brandId,
         medium: c.medium,
-        inputContext: { message: ctx.brand.message, stage: ctx.brand.stage, mode: ctx.brand.mode, brief: c.settings.brief || undefined },
+        inputContext: {
+          message: ctx.brand.message, stage: ctx.brand.stage, mode: ctx.brand.mode,
+          brief: c.settings.brief || undefined, platforms: platforms?.length ? platforms : undefined,
+        },
         output: data[c.key],
       })));
       onGenerated({ type: "quick", medium: cards[0].medium });
@@ -123,7 +133,7 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
     const mine = () => tokens.current.get(id) === token;
     setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "loading", message: "" } : n)));
     try {
-      const items = await regenerateOutput({ ctx, medium: node.type, variantCount, tier, settings: settingsOf(node) });
+      const items = await regenerateOutput({ ctx, medium: node.type, variantCount, tier, settings: settingsOf(node), platforms });
       if (!mine()) return;
       setNodes((list) => list.map((n) => (n.id === id ? { ...n, status: "ready", items, version: n.version + 1, fav: null } : n)));
       await saveGeneration({ brandId, medium: node.type, inputContext: { message: ctx.brand.message }, output: items });
@@ -225,9 +235,10 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, aiAvailable, se
   }, [nodes]);
 
   const hasCopy = nodes.some((n) => n.items.length > 0);
+  const targetMedia = useMemo(() => mediaForPlatforms(platforms), [platforms]);
 
   return {
-    nodes, cards, busy, lastAdded, hasCopy, banned: ctx.brand.banned,
+    nodes, cards, busy, lastAdded, hasCopy, targetMedia, banned: ctx.brand.banned,
     generateAll, regenerate, add, duplicate, remove, restoreDefaults, editItem, setWords, setSetting, resetSettings, toggleFav, restore, setStatus,
   };
 }
@@ -281,6 +292,7 @@ export default function QuickGrid({ quick, atGenLimit }) {
             node={n}
             meta={MEDIA_BY_KEY[n.type]}
             enterIndex={firstRender.current ? i : 0}
+            skipped={Boolean(quick.targetMedia && !quick.targetMedia.has(n.type))}
             banned={quick.banned}
             onEdit={(index, field, text) => quick.editItem(n.id, index, field, text)}
             onWordsChange={(value) => quick.setWords(n.id, value)}

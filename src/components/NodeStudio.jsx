@@ -1,7 +1,7 @@
 
 
 import { Fragment, useState, useRef, useEffect, useLayoutEffect, useCallback, forwardRef, useImperativeHandle } from "react";
-import { NODE_CATS, COL_ORDER, PLATFORMS, WEBSITE_COMPONENTS, NODE_DEFAULT_WORDS } from "../lib/constants";
+import { NODE_CATS, COL_ORDER, PLATFORMS, WEBSITE_COMPONENTS, NODE_DEFAULT_WORDS, GEN_PLATFORMS_BY_KEY } from "../lib/constants";
 import { generateNode as aiGenerateNode, describeError } from "../services/ai";
 import { Skeleton } from "./OutputCard";
 import host from "../hosts/browser";
@@ -320,7 +320,15 @@ function DraggableNode({ node, dragging, enterIdx, onSize, onPointerDown, onClic
   );
 }
 
-const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, tier, aiAvailable, setStatus, onGenerated, refreshUsage, brandId, ensureAuth, ensureBrand }, ref) {
+// Whether Generate writes node n for the composer's picked platforms (none
+// picked = every node). A social node only counts for its own platform.
+const inPlatforms = (n, platforms) => {
+  if (!platforms?.length) return true;
+  const picked = platforms.map((k) => GEN_PLATFORMS_BY_KEY[k]).filter(Boolean);
+  return picked.some((p) => p.nodes.includes(n.category) && (n.category !== "social" || p.label === n.platform));
+};
+
+const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, tier, platforms, aiAvailable, setStatus, onGenerated, refreshUsage, brandId, ensureAuth, ensureBrand }, ref) {
   const [nodes, setNodes] = useState(seedNodes);
   const [sizes, setSizes] = useState({});
   const [draggingId, setDraggingId] = useState(null);
@@ -355,6 +363,8 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   const enterRef = useRef(active);
 
   ctxRef.current = ctx;
+  const platformsRef = useRef(platforms);
+  platformsRef.current = platforms;
 
   const [expanded, setExpanded] = useState(() => new Set(nodesRef.current.slice(0, 1).map((n) => n.id)));
 
@@ -832,7 +842,9 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
         ? { label: src.label, category: src.category, variant: src.variants[src.activeIdx || 0] || src.variants[0] || null }
         : null;
 
-      const variants = await aiGenerateNode({ ctx: ctxRef.current, node: n, variantCount, linkedNodes, source, tier });
+      const variants = await aiGenerateNode({
+        ctx: ctxRef.current, node: n, variantCount, linkedNodes, source, tier, platforms: platformsRef.current,
+      });
       patch(id, { variants, activeIdx: 0, generating: false });
       lastNodeRef.current = id;
       onGenerated({ type: "node", label: n.label, variant: variants[0] });
@@ -864,12 +876,17 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
 
   // Writes every node. Unlinked nodes go out together; a node linked from
   // another waits for it, then adapts its copy (as linking does). Stops at the
-  // daily limit and reports how many nodes made it.
+  // daily limit and reports how many nodes made it. Picked platforms limit it
+  // to the nodes they write for.
   const generateAllNodes = async () => {
     if (!canGenerate()) return;
     const idle = nodesRef.current.filter((n) => !n.generating);
-    const targets = idle.filter(hasJob);
-    const skipped = idle.length - targets.length;
+    const picked = idle.filter((n) => inPlatforms(n, platformsRef.current));
+    if (idle.length && !picked.length) {
+      return setStatus("None of the picked platforms has a node on the canvas — add one, or change the platforms.", "err");
+    }
+    const targets = picked.filter(hasJob);
+    const skipped = picked.length - targets.length;
     if (!targets.length) return setStatus("Add a job requirement (or a brand message) first.", "err");
 
     const total = targets.length;

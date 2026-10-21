@@ -19,7 +19,7 @@ const StarIcon = ({ filled }) => (
 // enterIndex = this card's place in the grid's entrance stagger (0 = no wait).
 // banned = the brand's "Never use" list; the shown copy is checked against it.
 export default function NodeCard({
-  node, meta, enterIndex = 0, banned, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
+  node, meta, enterIndex = 0, skipped = false, banned, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
   onWordsChange, onSetting,
 }) {
   const [idx, setIdx] = useState(0);
@@ -54,6 +54,7 @@ export default function NodeCard({
       className={"ncard" + (node.width === "full" ? " is-full" : "") + (leaving ? " is-leaving" : "") + (fresh ? " is-fresh" : "")}
       data-flip-id={node.id}
       data-type={node.type}
+      data-skipped={skipped || undefined}
       data-pl-enter={entering || undefined}
       style={{ "--node-color": meta.color, "--pl-i": enterAt }}
       aria-label={`${meta.label} node`}

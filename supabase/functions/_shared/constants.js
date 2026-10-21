@@ -175,6 +175,54 @@ export const PLATFORMS = [
   "TikTok",
   "Pinterest",
 ];
+// Platforms picked in the message composer. Picking some limits Generate to the
+// Quick Grid cards (`media`) and Node Studio nodes (`nodes`) they need, and
+// `rules` tells the model how to write natively for each. Nothing picked =
+// every card and node, with no platform bias. Social labels match PLATFORMS.
+export const GEN_PLATFORMS = [
+  {
+    key: "instagram", label: "Instagram", color: "#E1306C",
+    media: ["marketing", "advertising"], nodes: ["social", "advertising"],
+    rules: "Instagram (feed and Reels): a thumb-stopping first line, visual and sensory, warm and conversational; no hashtags in headlines.",
+  },
+  {
+    key: "tiktok", label: "TikTok", color: "#111111",
+    media: ["marketing", "advertising"], nodes: ["social", "advertising"],
+    rules: "TikTok: native and spoken-feeling, the hook lands in the first three words, casual and playful, never sounds like an ad.",
+  },
+  {
+    key: "linkedin", label: "LinkedIn", color: "#0A66C2",
+    media: ["marketing", "advertising"], nodes: ["social", "advertising"],
+    rules: "LinkedIn: professional and insight-led, open with an outcome or a sharp observation, credible, no slang or emoji.",
+  },
+  {
+    key: "x", label: "X / Twitter", color: "#000000",
+    media: ["marketing", "advertising"], nodes: ["social", "advertising"],
+    rules: "X / Twitter: punchy and witty, one idea that reads at a glance, a conversational edge.",
+  },
+  {
+    key: "facebook", label: "Facebook", color: "#0866FF",
+    media: ["marketing", "advertising"], nodes: ["social", "advertising"],
+    rules: "Facebook: warm and community-minded, a clear everyday benefit, easy to share.",
+  },
+  {
+    key: "pinterest", label: "Pinterest", color: "#E60023",
+    media: ["marketing", "advertising"], nodes: ["social", "advertising"],
+    rules: "Pinterest: aspirational and idea-led, describe the outcome or the look, discovery-friendly keywords.",
+  },
+  {
+    key: "google", label: "Google Ads", color: "#4285F4",
+    media: ["advertising"], nodes: ["advertising"],
+    rules: "Google search ads: intent-driven, lead with the searcher's need and a concrete benefit, a clear action, headline within 30 characters.",
+  },
+];
+export const GEN_PLATFORMS_BY_KEY = Object.fromEntries(GEN_PLATFORMS.map((p) => [p.key, p]));
+
+// The picked platforms (keys) that write for a Quick Grid medium
+// (field "media") or a Node Studio category (field "nodes").
+export const platformsFor = (keys, field, value) =>
+  (keys || []).map((k) => GEN_PLATFORMS_BY_KEY[k]).filter((p) => p && p[field].includes(value));
+
 export const NODE_DEFAULT_WORDS = {
   email: 120,
   social: 40,

@@ -1,0 +1,389 @@
+/* ==========================================================================
+   Message / platform tray — sits centred just above the view switch
+   (components/MessageComposer.jsx, placed by layout/MainWorkspace.jsx).
+   The switch, the "?" and the zoom controls keep their own positions.
+   ========================================================================== */
+
+.ws-stage {
+  /* Mirrors .ws-switch's bottom offset and height (layout.css). */
+  --switch-bottom: clamp(10px, 1.4vw, 35px);
+  --switch-h: calc(var(--tb-h) + 12px);
+}
+
+/* Floats over the grid / canvas: opening or collapsing it never moves the cards. */
+.ws-tray {
+  position: absolute;
+  z-index: 16;
+  bottom: calc(var(--switch-bottom) + var(--switch-h) + 8px);
+  left: 50%;
+  width: min(520px, calc(100% - 24px));
+  display: flex;
+  justify-content: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ws-tray > * {
+  pointer-events: auto;
+}
+
+/* Cards the picked platforms don't cover: Generate skips them. */
+.ncard[data-skipped] {
+  opacity: 0.42;
+  filter: saturate(0.4);
+}
+
+.ncard[data-skipped]:hover,
+.ncard[data-skipped]:focus-within {
+  opacity: 0.85;
+  filter: none;
+}
+
+/* ---------- Open tray ---------------------------------------------------- */
+
+.mc {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: 0 5px 20px rgba(24, 38, 99, 0.14);
+  font-family: "Manrope", system-ui, sans-serif;
+  animation: mc-in var(--pl-d-3) var(--pl-ease-out) both;
+}
+
+.mc button:focus-visible,
+.mc-tab:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 1px;
+}
+
+.mc-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 2px 0 8px;
+}
+
+.mc-head-title {
+  flex: none;
+  color: var(--shell-navy);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.mc-head-hint {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--shell-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mc-head-hint::before {
+  content: "· ";
+}
+
+/* One row that scrolls sideways (wheel, trackpad or swipe); the right edge
+   fades to show there are more. */
+.mc-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 24px 2px 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+
+.mc-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.mc-chip {
+  --pc: var(--shell-indigo);
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding: 0 12px 0 4px;
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid var(--shell-tint-2);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--pl-d-1) var(--pl-ease-out),
+    border-color var(--pl-d-1) var(--pl-ease-out),
+    color var(--pl-d-1) var(--pl-ease-out);
+}
+
+.mc-chip:hover {
+  background: color-mix(in srgb, var(--pc) 6%, #fff);
+  border-color: color-mix(in srgb, var(--pc) 35%, #fff);
+}
+
+.mc-chip.on {
+  background: color-mix(in srgb, var(--pc) 10%, #fff);
+  border-color: var(--pc);
+}
+
+.mc-chip:active {
+  transform: scale(var(--pl-press-scale));
+}
+
+/* Social / Google Ads: a round button with just the icon (name in the tooltip). */
+.mc-chip-icon {
+  width: 36px;
+  justify-content: center;
+  padding: 0;
+}
+
+.mc-all {
+  padding: 0 14px;
+  color: var(--shell-indigo);
+  font-weight: 700;
+}
+
+.mc-all.on {
+  color: #fff;
+  background: var(--shell-indigo);
+  border-color: var(--shell-indigo);
+}
+
+.mc-picon {
+  --pc: var(--shell-indigo);
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #fff;
+  background: var(--pc);
+  border-radius: 50%;
+}
+
+.mc-picon[data-k="instagram"] {
+  background: radial-gradient(circle at 28% 108%, #fdd56b 0%, #fd5949 42%, #d6249f 62%, #4f5bd5 95%);
+}
+
+.mc-picon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.mc-chip .mc-picon {
+  width: 28px;
+  height: 28px;
+}
+
+.mc-chip .mc-picon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mc-min-btn {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  margin-left: auto;
+  padding: 0;
+  color: var(--shell-muted);
+  background: #fff;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.mc-min-btn:hover {
+  color: var(--shell-indigo);
+  background: var(--shell-tint);
+}
+
+.mc-min-btn svg,
+.mc-tab svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+/* ---------- Message input ------------------------------------------------ */
+
+.mc-field {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 4px 4px 4px 14px;
+  background: var(--shell-tint);
+  border-radius: calc(var(--r) - 6px);
+}
+
+/* .mc prefix beats the app-wide textarea / textarea:focus rules (index.css). */
+.mc .mc-input,
+.mc .mc-input:focus {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  max-height: 110px;
+  flex: 1;
+  padding: 9px 0;
+  overflow-y: auto;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  resize: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.mc .mc-input::placeholder {
+  color: var(--shell-muted);
+}
+
+.mc-send {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  color: #fff;
+  background: var(--shell-blue);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color var(--pl-d-1) var(--pl-ease-out), transform var(--pl-d-1) var(--pl-ease-out);
+}
+
+.mc-send:hover:not(:disabled) {
+  background: var(--shell-blue-hover);
+}
+
+.mc-send:active:not(:disabled) {
+  transform: scale(var(--pl-press-scale-sm));
+}
+
+.mc-send:disabled {
+  background: var(--shell-indigo);
+  cursor: progress;
+}
+
+.mc-send svg {
+  width: 15px;
+  height: 15px;
+}
+
+.mc-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgb(255 255 255 / 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: pl-spin 700ms linear infinite;
+}
+
+/* ---------- Minimized tab ------------------------------------------------ */
+
+.mc-tab {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 12px;
+  color: var(--shell-indigo);
+  background: #fff;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 5px 20px rgba(24, 38, 99, 0.14);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  animation: mc-in var(--pl-d-3) var(--pl-ease-out) both;
+  transition: background-color var(--pl-d-1) var(--pl-ease-out);
+}
+
+.mc-tab:hover {
+  background: var(--shell-tint);
+}
+
+.mc-tab-icons {
+  display: inline-flex;
+  margin-left: -4px;
+}
+
+.mc-tab-icons .mc-picon {
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.mc-tab-icons .mc-picon + .mc-picon {
+  margin-left: -6px;
+}
+
+.mc-tab-icons .mc-picon svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* Real logo marks (after the size rules above, which they override). X is
+   white on black; Facebook's mark is itself the blue circle; Google Ads sits
+   on white. */
+.mc-picon[data-k="x"] svg {
+  width: 46%;
+  height: 46%;
+}
+
+.mc-picon[data-k="facebook"] {
+  background: #fff;
+}
+
+.mc-picon[data-k="facebook"] svg {
+  width: 100%;
+  height: 100%;
+}
+
+.mc-picon[data-k="google"] {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--shell-line);
+}
+
+.mc-picon[data-k="google"] svg {
+  width: 58%;
+  height: 58%;
+}
+
+@keyframes mc-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Narrow workspaces: the switch drops to 12px from the bottom with 5px padding
+   (enhancements.css), so the tray follows it. */
+@container ws (max-width: 400px) {
+  .ws-stage {
+    --switch-bottom: 12px;
+    --switch-h: calc(var(--tb-h) + 10px);
+  }
+}

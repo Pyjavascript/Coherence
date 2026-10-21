@@ -12,6 +12,8 @@ import "./styles/polish/studio.css";
 import "./styles/polish/modals.css";
 import "./styles/polish/radius.css";
 import "./styles/polish/links.css";
+// Message / platform tray above the view switch.
+import "./styles/composer.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

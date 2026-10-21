@@ -3,8 +3,9 @@ import { TourButton } from "../TourModal";
 
 // Toolbar on top, both views stacked in the stage (kept mounted so switching
 // never loses or regenerates content), view switch floating at the bottom
-// and the tour "?" in the bottom-right corner.
-export default function MainWorkspace({ toolbar, view, onViewChange, views, inert, onHelp }) {
+// with the message / platform tray just above it, and the tour "?" in the
+// bottom-right corner.
+export default function MainWorkspace({ toolbar, view, onViewChange, views, inert, onHelp, tray }) {
   return (
     <main className="workspace" inert={inert ? "" : undefined}>
       {toolbar}
@@ -22,6 +23,7 @@ export default function MainWorkspace({ toolbar, view, onViewChange, views, iner
             {views[v.key]}
           </section>
         ))}
+        {tray && <div className="ws-tray">{tray}</div>}
         <ViewSwitch view={view} onChange={onViewChange} />
         {onHelp && <TourButton onClick={onHelp} />}
       </div>

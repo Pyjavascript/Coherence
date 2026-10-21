@@ -4,7 +4,7 @@
 // chatbot. Every field is type-checked and length-capped first.
 import {
   AI_MODELS, DEFAULT_TIER, DEFAULT_BRAND, STYLE_PACKS, NODE_CATS, PLATFORMS,
-  WEBSITE_COMPONENTS, GRID_WEBSITE_COMPONENTS,
+  WEBSITE_COMPONENTS, GRID_WEBSITE_COMPONENTS, GEN_PLATFORMS, GEN_PLATFORMS_BY_KEY,
 } from "./constants.js";
 import { MAX_WORDS } from "./copyItems.js";
 import {
@@ -114,6 +114,10 @@ function cleanSource(input) {
   };
 }
 
+// The composer's picked platforms: known keys only, each once.
+const cleanPlatforms = (input) =>
+  [...new Set(list(input, GEN_PLATFORMS.length).filter((k) => typeof k === "string" && GEN_PLATFORMS_BY_KEY[k]))];
+
 const needsMessage = (ctx) => {
   if (!ctx.brand.message.trim()) throw new RequestError("Add a message to adapt first.");
 };
@@ -122,19 +126,20 @@ const needsMessage = (ctx) => {
 // credits = what the call costs: one per Quick Grid card, one for anything else.
 export function buildGeneration(type, body = {}) {
   const ctx = cleanCtx(body);
+  const platforms = cleanPlatforms(body.platforms);
   switch (type) {
     case "quick-grid": {
       needsMessage(ctx);
       const cards = cleanCards(body.cards);
       const n = int(body.variantCount, 1, MAX_GRID_VARIANTS, 1);
-      return { ctx, credits: cards.length, prompt: buildQuickGridPrompt(ctx, n, cards) };
+      return { ctx, credits: cards.length, prompt: buildQuickGridPrompt(ctx, n, cards, platforms) };
     }
     case "regenerate": {
       needsMessage(ctx);
       if (!GRID_MEDIA.includes(body.medium)) throw new RequestError("Unknown medium.");
       const card = { key: body.medium, medium: body.medium, settings: cleanGridSettings(body.settings, body.medium) };
       const n = int(body.variantCount, 1, MAX_GRID_VARIANTS, 1);
-      return { ctx, credits: 1, prompt: buildQuickGridPrompt(ctx, n, [card]) };
+      return { ctx, credits: 1, prompt: buildQuickGridPrompt(ctx, n, [card], platforms) };
     }
     case "node": {
       const node = cleanNode(body.node);
@@ -142,7 +147,7 @@ export function buildGeneration(type, body = {}) {
         .filter((l) => obj(l).variant)
         .map((l) => ({ label: str(l.label, 120), variant: cleanVariant(l.variant) }));
       const n = int(body.variantCount, 1, MAX_NODE_VARIANTS, 1);
-      return { ctx, credits: 1, prompt: buildNodePrompt(ctx, node, n, linked, cleanSource(body.source)) };
+      return { ctx, credits: 1, prompt: buildNodePrompt(ctx, node, n, linked, cleanSource(body.source), platforms) };
     }
     case "hook":
       return { ctx, credits: 1, prompt: buildHookPrompt(ctx, str(body.requirement, 2000)) };

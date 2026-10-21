@@ -5,6 +5,8 @@ import {
   NODE_CATS,
   WEBSITE_COMPONENTS,
   GRID_WEBSITE_COMPONENTS,
+  GEN_PLATFORMS,
+  platformsFor,
 } from "./constants.js";
 import { cardLimits } from "./copyItems.js";
 
@@ -106,6 +108,15 @@ function cardBrief(s = {}) {
   return lines.join("; ");
 }
 
+// How to write for the given platforms, or "" for none. One piece of copy
+// that serves several platforms has to work on all of them.
+function platformRules(picked) {
+  if (!picked.length) return "";
+  const all = picked.length === 2 ? "both" : `all ${picked.length}`;
+  const both = picked.length > 1 ? ` The same copy runs on ${all} platforms, so it must feel native on each.` : "";
+  return picked.map((p) => p.rules).join(" ") + both;
+}
+
 export const GRID_MEDIA = ["packaging", "marketing", "advertising", "website", "email"];
 
 const itemShape = (medium) =>
@@ -119,19 +130,24 @@ const itemShape = (medium) =>
 // the card's array in the answer ("website", or "website_2" for a second Website
 // card); settings = { words, brief, requirements, component, pointerCount }, with
 // missing fields using the medium's defaults. One card = a regenerate.
-export function buildQuickGridPrompt(ctx, n, cards) {
+// platforms = the composer's picked platform keys; each card is written for
+// the ones that cover its medium.
+export function buildQuickGridPrompt(ctx, n, cards, platforms = []) {
   const base = buildBasePrompt(ctx);
+  const rulesFor = (medium) => platformRules(platformsFor(platforms, "media", medium));
   if (cards.length === 1) {
     const [{ key, medium, settings }] = cards;
     const brief = cardBrief(settings);
+    const rules = rulesFor(medium);
     return `${base}
 Generate exactly ${n} distinct variant(s) for the ${medium} medium only — different angles, not synonyms.
 Return ONLY this JSON, no markdown fences: {"${key}":[${itemShape(medium)}]}  (array length ${n})
-Constraint: ${lengthSpec(medium, settings)}.${brief ? `\nInstructions for this ${medium} copy — ${brief}.` : ""}`;
+Constraint: ${lengthSpec(medium, settings)}.${rules ? `\nPlatform — write it natively for this: ${rules}` : ""}${brief ? `\nInstructions for this ${medium} copy — ${brief}.` : ""}`;
   }
   const label = ({ key, medium }) => (key === medium ? key : `${key} (${medium})`);
   const shared = cards.some((c, i) => cards.findIndex((o) => o.medium === c.medium) !== i);
   const briefs = cards.map((c) => [c, cardBrief(c.settings)]).filter(([, b]) => b);
+  const targeted = cards.map((c) => [c, rulesFor(c.medium)]).filter(([, r]) => r);
   return `${base}
 Generate exactly ${n} distinct variant(s) for every output below — different angles, not synonyms of each other.${shared
     ? "\nSome outputs share a medium (e.g. website and website_2): give each its own angle, never the same line twice."
@@ -139,14 +155,17 @@ Generate exactly ${n} distinct variant(s) for every output below — different a
 Return ONLY valid JSON, no markdown fences, an array of length ${n} for every key:
 {${cards.map((c) => `"${c.key}":[${itemShape(c.medium)}]`).join(",")}}
 Constraints:
-${cards.map((c) => `- ${label(c)}: ${lengthSpec(c.medium, c.settings)}`).join("\n")}${briefs.length
+${cards.map((c) => `- ${label(c)}: ${lengthSpec(c.medium, c.settings)}`).join("\n")}${targeted.length
+    ? `\nPlatform targeting (write each output natively for its platform):\n${targeted.map(([c, r]) => `- ${label(c)}: ${r}`).join("\n")}`
+    : ""}${briefs.length
     ? `\nPer-output instructions (follow them for that output only):\n${briefs.map(([c, b]) => `- ${label(c)}: ${b}`).join("\n")}`
     : ""}`;
 }
 
 // node = full node object; linkedNodes = [{label, variant}] (connected nodes that already have output)
 // source = {label, category, variant|null}: the node this one was just linked from, to adapt
-export function buildNodePrompt(ctx, node, vCount, linkedNodes = [], source = null) {
+// platforms = the composer's picked platform keys (a social node follows its own platform)
+export function buildNodePrompt(ctx, node, vCount, linkedNodes = [], source = null, platforms = []) {
   const c = clean(ctx);
   const cat = NODE_CATS[node.category];
   let p = `You are a brand language engine generating one specific content node inside a larger node-based content system. Keep this piece coherent with the brand's constant while doing its own specific job.
@@ -166,6 +185,10 @@ Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience
   p += `\n\nThis node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
 Target length: about ${node.words || 60} words for the body copy (soft target, stay within 20%).`;
+  const rules = platformRules(node.platform
+    ? GEN_PLATFORMS.filter((pl) => pl.label === node.platform)
+    : platformsFor(platforms, "nodes", node.category));
+  if (rules) p += `\nPlatform — write it natively for this: ${rules}`;
   if (t(node.requirements))
     p += `\nSpecific requirements for this node: ${t(node.requirements)}`;
 

@@ -116,9 +116,10 @@ const malformed = () => new AIError("The AI returned an unexpected format. Try a
 // cards = [{ key, medium, settings }], one per Quick Grid card. key names the
 // card's copy in the answer ("website", "website_2", ...); settings =
 // { words, brief, requirements, component, pointerCount }. Costs one credit per card.
+// platforms = the composer's picked platform keys (optional) to write for.
 // Returns { [key]: items[] }.
-export async function generateQuickGrid({ ctx, variantCount, tier, cards }) {
-  const data = await invoke("quick-grid", ctx, tier, { variantCount, cards });
+export async function generateQuickGrid({ ctx, variantCount, tier, cards, platforms }) {
+  const data = await invoke("quick-grid", ctx, tier, { variantCount, cards, platforms });
   const out = {};
   let any = false;
   cards.forEach(({ key, medium }) => {
@@ -130,16 +131,16 @@ export async function generateQuickGrid({ ctx, variantCount, tier, cards }) {
 }
 
 // Returns an array of items for one medium. settings = that card's settings (optional).
-export async function regenerateOutput({ ctx, medium, variantCount, tier, settings }) {
-  const data = await invoke("regenerate", ctx, tier, { medium, variantCount, settings });
+export async function regenerateOutput({ ctx, medium, variantCount, tier, settings, platforms }) {
+  const data = await invoke("regenerate", ctx, tier, { medium, variantCount, settings, platforms });
   const items = toItems(medium, data?.[medium]);
   if (!items.length) throw malformed();
   return items;
 }
 
 // Returns an array of variants: [{headline, body}] or [{pointers:[{title,detail}]}]
-export async function generateNode({ ctx, node, variantCount, linkedNodes, source, tier }) {
-  const data = await invoke("node", ctx, tier, { node, variantCount, linkedNodes, source });
+export async function generateNode({ ctx, node, variantCount, linkedNodes, source, tier, platforms }) {
+  const data = await invoke("node", ctx, tier, { node, variantCount, linkedNodes, source, platforms });
   const variants = normalizeVariants(data);
   if (!variants.length) throw malformed();
   return variants;

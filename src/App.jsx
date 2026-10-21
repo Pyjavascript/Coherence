@@ -13,6 +13,7 @@ import ProfileModal from "./components/ProfileModal";
 import UsageModal from "./components/UsageModal";
 import TourModal from "./components/TourModal";
 import CanvasViewport from "./components/CanvasViewport";
+import MessageComposer from "./components/MessageComposer";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightSidebar from "./components/layout/RightSidebar";
 import MainWorkspace from "./components/layout/MainWorkspace";
@@ -23,7 +24,7 @@ import { useAuth } from "./hooks/useAuth";
 import { generateHook } from "./services/ai";
 import { buildBrandBriefPrompt } from "./lib/prompts";
 import { isSupabaseConfigured } from "./lib/supabase";
-import { DEFAULT_TIER, MEDIA, MEDIA_BY_KEY, NODE_CATS, SAMPLE_BRAND } from "./lib/constants";
+import { DEFAULT_TIER, GEN_PLATFORMS_BY_KEY, MEDIA, MEDIA_BY_KEY, NODE_CATS, SAMPLE_BRAND } from "./lib/constants";
 import { gridToText, gridToCsv, downloadFile, fileSlug } from "./lib/exporters";
 import { hookQuotaFrom } from "./lib/hookQuota";
 import { nextCreditReset } from "./lib/usageActivity";
@@ -39,6 +40,17 @@ const STUDIO_ADD_OPTIONS = Object.entries(NODE_CATS)
 const TOUR_KEY = "coherence.tour.seen";
 const readTourSeen = () => {
   try { return localStorage.getItem(TOUR_KEY) === "1"; } catch { return false; }
+};
+
+// The composer's picked platforms are remembered per browser.
+const PLATFORMS_KEY = "coherence.platforms";
+const readPlatforms = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PLATFORMS_KEY) || "[]");
+    return Array.isArray(saved) ? saved.filter((k) => GEN_PLATFORMS_BY_KEY[k]) : [];
+  } catch {
+    return [];
+  }
 };
 
 export default function App() {
@@ -59,6 +71,7 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showUsage, setShowUsage] = useState(false);
   const [panelFocus, setPanelFocus] = useState(null); // { target, flag } — new object per request
+  const [platforms, setPlatformsState] = useState(readPlatforms);
   const hookQuota = hookQuotaFrom(usage.hooks);
   const [showTour, setShowTour] = useState(() => !readTourSeen());
 
@@ -113,12 +126,17 @@ export default function App() {
     setPanelFocus({ target, flag });
   }, [layout.open]);
 
+  const setPlatforms = (keys) => {
+    setPlatformsState(keys);
+    try { localStorage.setItem(PLATFORMS_KEY, JSON.stringify(keys)); } catch { /* not remembered */ }
+  };
+
   const handleGenerated = useCallback(() => {
     refreshUsage();
   }, [refreshUsage]);
 
   const quick = useQuickGrid({
-    ctx, brandId: ws.currentId, variantCount, tier, aiAvailable, setStatus, onGenerated: handleGenerated,
+    ctx, brandId: ws.currentId, variantCount, tier, platforms, aiAvailable, setStatus, onGenerated: handleGenerated,
     ensureAuth, onMissingMessage: () => focusPanelField("bp-message", true),
   });
 
@@ -302,14 +320,17 @@ export default function App() {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [ws.dirty]);
 
+  // Generate from the keyboard shortcut or the composer's send button.
+  const triggerGenerate = () => {
+    if (atGenLimit) return setStatus("Daily generation limit reached.", "warn");
+    if (!isGeneratingAll && !quick.busy) requireLogin(handleGenerate)();
+  };
+
   // Keyboard shortcuts: Ctrl/⌘+Enter generates, Ctrl/⌘+S saves the brand.
   const shortcutsRef = useRef(null);
   shortcutsRef.current = {
     blocked: Boolean(modal || confirm || showAuthModal || showProfile || showTour),
-    generate: () => {
-      if (atGenLimit) return setStatus("Daily generation limit reached.", "warn");
-      if (!isGeneratingAll && !quick.busy) requireLogin(handleGenerate)();
-    },
+    generate: triggerGenerate,
     save: () => { if (!ws.saving) requireLogin(handleSaveBrand)(); },
   };
   useEffect(() => {
@@ -351,7 +372,7 @@ export default function App() {
       <CanvasViewport>
         <NodeStudio
           ref={nodeStudioRef}
-          active={layout.view === "nodes"} ctx={ctx} variantCount={variantCount} tier={tier}
+          active={layout.view === "nodes"} ctx={ctx} variantCount={variantCount} tier={tier} platforms={platforms}
           aiAvailable={aiAvailable} setStatus={setStatus}
           onGenerated={handleGenerated}
           refreshUsage={refreshUsage}
@@ -406,6 +427,17 @@ export default function App() {
           onViewChange={layout.setView}
           views={views}
           onHelp={() => setShowTour(true)}
+          tray={
+            <MessageComposer
+              value={ws.brand.message}
+              onChange={(text) => ws.setField("message", text)}
+              platforms={platforms}
+              onPlatforms={setPlatforms}
+              view={layout.view}
+              onGenerate={triggerGenerate}
+              generating={isGeneratingAll || quick.busy}
+            />
+          }
           toolbar={
             <Header
               tier={tier}

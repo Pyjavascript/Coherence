@@ -31,6 +31,12 @@ const SlidersIcon = () => (
   </svg>
 );
 
+const CloseIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+    <path d="M7 7l10 10M17 7L7 17" />
+  </svg>
+);
+
 const MoreIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <circle cx="5.5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="18.5" cy="12" r="1.8" />
@@ -80,7 +86,7 @@ function MoreMenu({ label, onDuplicate, onDelete, disabled }) {
 
 export default function NodeActions({
   label, busy, canCopy, settingsOpen, customised, onToggleSettings,
-  regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete,
+  regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onClose,
 }) {
   const [copied, flashCopied] = useCopyFeedback();
 
@@ -137,6 +143,17 @@ export default function NodeActions({
         {copied ? <CheckIcon /> : <CopyIcon />}
       </button>
       <MoreMenu label={label} disabled={busy} onDuplicate={onDuplicate} onDelete={onDelete} />
+      {onClose && (
+        <button
+          type="button"
+          className="ncard-action ncard-close"
+          title={`Remove ${label}`}
+          aria-label={`Remove ${label}`}
+          onClick={onClose}
+        >
+          <CloseIcon />
+        </button>
+      )}
     </div>
   );
 }

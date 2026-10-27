@@ -24,7 +24,7 @@ import { useAuth } from "./hooks/useAuth";
 import { generateHook } from "./services/ai";
 import { buildBrandBriefPrompt } from "./lib/prompts";
 import { isSupabaseConfigured } from "./lib/supabase";
-import { DEFAULT_TIER, GEN_PLATFORMS_BY_KEY, MEDIA, MEDIA_BY_KEY, NODE_CATS, SAMPLE_BRAND } from "./lib/constants";
+import { DEFAULT_TIER, MEDIA, MEDIA_BY_KEY, NODE_CATS, SAMPLE_BRAND } from "./lib/constants";
 import { gridToText, gridToCsv, downloadFile, fileSlug } from "./lib/exporters";
 import { hookQuotaFrom } from "./lib/hookQuota";
 import { nextCreditReset } from "./lib/usageActivity";
@@ -42,16 +42,8 @@ const readTourSeen = () => {
   try { return localStorage.getItem(TOUR_KEY) === "1"; } catch { return false; }
 };
 
-// The composer's picked platforms are remembered per browser.
-const PLATFORMS_KEY = "coherence.platforms";
-const readPlatforms = () => {
-  try {
-    const saved = JSON.parse(localStorage.getItem(PLATFORMS_KEY) || "[]");
-    return Array.isArray(saved) ? saved.filter((k) => GEN_PLATFORMS_BY_KEY[k]) : [];
-  } catch {
-    return [];
-  }
-};
+// No platform picker: Generate always writes for every platform.
+const NO_PLATFORMS = [];
 
 export default function App() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -70,8 +62,9 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false); // false | "login" | "signup"
   const [showProfile, setShowProfile] = useState(false);
   const [showUsage, setShowUsage] = useState(false);
-  const [panelFocus, setPanelFocus] = useState(null); // { target, flag } — new object per request
-  const [platforms, setPlatformsState] = useState(readPlatforms);
+  const [panelFocus, setPanelFocus] = useState(null); // { target } — new object per request
+  const [composerFocus, setComposerFocus] = useState(null); // new object per request
+  const platforms = NO_PLATFORMS;
   const hookQuota = hookQuotaFrom(usage.hooks);
   const [showTour, setShowTour] = useState(() => !readTourSeen());
 
@@ -121,15 +114,13 @@ export default function App() {
     run();
   }, [user, showAuthModal]);
 
-  const focusPanelField = useCallback((target, flag = false) => {
+  const focusPanelField = useCallback((target) => {
     layout.open("right");
-    setPanelFocus({ target, flag });
+    setPanelFocus({ target });
   }, [layout.open]);
 
-  const setPlatforms = (keys) => {
-    setPlatformsState(keys);
-    try { localStorage.setItem(PLATFORMS_KEY, JSON.stringify(keys)); } catch { /* not remembered */ }
-  };
+  // Opens the message box at the bottom of the workspace, focuses it and flags it as missing.
+  const focusComposer = useCallback(() => setComposerFocus({}), []);
 
   const handleGenerated = useCallback(() => {
     refreshUsage();
@@ -137,7 +128,7 @@ export default function App() {
 
   const quick = useQuickGrid({
     ctx, brandId: ws.currentId, variantCount, tier, platforms, aiAvailable, setStatus, onGenerated: handleGenerated,
-    ensureAuth, onMissingMessage: () => focusPanelField("bp-message", true),
+    ensureAuth, onMissingMessage: focusComposer,
   });
 
   // Generate drives whichever view is active.
@@ -178,14 +169,11 @@ export default function App() {
     }
     if (!message) {
       setStatus("Add a message to adapt first.", "err");
-      focusPanelField("bp-message", true);
+      focusComposer();
       return false;
     }
     return true;
   };
-
-  // The grid holds one node per medium; it only offers mediums that aren't on it yet.
-  const quickAddOptions = QUICK_ADD_OPTIONS.filter((o) => !quick.cards[o.type]);
 
   const handleAddNode = (type) => {
     if (layout.view === "quick") quick.add(type);
@@ -361,9 +349,9 @@ export default function App() {
     setStatus("Sample brand loaded — press Generate to see it in action.", "ok");
   };
 
-  const generatingMediums = new Set(quick.nodes.map((n) => n.type)).size;
-  const generatingDetail = layout.view === "quick" && generatingMediums > 0
-    ? `${generatingMediums} medium${generatingMediums === 1 ? "" : "s"}`
+  const cardCount = quick.nodes.length;
+  const generatingDetail = layout.view === "quick" && cardCount > 0
+    ? `${cardCount} card${cardCount === 1 ? "" : "s"}`
     : "";
 
   const views = {
@@ -424,36 +412,31 @@ export default function App() {
         <MainWorkspace
           inert={Boolean(layout.drawer)}
           view={layout.view}
-          onViewChange={layout.setView}
           views={views}
           onHelp={() => setShowTour(true)}
           tray={
             <MessageComposer
               value={ws.brand.message}
               onChange={(text) => ws.setField("message", text)}
-              platforms={platforms}
-              onPlatforms={setPlatforms}
-              view={layout.view}
               onGenerate={triggerGenerate}
               generating={isGeneratingAll || quick.busy}
+              generatingDetail={generatingDetail}
+              atGenLimit={atGenLimit}
+              focusRequest={composerFocus}
             />
           }
           toolbar={
             <Header
               tier={tier}
               onTier={setTier}
-              onGenerate={requireLogin(handleGenerate)}
-              generating={isGeneratingAll || quick.busy}
-              generatingDetail={generatingDetail}
-              atGenLimit={atGenLimit}
-              onAtLimit={() => setStatus("Daily generation limit reached.", "warn")}
+              view={layout.view}
+              onViewChange={layout.setView}
               showExport={layout.view === "quick"}
               exportDisabled={!quick.hasCopy}
               onExport={handleExport}
-              addOptions={layout.view === "quick" ? quickAddOptions : STUDIO_ADD_OPTIONS}
-              addDisabledTitle={layout.view === "quick" ? "The grid already has every medium" : undefined}
+              addLabel={layout.view === "quick" ? "Add Grid" : "Add Node"}
+              addOptions={layout.view === "quick" ? QUICK_ADD_OPTIONS : STUDIO_ADD_OPTIONS}
               onAddNode={handleAddNode}
-              hideAdd={layout.view === "quick"}
               showNavToggle={layout.bp === "mobile"}
               navOpen={layout.leftOpen}
               onToggleNav={() => layout.toggle("left")}

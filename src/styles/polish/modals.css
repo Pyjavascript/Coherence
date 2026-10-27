@@ -111,6 +111,12 @@ html body .overlay .modal-head > button {
   border-radius: 50%;
   transform: none;
 }
+/* Press: shrink in place. Beats the old centred-header rule
+   (enhancements.css: translateY(-50%) scale(.94)), which made the icon jump
+   up by half its height on click. */
+html body .overlay .modal-head > button:active {
+  transform: scale(var(--pl-press-scale));
+}
 html body .overlay .coherence-header-actions {
   position: absolute;
   top: var(--md-close-inset);

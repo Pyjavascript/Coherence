@@ -3,7 +3,7 @@ import { Skeleton } from "./OutputCard";
 import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { timeUntilReset } from "../lib/hookQuota";
 import { describeError } from "../services/ai";
-import { EASE_OUT, reducedMotion } from "../lib/motion";
+import { EASE_INOUT, reducedMotion } from "../lib/motion";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -58,12 +58,13 @@ export function useDialogBehavior(onClose, focusRef) {
   }, [focusRef]);
 
   // Dialogs size to their content, and CSS can't tween between two
-  // `height: auto` values: when the height changes (e.g. a hook result lands),
-  // play the old height to the new one.
+  // `height: auto` values: when the height changes (e.g. a hook result or the
+  // history list lands), play the old height to the new one. The dialog is
+  // centred, so its top edge (and the close icon) moves by half the change:
+  // an in-out curve keeps that from shooting up.
   useEffect(() => {
     const shell = panelRef.current;
     if (!shell?.animate || typeof ResizeObserver === "undefined") return undefined;
-    const born = performance.now();
     let last = null;
     let anim = null;
     const ro = new ResizeObserver(() => {
@@ -76,14 +77,16 @@ export function useDialogBehavior(onClose, focusRef) {
         last = h;
         return;
       }
-      // Don't tween while the dialog is still entering, or for sub-pixel jitter.
-      if (last === null || performance.now() - born < 500 || Math.abs(h - last) < 2 || reducedMotion()) {
+      // The first size is the opening size; skip sub-pixel jitter too. Content
+      // that lands while the dialog is still entering tweens as well, rather
+      // than snapping.
+      if (last === null || Math.abs(h - last) < 2 || reducedMotion()) {
         last = h;
         return;
       }
       const from = last;
       last = h;
-      anim = shell.animate([{ height: `${from}px` }, { height: `${h}px` }], { duration: 320, easing: EASE_OUT });
+      anim = shell.animate([{ height: `${from}px` }, { height: `${h}px` }], { duration: 420, easing: EASE_INOUT });
       anim.onfinish = anim.oncancel = () => { anim = null; last = shell.offsetHeight; };
     });
     ro.observe(shell);

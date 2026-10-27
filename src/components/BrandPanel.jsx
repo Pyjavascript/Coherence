@@ -149,12 +149,10 @@ export default function BrandPanel({
 }) {
   // Advanced Behaviour (including the style pack) is Premium and starts collapsed.
   const [advOpen, setAdvOpen] = useState(false);
-  const [messageFlagged, setMessageFlagged] = useState(false);
   const [upsell, setUpsell] = useState(null); // { name, where: "advanced" }
   const fileInputRef = useRef(null);
   const bind = (k) => ({ value: brand[k] ?? "", onChange: (e) => onField(k, e.target.value) });
   const opts = (list) => list.map((option) => ({ value: option, label: option }));
-  const showMessageError = messageFlagged && !brand.message.trim();
   const advLocked = !premium;
   const lockAdvanced = () => setUpsell({ name: "Advanced behaviour", where: "advanced" });
 
@@ -168,16 +166,11 @@ export default function BrandPanel({
     }, delay);
   };
 
-  // App asks for a field (e.g. Generate without a message); wait for the panel to slide in.
+  // App asks for a field (e.g. Generate without a brand name); wait for the panel to slide in.
   useEffect(() => {
     if (!focusRequest) return;
-    if (focusRequest.flag) setMessageFlagged(true);
     focusTarget(focusRequest.target, 340);
   }, [focusRequest]);
-
-  useEffect(() => {
-    if (brand.message.trim()) setMessageFlagged(false);
-  }, [brand.message]);
 
   useEffect(() => {
     if (premium) setUpsell(null);
@@ -261,27 +254,6 @@ export default function BrandPanel({
           <div className="bp-field">
             <label className="bp-label" htmlFor="bp-belief">Core Belief</label>
             <textarea id="bp-belief" className="bp-textarea" rows={2} placeholder="e.g. Scent is memory, not marketing." {...bind("belief")} />
-          </div>
-          <div className="bp-field">
-            <div className="bp-label-row">
-              <label className="bp-label" htmlFor="bp-message">Message to adapt</label>
-              <span className="bp-tag bp-required">Required</span>
-            </div>
-            <textarea
-              id="bp-message"
-              className={"bp-textarea" + (showMessageError ? " is-invalid" : "")}
-              rows={2}
-              placeholder="e.g. Our new fragrance is built around bergamot, cedar and musk."
-              aria-required="true"
-              aria-invalid={showMessageError || undefined}
-              aria-describedby={showMessageError ? "bp-message-error" : undefined}
-              {...bind("message")}
-            />
-            {showMessageError && (
-              <p id="bp-message-error" className="bp-field-error">
-                Write a message to generate every format.
-              </p>
-            )}
           </div>
           <div className="bp-field">
             <div className="bp-label-row">

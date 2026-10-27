@@ -20,8 +20,10 @@ const StarIcon = ({ filled }) => (
 // banned = the brand's "Never use" list; the shown copy is checked against it.
 export default function NodeCard({
   node, meta, enterIndex = 0, skipped = false, banned, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
-  onWordsChange, onSetting,
+  onWordsChange, onSetting, onLabelChange,
 }) {
+  // The card's own title, or the medium's name while it's blank.
+  const title = node.label?.trim() || meta.label;
   const [idx, setIdx] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const [fresh, setFresh] = useState(false);
@@ -57,7 +59,7 @@ export default function NodeCard({
       data-skipped={skipped || undefined}
       data-pl-enter={entering || undefined}
       style={{ "--node-color": meta.color, "--pl-i": enterAt }}
-      aria-label={`${meta.label} node`}
+      aria-label={`${title} card`}
       onAnimationEnd={(e) => {
         if (e.target !== e.currentTarget) return;
         if (e.animationName === "ncard-in") setEntering(false);
@@ -66,6 +68,8 @@ export default function NodeCard({
     >
       <NodeHeader
         meta={meta}
+        label={node.label ?? meta.label}
+        onLabelChange={onLabelChange}
         meter={meter}
         limits={limits}
         custom={node.words != null}
@@ -79,7 +83,7 @@ export default function NodeCard({
         )}
       >
         <NodeActions
-          label={meta.label}
+          label={title}
           busy={busy}
           canCopy={canCopy}
           regenDisabled={regenDisabled || leaving}
@@ -89,6 +93,7 @@ export default function NodeCard({
           onCopy={() => onCopy([item.headline, item.sub].filter(Boolean).join("\n"))}
           onDuplicate={onDuplicate}
           onDelete={() => setLeaving(true)}
+          onClose={() => setLeaving(true)}
         />
       </NodeHeader>
       <NodeContent
@@ -103,7 +108,7 @@ export default function NodeCard({
       {!busy && item && <BannedCheck copy={item} banned={banned} className="ncard-banned" />}
       {!busy && node.items.length > 1 && (
         <div className="ncard-vtabs">
-          <div className="ncard-vtabs-list" role="tablist" aria-label={`${meta.label} variants`}>
+          <div className="ncard-vtabs-list" role="tablist" aria-label={`${title} variants`}>
             {node.items.map((_, i) => (
               <button
                 key={i}

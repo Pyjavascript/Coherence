@@ -1225,7 +1225,6 @@ body {
   padding: 10px clamp(12px, 1.2vw, 14px) 10px clamp(12px, 1.2vw, 14px);
   font-size: clamp(14px, 1.25vw, 16px);
   white-space: nowrap;
-  /* max-width + overflow let it collapse smoothly in Quick Grid (see .is-hidden). */
   max-width: 16rem;
   overflow: hidden;
   transition:
@@ -1233,34 +1232,12 @@ body {
     transform 120ms ease,
     opacity 220ms ease,
     scale var(--shell-dur) var(--shell-ease),
-    max-width var(--shell-dur) var(--shell-ease),
     padding var(--shell-dur) var(--shell-ease),
-    width var(--shell-dur) var(--shell-ease),
-    visibility 0s linear 0s;
-}
-
-/* Quick Grid has no free-form nodes: shrink and fade the button away, then
-   drop it from hit-testing / focus once the collapse finishes. */
-.ws-topbar .toolbar-add-node.is-hidden {
-  max-width: 0;
-  padding-inline: 0;
-  opacity: 0;
-  scale: 0.85;
-  visibility: hidden;
-  pointer-events: none;
-  transition:
-    background-color 180ms ease,
-    opacity 180ms ease,
-    scale var(--shell-dur) var(--shell-ease),
-    max-width var(--shell-dur) var(--shell-ease),
-    padding var(--shell-dur) var(--shell-ease),
-    width var(--shell-dur) var(--shell-ease),
-    visibility 0s linear var(--shell-dur);
+    width var(--shell-dur) var(--shell-ease);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ws-topbar .toolbar-add-node,
-  .ws-topbar .toolbar-add-node.is-hidden {
+  .ws-topbar .toolbar-add-node {
     transition: none;
   }
 }
@@ -1630,28 +1607,28 @@ body {
     visibility 0s;
 }
 
-/* View switch */
+/* View switch — the first control in the toolbar, before Add Node. The pill
+   is exactly toolbar height; its tabs sit inside the 4px padding. */
 .ws-switch {
-  position: absolute;
-  z-index: 15;
-  bottom: clamp(10px, 1.4vw, 35px);
-  left: 50%;
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  height: var(--tb-h);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 6px;
+  padding: 4px;
   background: #fff;
   border-radius: var(--r);
-  transform: translateX(-50%);
   isolation: isolate;
 }
 
 .ws-switch-thumb {
   position: absolute;
   z-index: -1;
-  top: 6px;
-  bottom: 6px;
-  left: 6px;
-  width: calc((100% - 12px) / 2);
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / 2);
   background: var(--shell-indigo);
   border-radius: var(--r);
   transform: translateX(calc(var(--i) * 100%));
@@ -1659,8 +1636,7 @@ body {
 }
 
 .ws-switch-btn {
-  /* Same height as the toolbar's Generate button, at every size. */
-  height: var(--tb-h);
+  height: 100%;
   min-height: 0;
   display: inline-flex;
   align-items: center;
@@ -1694,6 +1670,49 @@ body {
   outline-offset: 1px;
 }
 
+/* The toolbar fills up as the workspace narrows: first drop the icons... */
+@container ws (max-width: 1100px) {
+  .ws-switch-btn svg {
+    display: none;
+  }
+}
+
+/* ...then the names (each tab keeps its name as a label and tooltip)... */
+@container ws (max-width: 860px) {
+  .ws-switch-btn {
+    width: calc(var(--tb-h) - 8px);
+    padding: 0;
+  }
+
+  .ws-switch-btn > span {
+    display: none;
+  }
+
+  .ws-switch-btn svg {
+    display: block;
+    width: 55%;
+    height: 55%;
+  }
+}
+
+/* ...and on phones keep only the button for the other view, so one tap
+   switches; the thumb has nothing to slide between. */
+@container ws (max-width: 520px) {
+  .ws-switch {
+    grid-template-columns: 1fr;
+    padding: 0;
+  }
+
+  .ws-switch-thumb,
+  .ws-switch-btn.on {
+    display: none;
+  }
+
+  .ws-switch-btn {
+    width: var(--tb-h);
+  }
+}
+
 
 /* ==========================================================================
    Quick Grid — fills the stage; rows stretch to fit one screen
@@ -1706,7 +1725,9 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 clamp(12px, 1.6vw, 24px) clamp(12px, 1.6vw, 24px);
+  /* The bottom padding clears the message tray (its height is --tray-h, set by
+     MainWorkspace) so the last row of cards is never hidden under it. */
+  padding: 0 clamp(12px, 1.6vw, 24px) calc(var(--tray-h, 0px) + clamp(10px, 1.4vw, 22px) + clamp(12px, 1.6vw, 24px));
   background-image: radial-gradient(#fff 0.75px, transparent 0.9px);
   background-size: 18px 18px;
   background-attachment: local;
@@ -1717,7 +1738,10 @@ body {
   min-height: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-auto-rows: minmax(var(--row-min), 1fr);
+  /* --row-fit (QuickGrid.jsx) is the row height at which the default cards
+     fill the screen: rows never go below it, so extra cards scroll below
+     instead of squeezing the rest; with fewer cards, 1fr still fills it. */
+  grid-auto-rows: minmax(max(var(--row-min), var(--row-fit, 0px)), 1fr);
   grid-auto-flow: row dense;
   gap: clamp(10px, 1.1vw, 16px);
 }
@@ -1752,12 +1776,8 @@ body {
   }
 }
 
-/* Mobile: a plain scrolling column with room to clear the view switch. */
+/* Mobile: a plain scrolling column (the base padding clears the message tray). */
 @container ws (max-width: 639px) {
-  .qg {
-    padding-bottom: 92px;
-  }
-
   .qg-grid {
     min-height: 0;
     grid-auto-rows: minmax(var(--row-min), auto);
@@ -1850,6 +1870,47 @@ body {
   white-space: nowrap;
 }
 
+/* Editable card title: reads as the header text until hovered or focused.
+   The pill may shrink so a long title never pushes the actions out. The
+   input.ncard-title selectors outrank the app-wide input[type="text"] rules
+   (and enhancements.css's non-shrinking pill). */
+.ncard-head .ncard-pill:has(input.ncard-title) {
+  flex-shrink: 1;
+}
+
+.ncard .ncard-pill input.ncard-title {
+  width: auto;
+  min-width: 3ch;
+  max-width: 100%;
+  field-sizing: content;
+  min-height: 0;
+  margin: 0 0 0 -6px;
+  padding: 2px 6px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  outline: none;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: text;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.ncard .ncard-pill input.ncard-title:hover {
+  background: var(--shell-tint);
+}
+
+.ncard .ncard-pill input.ncard-title:focus {
+  outline: none;
+  background: var(--shell-tint);
+  box-shadow: inset 0 0 0 1.5px #8fa0ff;
+}
+
+.ncard .ncard-pill input.ncard-title::placeholder {
+  color: var(--shell-muted);
+}
+
 .ncard-dot {
   width: clamp(8px, 0.7vw, 11px);
   height: clamp(8px, 0.7vw, 11px);
@@ -1899,6 +1960,12 @@ body {
 
 .ncard-action:hover:not(:disabled) {
   background: var(--shell-tint-2);
+}
+
+/* × removes the card. */
+.ncard-action.ncard-close:hover:not(:disabled) {
+  color: #d13a3f;
+  background: #fdecec;
 }
 
 .ncard-action:active:not(:disabled) {
@@ -2118,7 +2185,7 @@ body {
 }
 
 /* Narrow workspace: stack the zoom controls vertically (+ on top, − below) in
-   the corner, so they clear the centred view switch instead of overlapping it.
+   the corner, so they take less room beside the message tray.
    Kept after the rule above, which would otherwise win. */
 @container ws (max-width: 640px) {
   .ws-view-nodes .canvas-controls {

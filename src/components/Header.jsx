@@ -1,8 +1,8 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { MODEL_OPTIONS } from "../lib/constants";
-import { shortcut } from "../lib/shortcuts";
 import { ChatGpt } from "../assets/globalAssets";
 import { ModelIcon } from "./ModelIcons";
+import ViewSwitch from "./layout/ViewSwitch";
 
 const ExportIcon = () => (
   <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -87,16 +87,16 @@ function ModelSelector({ tier, onTier }) {
     // Horizontal room: the workspace (or the viewport), less an 8px margin each side.
     const minX = Math.max(8, (surfaceRect?.left ?? 0) + 8);
     const maxX = Math.min(window.innerWidth - 8, (surfaceRect?.right ?? window.innerWidth) - 8);
-    // Span from the model button's left edge to the Generate button's right edge.
-    // On small toolbars that span is too narrow for the rows, so keep the menu's
-    // own width and line its right edge up with Generate's instead.
-    const generateRight = rootRef.current.parentElement?.querySelector(".toolbar-generate")?.getBoundingClientRect().right;
-    const spanWidth = generateRight ? generateRight - triggerRect.left : 0;
+    // Span from the model button's left edge to the end of the toolbar group.
+    // When that span is too narrow for the rows, keep the menu's own width and
+    // line its right edge up with the group's instead.
+    const endRight = rootRef.current.parentElement?.getBoundingClientRect().right;
+    const spanWidth = endRight ? endRight - triggerRect.left : 0;
     const spans = spanWidth >= MODEL_MENU_MIN_WIDTH;
     const wanted = spans ? spanWidth : menuRect.width;
     // Place it, slide left until it fits, and shrink if even that isn't enough.
     const width = Math.min(wanted, maxX - minX);
-    const preferredLeft = spans || !generateRight ? triggerRect.left : generateRight - width;
+    const preferredLeft = spans || !endRight ? triggerRect.left : endRight - width;
     const left = Math.max(minX, Math.min(preferredLeft, maxX - width));
     setPlacement({
       offset: Math.round(left - triggerRect.left),
@@ -232,38 +232,40 @@ const PanelIcon = () => (
   </svg>
 );
 
-// Workspace toolbar: Add Node (options depend on the active view), model
-// selector, Generate, and the panel / navigation toggles.
+// Workspace toolbar: the Quick Grid | Node Studio switch and Add Node (options
+// depend on the active view) on the left; export, model selector and the panel
+// toggle on the right. Generate lives in the message box at the bottom.
 export default function Header({
   tier,
   onTier,
-  onGenerate,
-  generating,
-  generatingDetail,
-  atGenLimit,
+  view,
+  onViewChange,
   showExport,
   exportDisabled,
   onExport,
+  addLabel = "Add Node",
   addOptions,
   addDisabledTitle,
   onAddNode,
-  hideAdd = false,
   showNavToggle,
   navOpen,
   onToggleNav,
   panelOpen,
   hidePanelToggle,
   onTogglePanel,
-  onAtLimit,
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const addMenuRef = useRef(null);
   const canAdd = addOptions.length > 0;
 
-  // Close the menu if the options run out or the button collapses away.
+  // Close the menu if the options run out or the view (and so its options) changes.
   useEffect(() => {
-    if (!canAdd || hideAdd) setAddMenuOpen(false);
-  }, [canAdd, hideAdd]);
+    if (!canAdd) setAddMenuOpen(false);
+  }, [canAdd]);
+
+  useEffect(() => {
+    setAddMenuOpen(false);
+  }, [view]);
 
   useEffect(() => {
     if (!addMenuOpen) return undefined;
@@ -293,26 +295,24 @@ export default function Header({
             <SidebarIcon />
           </button>
         )}
-        {/* Stays mounted when hidden so it can shrink away / grow back smoothly. */}
+        <ViewSwitch view={view} onChange={onViewChange} />
         <button
           type="button"
-          className={"toolbar-add-node" + (hideAdd ? " is-hidden" : "")}
-          inert={hideAdd ? "" : undefined}
-          aria-hidden={hideAdd || undefined}
+          className="toolbar-add-node"
           aria-haspopup="menu"
           aria-expanded={addMenuOpen}
-          aria-label="Add node"
+          aria-label={addLabel}
           disabled={!canAdd}
           title={canAdd ? undefined : addDisabledTitle}
           onClick={() => setAddMenuOpen((open) => !open)}
         >
-          <span className="toolbar-add-label"><span className="tb-label-full">Add Node</span><span className="tb-label-short">Add</span></span>
+          <span className="toolbar-add-label"><span className="tb-label-full">{addLabel}</span><span className="tb-label-short">Add</span></span>
           <span className="toolbar-add-spark" aria-hidden="true">
             <i>+</i><i>+</i><i>+</i><i>+</i>
           </span>
         </button>
-        {addMenuOpen && canAdd && !hideAdd && (
-          <div className="toolbar-node-menu" role="menu" aria-label="Add a node">
+        {addMenuOpen && canAdd && (
+          <div className="toolbar-node-menu" role="menu" aria-label={addLabel}>
             {addOptions.map((option) => (
               <button
                 type="button"
@@ -333,20 +333,6 @@ export default function Header({
       <div className="ws-topbar-end">
         {showExport && <ExportMenu disabled={exportDisabled} onExport={onExport} />}
         <ModelSelector tier={tier} onTier={onTier} />
-        <button
-          type="button"
-          className={"toolbar-generate" + (generating ? " is-busy" : "") + (atGenLimit ? " is-limited" : "")}
-          disabled={generating}
-          aria-busy={generating}
-          aria-disabled={atGenLimit || undefined}
-          title={atGenLimit ? "Daily generation limit reached" : `Generate (${shortcut("Enter")})`}
-          onClick={() => (atGenLimit ? onAtLimit?.() : onGenerate())}
-        >
-          {generating && <span className="toolbar-spinner" aria-hidden="true" />}
-          <span className="tb-label-full">{generating ? "Generating" : "Generate"}</span>
-          <span className="tb-label-short">{generating ? "…" : "Generate"}</span>
-          {generating && generatingDetail && <span className="toolbar-gen-detail">{generatingDetail}</span>}
-        </button>
         {/* The panel toggle: a navy rounded box at the end of the toolbar. */}
         <div className={"toolbar-panel-notch" + (hidePanelToggle ? " is-hidden" : "")}>
           <button

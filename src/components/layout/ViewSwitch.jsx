@@ -20,7 +20,9 @@ export const VIEWS = [
   { key: "nodes", label: "Node Studio", Icon: NodesIcon },
 ];
 
-// Segmented Quick Grid | Node Studio control with a sliding thumb.
+// Segmented Quick Grid | Node Studio control with a sliding thumb, at the start
+// of the toolbar. Narrow toolbars show only the icons (or, narrowest, only the
+// button for the other view), so each button carries its name as a label too.
 export default function ViewSwitch({ view, onChange }) {
   const index = Math.max(0, VIEWS.findIndex((v) => v.key === view));
   return (
@@ -34,6 +36,8 @@ export default function ViewSwitch({ view, onChange }) {
           id={`view-tab-${key}`}
           aria-selected={key === view}
           aria-controls={`view-${key}`}
+          aria-label={label}
+          title={label}
           className={"ws-switch-btn" + (key === view ? " on" : "")}
           onClick={() => onChange(key)}
         >

@@ -7,7 +7,8 @@ const ordered = (node) => {
   return [...items.filter((x) => x.fav), ...items.filter((x) => !x.fav)];
 };
 
-const labelOf = (node) => MEDIA_BY_KEY[node.type]?.label || node.type;
+// The card's own title, else its medium's name.
+const labelOf = (node) => node.label?.trim() || MEDIA_BY_KEY[node.type]?.label || node.type;
 
 export function gridToText(nodes, brandName) {
   const head = `${brandName || "Untitled brand"} — Coherence copy (${new Date().toLocaleDateString()})`;

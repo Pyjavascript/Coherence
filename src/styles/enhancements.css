@@ -1636,76 +1636,23 @@
   height: 20px;
 }
 
-/* Node Studio: sit just left of the zoom controls (they lift above the view switch
-   when narrow). Phones hide the zoom controls, so there it keeps the corner. */
+/* Node Studio: sit just left of the zoom controls. Phones hide the zoom
+   controls, so there it keeps the corner. */
 @container ws (min-width: 641px) {
   .app-shell:not([data-bp="mobile"]) .ws-stage[data-view="nodes"] .tour-launch {
     right: calc(clamp(10px, 1.4vw, 22px) + 132px);
   }
 }
 
-/* Narrow workspaces: the switch stays truly centred and the "?" keeps the
-   right corner, both on the same 12px bottom line. */
+/* Narrow workspaces: the "?" keeps the right corner, 12px in, lifted over the
+   message tray (composer.css). */
 @container ws (max-width: 400px) {
-  .ws-switch {
-    bottom: 12px;
-    padding: 5px;
-    scale: 1;
-    box-shadow: 0 5px 20px rgba(24, 38, 99, 0.14);
-  }
-
-  .ws-switch-thumb {
-    top: 5px;
-    bottom: 5px;
-    left: 5px;
-    width: calc((100% - 10px) / 2);
-  }
-
-  .ws-switch-btn {
-    font-size: 13px;
-  }
-
-  /* Same size as the switch pill (a Generate-height tab + 5px padding each
-     side) and on the same bottom line, so the two read as one row. */
   .tour-launch {
     right: 12px;
-    bottom: 12px;
-    width: calc(var(--tb-h) + 10px);
-    height: calc(var(--tb-h) + 10px);
-  }
-
-  .tour-launch svg {
-    width: 30px;
-    height: 30px;
-  }
-}
-
-
-.app-shell[data-bp="mobile"] .ws-switch-btn {
-  gap: 0;
-  padding: 0 18px;
-}
-
-.app-shell[data-bp="mobile"] .ws-switch-btn svg {
-  display: none;
-}
-
-
-@container ws (max-width: 350px) {
-  .ws-switch-btn {
-    font-size: 12px;
-  }
-
-  .app-shell[data-bp="mobile"] .ws-switch-btn {
-    padding: 0 12px;
   }
 }
 
 @container ws (max-width: 315px) {
-  .app-shell[data-bp="mobile"] .ws-switch-btn {
-    padding: 0 9px;
-  }
-
   .tour-launch {
     right: 10px;
   }

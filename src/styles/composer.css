@@ -1,23 +1,22 @@
 /* ==========================================================================
-   Message / platform tray — sits centred just above the view switch
-   (components/MessageComposer.jsx, placed by layout/MainWorkspace.jsx).
-   The switch, the "?" and the zoom controls keep their own positions.
+   Message tray — always open at the bottom centre of the stage
+   (components/MessageComposer.jsx, placed by layout/MainWorkspace.jsx, which
+   keeps its height in --tray-h). The "?" and Node Studio's zoom controls share
+   the bottom-right corner, so the tray stays clear of them while there is
+   room, and they lift above it once the workspace is narrow.
    ========================================================================== */
 
-.ws-stage {
-  /* Mirrors .ws-switch's bottom offset and height (layout.css). */
-  --switch-bottom: clamp(10px, 1.4vw, 35px);
-  --switch-h: calc(var(--tb-h) + 12px);
-}
-
-/* Floats over the grid / canvas: opening or collapsing it never moves the cards. */
+/* Floats over the grid / canvas. --tray-side is the room kept free on each
+   side (the tray stays centred, so both sides give it up). */
 .ws-tray {
+  --tray-side: 76px;
   position: absolute;
   z-index: 16;
-  bottom: calc(var(--switch-bottom) + var(--switch-h) + 8px);
+  bottom: clamp(10px, 1.4vw, 22px);
   left: 50%;
-  width: min(520px, calc(100% - 24px));
+  width: min(640px, calc(100% - 2 * var(--tray-side)));
   display: flex;
+  align-items: flex-end;
   justify-content: center;
   transform: translateX(-50%);
   pointer-events: none;
@@ -25,6 +24,26 @@
 
 .ws-tray > * {
   pointer-events: auto;
+}
+
+/* Node Studio's corner also holds the zoom controls, left of the "?". */
+@container ws (min-width: 761px) {
+  .app-shell:not([data-bp="mobile"]) .ws-stage[data-view="nodes"] .ws-tray {
+    --tray-side: 206px;
+  }
+}
+
+/* Narrow: the tray spans the stage and the corner controls sit above it. */
+@container ws (max-width: 760px) {
+  .ws-tray {
+    --tray-side: 12px;
+    bottom: 12px;
+  }
+
+  .ws-stage .tour-launch,
+  .ws-stage .ws-view-nodes .canvas-controls {
+    bottom: calc(var(--tray-h, 0px) + 22px);
+  }
 }
 
 /* Cards the picked platforms don't cover: Generate skips them. */
@@ -39,209 +58,132 @@
   filter: none;
 }
 
-/* ---------- Open tray ---------------------------------------------------- */
+/* ---------- Message box ------------------------------------------------- */
 
+/* The angle the rainbow ring is drawn from; registered so it can animate. */
+@property --mc-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* .mc is a 2px frame round the white .mc-surface: a soft white edge at rest,
+   blue while typing, red when the message is missing, and a turning pastel
+   rainbow (::before) with a blurred glow (::after) while generating. The
+   rainbow mixes light tints of the app's own blue and indigo
+   (--shell-blue #173cf5, --shell-indigo #2b2f8c) with soft pink, red, peach,
+   yellow, mint and aqua. The wide translucent halo sits outside it. */
 .mc {
+  --mc-rainbow: conic-gradient(
+    from var(--mc-angle),
+    #7d93ff,
+    #a99bff,
+    #8a8fe0,
+    #e7a3ff,
+    #ff9ecd,
+    #ff8f9a,
+    #ffb88a,
+    #ffe08a,
+    #9fe8b8,
+    #86dbe8,
+    #a7b9ff,
+    #7d93ff
+  );
+  position: relative;
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 6px;
   box-sizing: border-box;
-  background: #fff;
+  padding: 2px;
+  background: rgb(255 255 255 / 0.85);
   border-radius: var(--r);
-  box-shadow: 0 5px 20px rgba(24, 38, 99, 0.14);
+  box-shadow:
+    0 0 0 6px rgb(255 255 255 / 0.38),
+    0 24px 48px -18px rgba(23, 60, 245, 0.45),
+    0 4px 14px rgba(24, 38, 99, 0.08);
   font-family: "Manrope", system-ui, sans-serif;
+  transform-origin: bottom center;
   animation: mc-in var(--pl-d-3) var(--pl-ease-out) both;
+  transition: background-color 220ms ease, box-shadow 220ms ease;
 }
 
-.mc button:focus-visible,
-.mc-tab:focus-visible {
+.mc::before,
+.mc::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--mc-rainbow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease;
+  animation: mc-spin 2.4s linear infinite;
+  animation-play-state: paused;
+}
+
+.mc::before {
+  inset: 0;
+}
+
+.mc::after {
+  inset: 4px;
+  filter: blur(16px);
+}
+
+.mc:focus-within {
+  background: #a9b8ff;
+  box-shadow:
+    0 0 0 6px rgb(255 255 255 / 0.5),
+    0 26px 52px -18px rgba(23, 60, 245, 0.55),
+    0 4px 14px rgba(24, 38, 99, 0.08);
+}
+
+/* Generate was pressed without a message. */
+.mc.is-invalid {
+  background: #e5484d;
+}
+
+.mc.is-busy::before,
+.mc.is-busy::after {
+  animation-play-state: running;
+}
+
+.mc.is-busy::before {
+  opacity: 1;
+}
+
+/* Pastels are faint against white, so the glow is stronger than the ring. */
+.mc.is-busy::after {
+  opacity: 0.9;
+}
+
+/* Message and Generate side by side, Generate centred on the field as it
+   grows; the error (when shown) runs under both. */
+.mc-surface {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 10px 10px 18px;
+  background: #fff;
+  border-radius: calc(var(--r) - 2px);
+}
+
+.mc button:focus-visible {
   outline: 2px solid #8fa0ff;
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
-.mc-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 0 2px 0 8px;
-}
-
-.mc-head-title {
-  flex: none;
-  color: var(--shell-navy);
-  font-size: 12.5px;
-  font-weight: 800;
-}
-
-.mc-head-hint {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--shell-muted);
-  font-size: 11.5px;
-  font-weight: 500;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.mc-head-hint::before {
-  content: "· ";
-}
-
-/* One row that scrolls sideways (wheel, trackpad or swipe); the right edge
-   fades to show there are more. */
-.mc-chips {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 24px 2px 2px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-}
-
-.mc-chips::-webkit-scrollbar {
-  display: none;
-}
-
-.mc-chip {
-  --pc: var(--shell-indigo);
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  flex: none;
-  padding: 0 12px 0 4px;
-  color: var(--shell-ink);
-  background: #fff;
-  border: 1px solid var(--shell-tint-2);
-  border-radius: 999px;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background-color var(--pl-d-1) var(--pl-ease-out),
-    border-color var(--pl-d-1) var(--pl-ease-out),
-    color var(--pl-d-1) var(--pl-ease-out);
-}
-
-.mc-chip:hover {
-  background: color-mix(in srgb, var(--pc) 6%, #fff);
-  border-color: color-mix(in srgb, var(--pc) 35%, #fff);
-}
-
-.mc-chip.on {
-  background: color-mix(in srgb, var(--pc) 10%, #fff);
-  border-color: var(--pc);
-}
-
-.mc-chip:active {
-  transform: scale(var(--pl-press-scale));
-}
-
-/* Social / Google Ads: a round button with just the icon (name in the tooltip). */
-.mc-chip-icon {
-  width: 36px;
-  justify-content: center;
-  padding: 0;
-}
-
-.mc-all {
-  padding: 0 14px;
-  color: var(--shell-indigo);
-  font-weight: 700;
-}
-
-.mc-all.on {
-  color: #fff;
-  background: var(--shell-indigo);
-  border-color: var(--shell-indigo);
-}
-
-.mc-picon {
-  --pc: var(--shell-indigo);
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  flex: none;
-  color: #fff;
-  background: var(--pc);
-  border-radius: 50%;
-}
-
-.mc-picon[data-k="instagram"] {
-  background: radial-gradient(circle at 28% 108%, #fdd56b 0%, #fd5949 42%, #d6249f 62%, #4f5bd5 95%);
-}
-
-.mc-picon svg {
-  width: 13px;
-  height: 13px;
-}
-
-.mc-chip .mc-picon {
-  width: 28px;
-  height: 28px;
-}
-
-.mc-chip .mc-picon svg {
-  width: 16px;
-  height: 16px;
-}
-
-.mc-min-btn {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  flex: none;
-  margin-left: auto;
-  padding: 0;
-  color: var(--shell-muted);
-  background: #fff;
-  border: 0;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.mc-min-btn:hover {
-  color: var(--shell-indigo);
-  background: var(--shell-tint);
-}
-
-.mc-min-btn svg,
-.mc-tab svg {
-  width: 14px;
-  height: 14px;
-  flex: none;
-}
-
-/* ---------- Message input ------------------------------------------------ */
-
-.mc-field {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  padding: 4px 4px 4px 14px;
-  background: var(--shell-tint);
-  border-radius: calc(var(--r) - 6px);
-}
-
-/* .mc prefix beats the app-wide textarea / textarea:focus rules (index.css). */
+/* .mc prefix beats the app-wide textarea / textarea:focus rules (index.css).
+   16px text keeps phones from zooming in when the field is focused. */
 .mc .mc-input,
 .mc .mc-input:focus {
   box-sizing: border-box;
+  width: 100%;
   min-width: 0;
   min-height: 0;
-  max-height: 110px;
-  flex: 1;
-  padding: 9px 0;
+  max-height: 140px;
+  padding: 2px 6px 2px 0;
   overflow-y: auto;
   color: var(--shell-ink);
   background: transparent;
@@ -250,140 +192,161 @@
   outline: none;
   resize: none;
   font: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .mc .mc-input::placeholder {
-  color: var(--shell-muted);
+  color: #8e93ad;
 }
 
+.mc-error {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0 0 2px;
+  color: #d13a3f;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* Generate: a blue pill with a send arrow, as in the reference design. */
 .mc-send {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   flex: none;
-  padding: 0;
+  margin-left: auto;
+  padding: 0 18px 0 22px;
   color: #fff;
   background: var(--shell-blue);
   border: 0;
-  border-radius: 50%;
+  border-radius: 999px;
+  box-shadow:
+    0 12px 22px -10px rgba(23, 60, 245, 0.75),
+    inset 0 1px 0 rgb(255 255 255 / 0.2);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background-color var(--pl-d-1) var(--pl-ease-out), transform var(--pl-d-1) var(--pl-ease-out);
+  transition:
+    background-color var(--pl-d-2) var(--pl-ease-out),
+    transform var(--pl-d-1) var(--pl-ease-out),
+    box-shadow var(--pl-d-2) var(--pl-ease-out);
+}
+
+.mc-send svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  transition: translate var(--pl-d-2) var(--pl-ease-out);
 }
 
 .mc-send:hover:not(:disabled) {
   background: var(--shell-blue-hover);
+  transform: translateY(-1px);
+  box-shadow:
+    0 16px 26px -10px rgba(23, 60, 245, 0.85),
+    inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
+
+.mc-send:hover:not(:disabled) svg {
+  translate: 2px 0;
 }
 
 .mc-send:active:not(:disabled) {
-  transform: scale(var(--pl-press-scale-sm));
+  transform: translateY(0) scale(var(--pl-press-scale-sm));
 }
 
 .mc-send:disabled {
-  background: var(--shell-indigo);
   cursor: progress;
 }
 
-.mc-send svg {
-  width: 15px;
-  height: 15px;
+.mc-send-detail {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* Daily limit reached: muted, but it still says why when pressed. */
+.mc-send.is-limited {
+  filter: grayscale(0.6);
+  opacity: 0.6;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .mc-spinner {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
+  flex: none;
   border: 2px solid rgb(255 255 255 / 0.35);
   border-top-color: #fff;
   border-radius: 50%;
   animation: pl-spin 700ms linear infinite;
 }
 
-/* ---------- Minimized tab ------------------------------------------------ */
+/* Phones: a tighter box and an icon-only Generate pill. */
+@container ws (max-width: 520px) {
+  .mc-surface {
+    gap: 6px 8px;
+    padding: 8px 8px 8px 14px;
+  }
 
-.mc-tab {
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px 0 12px;
-  color: var(--shell-indigo);
-  background: #fff;
-  border: 0;
-  border-radius: 999px;
-  box-shadow: 0 5px 20px rgba(24, 38, 99, 0.14);
-  font-family: "Manrope", system-ui, sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  animation: mc-in var(--pl-d-3) var(--pl-ease-out) both;
-  transition: background-color var(--pl-d-1) var(--pl-ease-out);
+  .mc .mc-input,
+  .mc .mc-input:focus {
+    max-height: 104px;
+  }
+
+  .mc-send {
+    width: 64px;
+    height: 42px;
+    padding: 0;
+  }
+
+  .mc-send-label,
+  .mc-send-detail {
+    display: none;
+  }
 }
 
-.mc-tab:hover {
-  background: var(--shell-tint);
-}
-
-.mc-tab-icons {
-  display: inline-flex;
-  margin-left: -4px;
-}
-
-.mc-tab-icons .mc-picon {
-  width: 18px;
-  height: 18px;
-  box-shadow: 0 0 0 2px #fff;
-}
-
-.mc-tab-icons .mc-picon + .mc-picon {
-  margin-left: -6px;
-}
-
-.mc-tab-icons .mc-picon svg {
-  width: 11px;
-  height: 11px;
-}
-
-/* Real logo marks (after the size rules above, which they override). X is
-   white on black; Facebook's mark is itself the blue circle; Google Ads sits
-   on white. */
-.mc-picon[data-k="x"] svg {
-  width: 46%;
-  height: 46%;
-}
-
-.mc-picon[data-k="facebook"] {
-  background: #fff;
-}
-
-.mc-picon[data-k="facebook"] svg {
-  width: 100%;
-  height: 100%;
-}
-
-.mc-picon[data-k="google"] {
-  background: #fff;
-  box-shadow: inset 0 0 0 1px var(--shell-line);
-}
-
-.mc-picon[data-k="google"] svg {
-  width: 58%;
-  height: 58%;
-}
-
+/* Rises in from the bottom edge. */
 @keyframes mc-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(8px) scaleY(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-/* Narrow workspaces: the switch drops to 12px from the bottom with 5px padding
-   (enhancements.css), so the tray follows it. */
-@container ws (max-width: 400px) {
-  .ws-stage {
-    --switch-bottom: 12px;
-    --switch-h: calc(var(--tb-h) + 10px);
+@keyframes mc-spin {
+  to {
+    --mc-angle: 360deg;
+  }
+}
+
+/* Reduced motion: the rainbow still shows while generating, it just doesn't turn. */
+@media (prefers-reduced-motion: reduce) {
+  .mc::before,
+  .mc::after {
+    animation: none;
+  }
+
+  .mc-send,
+  .mc-send svg {
+    transition: none;
+  }
+
+  .mc-send:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .mc-send:hover:not(:disabled) svg {
+    translate: none;
   }
 }

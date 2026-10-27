@@ -1,7 +1,8 @@
 // Shared motion helpers for the polish layer (styles/polish). Easings match the
 // --pl-ease-* tokens in styles/polish/tokens.css.
 export const EASE_OUT = "cubic-bezier(.22, 1, .36, 1)";
-export const EASE_SPRING = "cubic-bezier(.34, 1.56, .64, 1)";
+export const EASE_INOUT = "cubic-bezier(.65, 0, .35, 1)";
+export const EASE_SPRING ="cubic-bezier(.34, 1.56, .64, 1)";
 
 export const reducedMotion = () =>
   typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);

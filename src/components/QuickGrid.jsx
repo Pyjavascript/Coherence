@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import NodeCard from "./nodes/NodeCard";
 import { MEDIA, MEDIA_BY_KEY, GEN_PLATFORMS_BY_KEY } from "../lib/constants";
 import { applyEdit, cardLimits, defaultWords, minWordsFor, MAX_WORDS } from "../lib/copyItems";
@@ -20,9 +20,11 @@ const settingsOf = (n) => ({
   words: n.words, brief: n.brief, requirements: n.requirements, component: n.component, pointerCount: n.pointerCount,
 });
 
+// `label` is the card's editable title; it starts as the medium's name.
 const createNode = (type, from) => ({
   id: uid(),
   type,
+  label: from?.label ?? MEDIA_BY_KEY[type]?.label ?? "",
   width: MEDIA_BY_KEY[type]?.full ? "full" : "half",
   status: from?.status === "ready" ? "ready" : "idle",
   items: from?.status === "ready" ? from.items : [],
@@ -33,6 +35,7 @@ const createNode = (type, from) => ({
   ...(from ? settingsOf(from) : {}),
 });
 const seedNodes = () => MEDIA.map((m) => createNode(m.key));
+const MAX_LABEL = 60;
 
 // A failed request keeps whatever copy the node already had.
 const failed = (n, message) => (n.items.length ? { ...n, status: "ready" } : { ...n, status: "error", message });
@@ -88,10 +91,8 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
       keyOf.set(n.id, count[n.type] === 1 ? n.type : `${n.type}_${count[n.type]}`);
     });
     const cards = targets.map((n) => ({ key: keyOf.get(n.id), medium: n.type, settings: settingsOf(n) }));
-    const credits = cards.length;
 
     setNodes((list) => list.map((n) => (ids.has(n.id) ? { ...n, status: "loading", message: "" } : n)));
-    setStatus(`Generating ${credits} card${credits === 1 ? "" : "s"} (${credits} credit${credits === 1 ? "" : "s"})...`);
     try {
       const data = await generateQuickGrid({ ctx, variantCount, tier, cards, platforms });
       const live = stillMine();
@@ -113,7 +114,6 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
         output: data[c.key],
       })));
       onGenerated({ type: "quick", medium: cards[0].medium });
-      setStatus(`Generated just now — ${credits} credit${credits === 1 ? "" : "s"} used.`, "ok");
     } catch (err) {
       const live = stillMine();
       setStatus(describeError(err), "err");
@@ -147,9 +147,9 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
     }
   };
 
+  // Any medium, as many times as wanted; repeats get their own copy on Generate.
   const add = (type) => {
-    // One node per medium: the grid can't grow past the default set.
-    if (!MEDIA_BY_KEY[type] || nodesRef.current.some((n) => n.type === type)) return;
+    if (!MEDIA_BY_KEY[type]) return;
     const node = createNode(type);
     setNodes((list) => [...list, node]);
     setLastAdded(node.id);
@@ -172,6 +172,11 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
   };
 
   const restoreDefaults = () => setNodes(seedNodes());
+
+  // The card's title, as typed (it may be blank while being edited).
+  const setLabel = (id, text) => {
+    setNodes((list) => list.map((n) => (n.id === id ? { ...n, label: text.slice(0, MAX_LABEL) } : n)));
+  };
 
   // Inline edit of one field of one variant; doesn't bump `version` so the copy doesn't re-animate.
   const editItem = (id, index, field, text) => {
@@ -239,13 +244,56 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
 
   return {
     nodes, cards, busy, lastAdded, hasCopy, targetMedia, banned: ctx.brand.banned,
-    generateAll, regenerate, add, duplicate, remove, restoreDefaults, editItem, setWords, setSetting, resetSettings, toggleFav, restore, setStatus,
+    generateAll, regenerate, add, duplicate, remove, restoreDefaults, setLabel, editItem, setWords, setSetting, resetSettings, toggleFav, restore, setStatus,
   };
 }
+
+// How many rows the default set of cards takes at `cols` columns, packed the
+// way the grid packs them (row dense). A full-width card spans the whole row,
+// except at three columns where it spans two (layout.css, .ncard.is-full).
+const defaultRows = (cols) => {
+  const used = [];
+  let rows = 0;
+  MEDIA.forEach((m) => {
+    const span = Math.min(cols, m.full ? (cols === 3 ? 2 : cols) : 1);
+    for (let r = 0; ; r += 1) {
+      used[r] = used[r] || Array(cols).fill(false);
+      const at = used[r].findIndex((_, c) => c + span <= cols && used[r].slice(c, c + span).every((taken) => !taken));
+      if (at === -1) continue;
+      for (let c = at; c < at + span; c += 1) used[r][c] = true;
+      rows = Math.max(rows, r + 1);
+      break;
+    }
+  });
+  return Math.max(1, rows);
+};
 
 export default function QuickGrid({ quick, atGenLimit }) {
   const gridRef = useRef(null);
   useFlip(gridRef, quick.nodes.map((n) => n.id).join("|"));
+
+  // The default cards fill one screen. --row-fit is that row height, so cards
+  // added beyond the default set keep it and continue below (the grid scrolls)
+  // instead of every row shrinking to make room.
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    const scroller = grid?.parentElement;
+    if (!grid || !scroller || typeof ResizeObserver === "undefined") return undefined;
+    const update = () => {
+      const gridStyle = getComputedStyle(grid);
+      const scrollStyle = getComputedStyle(scroller);
+      const cols = gridStyle.gridTemplateColumns.split(" ").filter(Boolean).length || 1;
+      const rows = defaultRows(cols);
+      const inner = scroller.clientHeight - parseFloat(scrollStyle.paddingTop) - parseFloat(scrollStyle.paddingBottom);
+      const gap = parseFloat(gridStyle.rowGap) || 0;
+      grid.style.setProperty("--row-fit", `${Math.max(0, Math.floor((inner - gap * (rows - 1)) / rows))}px`);
+    };
+    // The scroller's content box changes with the window, the panels and the
+    // message tray's height (its bottom padding), and so does the column count.
+    const observer = new ResizeObserver(update);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, []);
 
   // Cards on the grid when it first renders rise in one after another; a card
   // added later enters straight away.
@@ -259,7 +307,8 @@ export default function QuickGrid({ quick, atGenLimit }) {
     if (!scroller || !el) return;
     const box = scroller.getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    const below = r.bottom - (box.bottom - 80); // keep clear of the view switch
+    // The bottom padding is the room kept clear of the message tray.
+    const below = r.bottom - (box.bottom - parseFloat(getComputedStyle(scroller).paddingBottom));
     const above = r.top - box.top;
     if (below > 0) scroller.scrollBy({ top: Math.min(below, above), behavior: "smooth" });
     else if (above < 0) scroller.scrollBy({ top: above - 8, behavior: "smooth" });
@@ -280,9 +329,9 @@ export default function QuickGrid({ quick, atGenLimit }) {
     <div className="qg">
       {!quick.nodes.length && (
         <div className="qg-empty">
-          <h2>No nodes on the grid</h2>
-          <p>Use Add Node to place a medium, or bring back the default set.</p>
-          <button type="button" onClick={quick.restoreDefaults}>Restore default nodes</button>
+          <h2>No cards on the grid</h2>
+          <p>Use Add Grid to place a medium, or bring back the default set.</p>
+          <button type="button" onClick={quick.restoreDefaults}>Restore default cards</button>
         </div>
       )}
       <div className="qg-grid" ref={gridRef}>
@@ -294,6 +343,7 @@ export default function QuickGrid({ quick, atGenLimit }) {
             enterIndex={firstRender.current ? i : 0}
             skipped={Boolean(quick.targetMedia && !quick.targetMedia.has(n.type))}
             banned={quick.banned}
+            onLabelChange={(text) => quick.setLabel(n.id, text)}
             onEdit={(index, field, text) => quick.editItem(n.id, index, field, text)}
             onWordsChange={(value) => quick.setWords(n.id, value)}
             onSetting={(field, value) => quick.setSetting(n.id, field, value)}

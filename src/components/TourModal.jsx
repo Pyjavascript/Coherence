@@ -143,7 +143,7 @@ export const TOUR_STEPS = [
   },
   {
     title: "Start with your brand",
-    body: "Name your brand and write its message in the panel on the right.",
+    body: "Name your brand in the panel on the right, then write its message in the box at the bottom.",
     Art: ArtBrand,
   },
   {

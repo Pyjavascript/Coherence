@@ -868,7 +868,6 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     try {
       await runNode(id, opts);
       if (refreshUsage) refreshUsage();
-      setStatus("Node generated.", "ok");
     } catch (err) {
       setStatus(describeError(err), "err");
     }
@@ -890,7 +889,6 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     if (!targets.length) return setStatus("Add a job requirement (or a brand message) first.", "err");
 
     const total = targets.length;
-    setStatus(`Generating ${total} node${total === 1 ? "" : "s"}...`);
     let pending = targets.map((n) => n.id);
     let done = 0;
     let firstErr = null;
@@ -912,9 +910,10 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     }
     if (refreshUsage) refreshUsage();
 
+    // Only problems are reported: an error, or nodes left out for lack of a job.
     const skipNote = skipped ? ` ${skipped} skipped — no job requirement or brand message.` : "";
     if (firstErr) setStatus(`Generated ${done} of ${total} nodes. ${describeError(firstErr)}${skipNote}`, "err");
-    else setStatus(`Generated ${done} node${done === 1 ? "" : "s"}.${skipNote}`, skipped ? "warn" : "ok");
+    else if (skipped) setStatus(`Generated ${done} node${done === 1 ? "" : "s"}.${skipNote}`, "warn");
   };
 
   useImperativeHandle(ref, () => ({

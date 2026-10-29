@@ -152,7 +152,7 @@ export default function UsageModal({ userId, usage, plan = "Free", tier, onTier,
               <CreditLines total={LIMITS.generations} kinds={loading ? [] : lineKinds} loading={loading} />
             </div>
             {left === 0 && (
-              <p className="uc-note" role="status">You've used all of today's credits. Generation unlocks again when they reset.</p>
+              <p className="uc-note" role="status">You've used all of today's credits. Resets again tomorrow.</p>
             )}
 
             <div className="uc-legend">

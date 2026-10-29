@@ -84,10 +84,10 @@ function MoreMenu({ label, onDuplicate, onDelete, disabled }) {
   );
 }
 
-export default function NodeActions({
-  label, busy, canCopy, settingsOpen, customised, onToggleSettings,
-  regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onClose,
-}) {
+// Navy "Copy" button in the bottom-right corner of the card's copy box, the
+// header's × height (.ncard-action). A click copies and, for a moment, turns
+// the icon into a tick.
+export function CopyButton({ label, onCopy }) {
   const [copied, flashCopied] = useCopyFeedback();
 
   const copy = async (event) => {
@@ -101,6 +101,24 @@ export default function NodeActions({
     if (await onCopy()) flashCopied();
   };
 
+  return (
+    <button
+      type="button"
+      className={"ncard-action ncard-copy-btn" + (copied ? " is-copied" : "")}
+      title={copied ? "Copied" : `Copy ${label}`}
+      aria-label={copied ? `${label} copied` : `Copy ${label}`}
+      onClick={copy}
+    >
+      {copied ? <CheckIcon /> : <CopyIcon />}
+      <span>Copy</span>
+    </button>
+  );
+}
+
+export default function NodeActions({
+  label, busy, canRegenerate = true, settingsOpen, customised, onToggleSettings,
+  regenDisabled, regenTitle, onRegenerate, onBlocked, onDuplicate, onDelete, onClose,
+}) {
   return (
     <div className="ncard-actions">
       {onToggleSettings && (
@@ -118,9 +136,9 @@ export default function NodeActions({
       <button
         type="button"
         className={"ncard-action" + (busy ? " is-spinning" : "")}
-        title={regenTitle || `Regenerate ${label}`}
+        title={regenTitle || (canRegenerate ? `Regenerate ${label}` : "Generate copy first to regenerate it")}
         aria-label={`Regenerate ${label}`}
-        disabled={busy}
+        disabled={busy || !canRegenerate}
         aria-disabled={regenDisabled || undefined}
         onClick={() => {
           if (regenDisabled) {
@@ -132,17 +150,10 @@ export default function NodeActions({
       >
         <RegenIcon />
       </button>
-      <button
-        type="button"
-        className={"ncard-action" + (copied ? " is-copied" : "")}
-        title={copied ? "Copied" : `Copy ${label}`}
-        aria-label={copied ? `${label} copied` : `Copy ${label}`}
-        disabled={!canCopy}
-        onClick={copy}
-      >
-        {copied ? <CheckIcon /> : <CopyIcon />}
-      </button>
-      <MoreMenu label={label} disabled={busy} onDuplicate={onDuplicate} onDelete={onDelete} />
+      {/* MoreMenu's "⋯" button is switched off, and its empty wrapper still
+          took a flex slot, doubling the gap between regenerate and ×. Render
+          it again together with that button:
+          <MoreMenu label={label} disabled={busy} onDuplicate={onDuplicate} onDelete={onDelete} /> */}
       {onClose && (
         <button
           type="button"

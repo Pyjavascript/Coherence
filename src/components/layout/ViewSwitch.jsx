@@ -16,35 +16,42 @@ const NodesIcon = () => (
 );
 
 export const VIEWS = [
-  { key: "quick", label: "Quick Grid", Icon: GridIcon },
-  { key: "nodes", label: "Node Studio", Icon: NodesIcon },
+  { key: "quick", label: "Grid", Icon: GridIcon },
+  { key: "nodes", label: "Node", Icon: NodesIcon },
 ];
 
-// Segmented Quick Grid | Node Studio control with a sliding thumb, at the start
-// of the toolbar. Narrow toolbars show only the icons (or, narrowest, only the
-// button for the other view), so each button carries its name as a label too.
+// Grid | Node switch at the start of the toolbar: the current view's name on
+// the left, then an icon-only tab per view with a sliding thumb behind the
+// active one. Both names are stacked in one cell so the box never changes
+// width; each tab carries its name as a label and tooltip.
 export default function ViewSwitch({ view, onChange }) {
   const index = Math.max(0, VIEWS.findIndex((v) => v.key === view));
   return (
-    <div className="ws-switch" role="tablist" aria-label="Workspace view" style={{ "--i": index }}>
-      <span className="ws-switch-thumb" aria-hidden="true" />
-      {VIEWS.map(({ key, label, Icon }) => (
-        <button
-          key={key}
-          type="button"
-          role="tab"
-          id={`view-tab-${key}`}
-          aria-selected={key === view}
-          aria-controls={`view-${key}`}
-          aria-label={label}
-          title={label}
-          className={"ws-switch-btn" + (key === view ? " on" : "")}
-          onClick={() => onChange(key)}
-        >
-          <span>{label}</span>
-          <Icon />
-        </button>
-      ))}
+    <div className="ws-switch" style={{ "--i": index }}>
+      <span className="ws-switch-name" aria-hidden="true">
+        {VIEWS.map(({ key, label }) => (
+          <span key={key} data-on={key === view || undefined}>{label}</span>
+        ))}
+      </span>
+      <div className="ws-switch-tabs" role="tablist" aria-label="Workspace view">
+        <span className="ws-switch-thumb" aria-hidden="true" />
+        {VIEWS.map(({ key, label, Icon }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            id={`view-tab-${key}`}
+            aria-selected={key === view}
+            aria-controls={`view-${key}`}
+            aria-label={label}
+            title={label}
+            className={"ws-switch-btn" + (key === view ? " on" : "")}
+            onClick={() => onChange(key)}
+          >
+            <Icon />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

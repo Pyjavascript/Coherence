@@ -2,9 +2,9 @@ import { useCallback, useEffect, useReducer } from "react";
 import { useBreakpoint } from "./useBreakpoint";
 
 // Single source of truth for the shell: which panels are open and which view
-// is active. On desktop both side panels sit inline and are independent
-// (`leftOpen` / `rightOpen`, persisted). Below desktop they become drawers and
-// only one may be open at a time (`drawer`, never persisted).
+// is active. On desktop both side panels sit inline (`leftOpen` / `rightOpen`,
+// persisted). Below desktop they become drawers (`drawer`, never persisted).
+// Either way only one is open at a time: opening one collapses the other.
 const KEY = "coherence.ui.v1";
 const VIEWS = ["quick", "nodes"];
 const DEFAULTS = { leftOpen: false, rightOpen: false, view: "quick", drawer: null };
@@ -13,9 +13,10 @@ const DEFAULTS = { leftOpen: false, rightOpen: false, view: "quick", drawer: nul
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
+    // Saved before panels were exclusive, both may be open: keep the brand panel.
     return {
       ...DEFAULTS,
-      leftOpen: Boolean(raw.leftOpen),
+      leftOpen: Boolean(raw.leftOpen) && !raw.rightOpen,
       rightOpen: Boolean(raw.rightOpen),
     };
   } catch {
@@ -24,17 +25,26 @@ function load() {
 }
 
 const sideKey = (side) => (side === "left" ? "leftOpen" : "rightOpen");
+const otherKey = (side) => sideKey(side === "left" ? "right" : "left");
+
+// Inline panels: opening one closes the other; closing leaves the other alone.
+function setInline(state, side, open) {
+  if (state[sideKey(side)] === open && (!open || !state[otherKey(side)])) return state;
+  return open
+    ? { ...state, [sideKey(side)]: true, [otherKey(side)]: false }
+    : { ...state, [sideKey(side)]: false };
+}
 
 function reducer(state, action) {
   const { type, side, inline } = action;
   switch (type) {
     case "set": {
-      if (inline) return state[sideKey(side)] === action.open ? state : { ...state, [sideKey(side)]: action.open };
+      if (inline) return setInline(state, side, action.open);
       const drawer = action.open ? side : state.drawer === side ? null : state.drawer;
       return drawer === state.drawer ? state : { ...state, drawer };
     }
     case "toggle": {
-      if (inline) return { ...state, [sideKey(side)]: !state[sideKey(side)] };
+      if (inline) return setInline(state, side, !state[sideKey(side)]);
       return { ...state, drawer: state.drawer === side ? null : side };
     }
     case "closeDrawer":

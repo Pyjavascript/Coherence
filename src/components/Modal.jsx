@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Skeleton } from "./OutputCard";
 import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { timeUntilReset } from "../lib/hookQuota";
+import { brandPanelCopy, fill } from "../lib/brandPanelCopy";
 import { describeError } from "../services/ai";
 import { EASE_INOUT, reducedMotion } from "../lib/motion";
 
@@ -192,6 +193,8 @@ export function ConfirmModal({
   );
 }
 
+const { coherencePrompt, hookGenerator } = brandPanelCopy.popups;
+
 export function CoherenceModal({ text, onCopy, onClose }) {
   const [prompt, setPrompt] = useState(text);
   const [copied, flashCopied] = useCopyFeedback();
@@ -218,25 +221,25 @@ export function CoherenceModal({ text, onCopy, onClose }) {
         aria-describedby="coherence-description"
       >
         <header className="coherence-header">
-          <h2 id="coherence-title">Coherence Prompt</h2>
+          <h2 id="coherence-title">{coherencePrompt.title}</h2>
           <div className="coherence-header-actions">
-            <button className="coherence-close" type="button" aria-label="Close coherence prompt" onClick={onClose}><CloseBar /></button>
+            <button className="coherence-close" type="button" aria-label={`Close ${coherencePrompt.title.toLowerCase()}`} onClick={onClose}><CloseBar /></button>
           </div>
         </header>
         <div className="coherence-content" id="coherence-content">
           <p className="coherence-description" id="coherence-description">
-            Your brand controls as a ChatGPT prompt. Paste it in to get on-brand copy.
+            {coherencePrompt.body}
           </p>
           <div className="coherence-panel">
             <textarea
               className="coherence-prompt"
-              aria-label="Coherence prompt (editable)"
+              aria-label={`${coherencePrompt.title} (editable)`}
               spellCheck="false"
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
             />
             <button className="coherence-copy" type="button" onClick={copyPrompt}>
-              <span>{copied ? "Copied!" : "Copy Prompt"}</span>
+              <span>{copied ? coherencePrompt.buttonDone : coherencePrompt.button}</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="8.5" y="8.5" width="12" height="12" rx="3.5" />
                 <path d="M15.5 8.5V7a3.5 3.5 0 0 0-3.5-3.5H7A3.5 3.5 0 0 0 3.5 7v5A3.5 3.5 0 0 0 7 15.5h1.5" />
@@ -253,11 +256,11 @@ export function CoherenceModal({ text, onCopy, onClose }) {
 // write); the only action is Copy.
 export function HookModal({ aiAvailable, quota, onGenerate, onUsed, onCopy, onClose }) {
   const usedUp = Boolean(quota) && quota.left <= 0;
-  const usedUpText = () => `You've used today's free hook. The next one unlocks in ${timeUntilReset()}.`;
+  const usedUpText = () => fill(hookGenerator.usedUp, { time: timeUntilReset() });
   const [out, setOut] = useState(() => (usedUp
     ? { state: "msg", text: usedUpText() }
     : !aiAvailable
-      ? { state: "msg", text: "AI generation isn't available here." }
+      ? { state: "msg", text: hookGenerator.unavailable }
       : { state: "loading", text: "" }));
   const [copied, flashCopied] = useCopyFeedback();
   // One request per opening, even when StrictMode runs the effect twice.
@@ -279,7 +282,7 @@ export function HookModal({ aiAvailable, quota, onGenerate, onUsed, onCopy, onCl
             state: "msg",
             text: e?.code === "hook_limit" ? usedUpText()
               : e?.code === "limit_reached" ? describeError(e)
-              : "Couldn't generate a hook. Close and try again.",
+              : hookGenerator.failed,
           };
         }
         if (mounted.current) setOut(next);
@@ -293,12 +296,12 @@ export function HookModal({ aiAvailable, quota, onGenerate, onUsed, onCopy, onCl
   };
 
   return (
-    <Modal title="Hook Generator" onClose={onClose} modalClassName="hook-modal">
+    <Modal title={hookGenerator.title} onClose={onClose} modalClassName="hook-modal">
       <div className="hook-modal-content">
-        <p className="hook-description">A brand-aligned hook, written from your brand's message.</p>
+        <p className="hook-description">{hookGenerator.body}</p>
         <div className="hook-panel">
           <section className="hook-result" aria-live="polite" aria-busy={out.state === "loading"}>
-            <span className="hook-result-label">Your hook</span>
+            <span className="hook-result-label">{hookGenerator.label}</span>
             {out.state === "loading" && <Skeleton />}
             {out.state === "ready" && <div className="hook-result-text">{out.text}</div>}
             {out.state === "msg" && <div className="hook-result-message">{out.text}</div>}
@@ -309,7 +312,7 @@ export function HookModal({ aiAvailable, quota, onGenerate, onUsed, onCopy, onCl
             onClick={copyHook}
             disabled={out.state !== "ready"}
           >
-            {copied ? "Copied ✓" : "Copy hook"}
+            {copied ? hookGenerator.buttonDone : hookGenerator.button}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="8.5" y="8.5" width="12" height="12" rx="3.5" />
               <path d="M15.5 8.5V7a3.5 3.5 0 0 0-3.5-3.5H7A3.5 3.5 0 0 0 3.5 7v5A3.5 3.5 0 0 0 7 15.5h1.5" />

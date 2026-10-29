@@ -1,17 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Always-open box at the bottom centre of the stage: the brand's message to
-// adapt (the only place it is edited) with the Generate button beside it,
-// centred on the field, and the missing-message error below when there is one. While generating, a rainbow ring runs round the box.
+// adapt (the only place it is edited) with the round Generate arrow beside it,
+// and the missing-message error below when there is one. While generating, a
+// rainbow ring runs round the box.
 // A new focusRequest object (Generate without a message) focuses the message
 // and flags it.
 
 const MAX_MESSAGE = 2000; // the generate function's cap on brand.message
 
-const SendIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M3.7 3.05a.5.5 0 0 0-.68.63l2.84 7.62a2 2 0 0 1 0 1.4l-2.84 7.62a.5.5 0 0 0 .68.63l18-8.5a.5.5 0 0 0 0-.9z" />
-    <path d="M6 12h15.5" />
+const ArrowUpIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" />
   </svg>
 );
 
@@ -56,7 +56,7 @@ export default function MessageComposer({ value, onChange, onGenerate, generatin
           className="mc-input"
           rows={1}
           maxLength={MAX_MESSAGE}
-          placeholder="Type the message to adapt…"
+          placeholder="What do you want to generate?"
           aria-label="Message to adapt"
           aria-required="true"
           aria-invalid={showError || undefined}
@@ -65,19 +65,19 @@ export default function MessageComposer({ value, onChange, onGenerate, generatin
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
         />
+        {/* An arrow button; while generating the arrow becomes a pulsing
+            square, like ChatGPT's. Filled once there's a message. */}
         <button
           type="button"
-          className={"mc-send" + (atGenLimit ? " is-limited" : "")}
-          aria-label={generating ? "Generating" : "Generate"}
+          className={"mc-send" + (value.trim() ? " is-ready" : "") + (atGenLimit ? " is-limited" : "")}
+          aria-label={generating ? `Generating${generatingDetail ? ` ${generatingDetail}` : ""}` : "Generate"}
           title={atGenLimit ? "Daily generation limit reached" : generating ? "Generating…" : "Generate (Enter)"}
           aria-busy={generating || undefined}
           aria-disabled={atGenLimit || undefined}
           disabled={generating}
           onClick={onGenerate}
         >
-          <span className="mc-send-label">{generating ? "Generating" : "Generate"}</span>
-          {generating && generatingDetail && <span className="mc-send-detail">· {generatingDetail}</span>}
-          {generating ? <span className="mc-spinner" aria-hidden="true" /> : <SendIcon />}
+          {generating ? <span className="mc-stop" aria-hidden="true" /> : <ArrowUpIcon />}
         </button>
         {showError && (
           <p id="mc-message-error" className="mc-error">Write a message to generate every format.</p>

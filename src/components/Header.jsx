@@ -4,60 +4,6 @@ import { ChatGpt } from "../assets/globalAssets";
 import { ModelIcon } from "./ModelIcons";
 import ViewSwitch from "./layout/ViewSwitch";
 
-const ExportIcon = () => (
-  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M16 5v15M10 14l6 6 6-6M6 22v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3" />
-  </svg>
-);
-
-// Copy or download everything on the Quick Grid.
-function ExportMenu({ disabled, onExport }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
-
-  useEffect(() => {
-    if (disabled) setOpen(false);
-  }, [disabled]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (event) => { if (!rootRef.current?.contains(event.target)) setOpen(false); };
-    const onKey = (event) => { if (event.key === "Escape") setOpen(false); };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  const run = (kind) => () => { setOpen(false); onExport(kind); };
-
-  return (
-    <div className="toolbar-export" ref={rootRef}>
-      <button
-        type="button"
-        className={"toolbar-icon-btn" + (open ? " is-active" : "")}
-        aria-label="Export copy"
-        title={disabled ? "Generate copy first to export it" : "Export all copy"}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        disabled={disabled}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <ExportIcon />
-      </button>
-      {open && (
-        <div className="toolbar-export-menu" role="menu" aria-label="Export">
-          <button type="button" role="menuitem" onClick={run("copy")}>Copy all</button>
-          <button type="button" role="menuitem" onClick={run("txt")}>Download .txt</button>
-          <button type="button" role="menuitem" onClick={run("csv")}>Download .csv</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // Narrowest the model menu gets (it switches to compact rows below 260px, see
 // index.css). Narrower than this, as on phones, it keeps its own width instead.
 const MODEL_MENU_MIN_WIDTH = 200;
@@ -224,25 +170,26 @@ const SidebarIcon = () => (
   </svg>
 );
 
+// Drawn on Node Studio's "+" grid (22 units, 15-unit bars, 2.4 stroke) and
+// shown at the same share of its button, so the lines match that plus.
 const PanelIcon = () => (
-  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M6 8.5H26" />
-    <path d="M6 16H26" />
-    <path d="M6 23.5H26" />
+  <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+    <path d="M3.5 5.5h15" />
+    <path d="M3.5 11h15" />
+    <path d="M3.5 16.5h15" />
   </svg>
 );
 
-// Workspace toolbar: the Quick Grid | Node Studio switch and Add Node (options
-// depend on the active view) on the left; export, model selector and the panel
-// toggle on the right. Generate lives in the message box at the bottom.
+// Workspace toolbar: the Grid | Node switch and Add Node (options depend on the
+// active view) on the left; the model selector and the panel toggle on the
+// right. Generate lives in the message box at the bottom, Export at the bottom
+// of the brand panel.
 export default function Header({
   tier,
   onTier,
   view,
   onViewChange,
-  showExport,
-  exportDisabled,
-  onExport,
+  // Add is icon-only; the label is its accessible name and the menu's.
   addLabel = "Add Node",
   addOptions,
   addDisabledTitle,
@@ -306,7 +253,6 @@ export default function Header({
           title={canAdd ? undefined : addDisabledTitle}
           onClick={() => setAddMenuOpen((open) => !open)}
         >
-          <span className="toolbar-add-label"><span className="tb-label-full">{addLabel}</span><span className="tb-label-short">Add</span></span>
           <span className="toolbar-add-spark" aria-hidden="true">
             <i>+</i><i>+</i><i>+</i><i>+</i>
           </span>
@@ -331,7 +277,6 @@ export default function Header({
         )}
       </div>
       <div className="ws-topbar-end">
-        {showExport && <ExportMenu disabled={exportDisabled} onExport={onExport} />}
         <ModelSelector tier={tier} onTier={onTier} />
         {/* The panel toggle: a navy rounded box at the end of the toolbar. */}
         <div className={"toolbar-panel-notch" + (hidePanelToggle ? " is-hidden" : "")}>

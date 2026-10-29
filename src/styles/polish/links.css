@@ -129,7 +129,7 @@ html body .ws-view-nodes .sn-node[data-pl-drop=no] { outline-color: var(--pl-lin
   color: var(--shell-ink, #0c174f);
   background: #fff;
   border: 1px solid #dfe3f2;
-  border-radius: 999px;
+  border-radius: calc(30px * var(--ui-ratio));
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -157,7 +157,7 @@ html body .ws-view-nodes .sn-node[data-pl-drop=no] { outline-color: var(--pl-lin
   flex: none;
   color: var(--pl-link-danger);
   background: #fff0f1;
-  border-radius: 50%;
+  border-radius: calc(20px * var(--ui-ratio-sm));
   transition: background-color var(--pl-d-1, 120ms) ease, color var(--pl-d-1, 120ms) ease;
 }
 .pl-chip-x svg { width: 11px; height: 11px; }

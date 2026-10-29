@@ -27,6 +27,7 @@ import { isSupabaseConfigured } from "./lib/supabase";
 import { DEFAULT_TIER, MEDIA, MEDIA_BY_KEY, NODE_CATS, SAMPLE_BRAND } from "./lib/constants";
 import { gridToText, gridToCsv, downloadFile, fileSlug } from "./lib/exporters";
 import { hookQuotaFrom } from "./lib/hookQuota";
+import { brandPanelCopy, toast } from "./lib/brandPanelCopy";
 import { nextCreditReset } from "./lib/usageActivity";
 
 import host from "./hosts/browser";
@@ -114,10 +115,11 @@ export default function App() {
     run();
   }, [user, showAuthModal]);
 
+  // Points at a brand panel field without opening the panel: it focuses the
+  // field only when the panel is already open (the toast says what's missing).
   const focusPanelField = useCallback((target) => {
-    layout.open("right");
-    setPanelFocus({ target });
-  }, [layout.open]);
+    if (layout.rightOpen) setPanelFocus({ target });
+  }, [layout.rightOpen]);
 
   // Opens the message box at the bottom of the workspace, focuses it and flags it as missing.
   const focusComposer = useCallback(() => setComposerFocus({}), []);
@@ -126,9 +128,40 @@ export default function App() {
     refreshUsage();
   }, [refreshUsage]);
 
+  // Both views work for a brand. Adding a node needs one picked (saved, or a
+  // new one already started); generating also needs its name and message to
+  // adapt. Returns false after a toast says what's missing; it never opens a
+  // side panel by itself.
+  const ensureBrand = ({ generate = false } = {}) => {
+    const name = ws.brand.name.trim();
+    const message = ws.brand.message.trim();
+    // Generating with no message to adapt always goes to the message box first.
+    if (generate && !message) {
+      setStatus("Add a message to adapt first.", "err");
+      focusComposer();
+      return false;
+    }
+    if (!ws.currentId && !name && !message) {
+      if (ws.brands.length) {
+        setStatus("Select a brand first.", "err");
+      } else {
+        setStatus(...toast("needBrand"));
+        focusPanelField("bp-name");
+      }
+      return false;
+    }
+    if (!generate) return true;
+    if (!name) {
+      setStatus(...toast("needBrandName"));
+      focusPanelField("bp-name");
+      return false;
+    }
+    return true;
+  };
+
   const quick = useQuickGrid({
     ctx, brandId: ws.currentId, variantCount, tier, platforms, aiAvailable, setStatus, onGenerated: handleGenerated,
-    ensureAuth, onMissingMessage: focusComposer,
+    ensureAuth, ensureBrand,
   });
 
   // Generate drives whichever view is active.
@@ -145,36 +178,6 @@ export default function App() {
     }
   };
 
-  // Node Studio works for a brand. Adding a node needs one picked (saved, or a new
-  // one already started); generating also needs its name and message to adapt.
-  // Returns false after pointing at whatever is missing.
-  const ensureBrand = ({ generate = false } = {}) => {
-    const name = ws.brand.name.trim();
-    const message = ws.brand.message.trim();
-    if (!ws.currentId && !name && !message) {
-      if (ws.brands.length) {
-        setStatus("Select a brand first.", "err");
-        layout.open("left");
-      } else {
-        setStatus("Create a brand first.", "err");
-        focusPanelField("bp-name");
-      }
-      return false;
-    }
-    if (!generate) return true;
-    if (!name) {
-      setStatus("Add the brand name first.", "err");
-      focusPanelField("bp-name");
-      return false;
-    }
-    if (!message) {
-      setStatus("Add a message to adapt first.", "err");
-      focusComposer();
-      return false;
-    }
-    return true;
-  };
-
   const handleAddNode = (type) => {
     if (layout.view === "quick") quick.add(type);
     else nodeStudioRef.current?.addNode(type);
@@ -185,7 +188,7 @@ export default function App() {
     if (!ws.dirty) return proceed();
     setConfirm({
       title: "Discard unsaved changes?",
-      body: <><b>{ws.brand.name || "Untitled brand"}</b> has changes that haven't been saved.</>,
+      body: <><b>{ws.brand.name || "Untitled brand"}</b> has unsaved changes.</>,
       note: "They'll be lost if you continue.",
       icon: "warning",
       cancelLabel: "Keep editing",
@@ -216,13 +219,16 @@ export default function App() {
   };
 
   const handleDeleteBrand = () => {
-    if (!ws.currentId) return setStatus("This brand isn't saved yet — there's nothing to delete.", "warn");
+    if (!ws.currentId) return setStatus(...toast("deleteUnsaved"));
+    const { deleteBrand } = brandPanelCopy.popups;
+    const [before, after] = deleteBrand.body.split("{name}");
     setConfirm({
-      title: "Delete brand?",
-      body: <><b>{ws.brand.name || "Untitled brand"}</b>, its research notes and its generation history will be permanently deleted.</>,
-      note: "This can't be undone.",
+      title: deleteBrand.title,
+      body: <>{before}<b>{ws.brand.name || brandPanelCopy.header.untitled}</b>{after}</>,
+      note: deleteBrand.note,
       icon: "delete",
-      confirmLabel: "Delete brand",
+      cancelLabel: deleteBrand.cancel,
+      confirmLabel: deleteBrand.confirm,
       tone: "danger",
       onConfirm: async () => {
         await ws.remove();
@@ -237,7 +243,7 @@ export default function App() {
   };
 
   const onStylePack = (v) => {
-    if (v !== "classic" && !premium) { setStylePack("classic"); return setStatus("Unlock style packs with Premium.", "err"); }
+    if (v !== "classic" && !premium) { setStylePack("classic"); return setStatus(...toast("stylePackLocked")); }
     setStylePack(v);
   };
 
@@ -248,7 +254,7 @@ export default function App() {
 
   const copy = async (text, ok) => {
     if (!text) {
-      setStatus("Generate a hook first.", "err");
+      setStatus(...toast("hookEmpty"));
       return false;
     }
     try {
@@ -256,23 +262,23 @@ export default function App() {
       setStatus(ok, "ok");
       return true;
     } catch {
-      setStatus("Couldn't copy automatically — select the text and copy manually.", "err");
+      setStatus(...toast("copyBlocked"));
       return false;
     }
   };
 
   const handleExport = async (kind) => {
     const nodes = quick.nodes.filter((n) => n.items.length);
-    if (!nodes.length) return setStatus("Generate copy first, then export it.", "err");
+    if (!nodes.length) return setStatus(...toast("exportEmpty"));
     const name = ws.brand.name;
     if (kind === "copy") {
-      await copy(gridToText(nodes, name), `Copied ${nodes.length} medium${nodes.length === 1 ? "" : "s"} — paste anywhere.`);
+      await copy(gridToText(nodes, ctx), toast("copyAll", { n: nodes.length })[0]);
     } else if (kind === "txt") {
-      downloadFile(`${fileSlug(name)}.txt`, gridToText(nodes, name), "text/plain;charset=utf-8");
-      setStatus("Downloaded .txt file.", "ok");
+      downloadFile(`${fileSlug(name)}.txt`, gridToText(nodes, ctx), "text/plain;charset=utf-8");
+      setStatus(...toast("exportTxt"));
     } else if (kind === "csv") {
-      downloadFile(`${fileSlug(name)}.csv`, gridToCsv(nodes), "text/csv;charset=utf-8");
-      setStatus("Downloaded .csv file.", "ok");
+      downloadFile(`${fileSlug(name)}.csv`, gridToCsv(nodes, ctx), "text/csv;charset=utf-8");
+      setStatus(...toast("exportCsv"));
     }
   };
 
@@ -281,15 +287,15 @@ export default function App() {
   const handleRestore = (medium, items, input) => {
     const category = String(medium).startsWith("node-") ? medium.slice(5) : null;
     if (category) {
-      if (!nodeStudioRef.current?.restore(category, items, input)) return setStatus("That entry can't be restored to the studio.", "err");
+      if (!nodeStudioRef.current?.restore(category, items, input)) return setStatus(...toast("restoreStudioFailed"));
       layout.setView("nodes");
       setModal(null);
-      return setStatus(`${NODE_CATS[category]?.label || "Copy"} restored to Node Studio.`, "ok");
+      return setStatus(...toast("restoreStudio", { category: NODE_CATS[category]?.label || "Copy" }));
     }
-    if (!quick.restore(medium, items)) return setStatus("That entry can't be restored to the grid.", "err");
+    if (!quick.restore(medium, items)) return setStatus(...toast("restoreGridFailed"));
     layout.setView("quick");
     setModal(null);
-    setStatus(`${MEDIA_BY_KEY[medium]?.label || "Copy"} restored to the grid.`, "ok");
+    setStatus(...toast("restoreGrid", { medium: MEDIA_BY_KEY[medium]?.label || "Copy" }));
   };
 
   // Credits and the free hook reset at UTC midnight; reload usage then and
@@ -346,7 +352,7 @@ export default function App() {
   const loadSampleBrand = () => {
     ws.applyFields(SAMPLE_BRAND);
     layout.open("right");
-    setStatus("Sample brand loaded — press Generate to see it in action.", "ok");
+    setStatus(...toast("sampleLoaded"));
   };
 
   const cardCount = quick.nodes.length;
@@ -431,9 +437,6 @@ export default function App() {
               onTier={setTier}
               view={layout.view}
               onViewChange={layout.setView}
-              showExport={layout.view === "quick"}
-              exportDisabled={!quick.hasCopy}
-              onExport={handleExport}
               addLabel={layout.view === "quick" ? "Add Grid" : "Add Node"}
               addOptions={layout.view === "quick" ? QUICK_ADD_OPTIONS : STUDIO_ADD_OPTIONS}
               onAddNode={handleAddNode}
@@ -458,6 +461,8 @@ export default function App() {
             saving={ws.saving}
             focusRequest={panelFocus}
             hookQuota={premium ? null : hookQuota}
+            canExport={quick.hasCopy}
+            onExport={handleExport}
             onSave={requireLogin(handleSaveBrand)}
             onDelete={requireLogin(handleDeleteBrand)}
             onResearch={() => setModal("research")} onCoherence={() => setModal("coherence")} onHook={() => setModal("hook")}
@@ -514,8 +519,7 @@ export default function App() {
       {modal === "history" && (
         <HistoryModal
           brandId={ws.currentId}
-          brandName={ws.brand.name}
-          onCopy={(t) => copy(t, "Copied from history.")}
+          onCopy={(t) => copy(t, toast("historyCopied")[0])}
           onRestore={handleRestore}
           onClose={() => setModal(null)}
         />
@@ -524,7 +528,7 @@ export default function App() {
       {modal === "coherence" && (
         <CoherenceModal
           text={buildBrandBriefPrompt(ctx)}
-          onCopy={(t) => copy(t, "Prompt copied — paste it into ChatGPT or any other LLM.")}
+          onCopy={(t) => copy(t, toast("promptCopied")[0])}
           onClose={() => setModal(null)}
         />
       )}
@@ -535,7 +539,7 @@ export default function App() {
           quota={premium ? null : hookQuota}
           onGenerate={() => generateHook({ ctx, tier })}
           onUsed={refreshUsage}
-          onCopy={(t) => copy(t, "Hook copied.")}
+          onCopy={(t) => copy(t, toast("hookCopied")[0])}
           onClose={() => setModal(null)}
         />
       )}

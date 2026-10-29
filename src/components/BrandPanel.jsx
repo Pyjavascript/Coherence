@@ -3,16 +3,11 @@ import { useEffect, useState, useRef } from "react";
 import {
   INDUSTRY_LAYERS, STYLE_PACKS, FUNNEL_STAGES, TONE_MODES, AUDIENCES, EMOTIONS, FORMALITIES, CTA_LEVELS, LANGUAGES,
 } from "../lib/constants";
+import { toast } from "../lib/brandPanelCopy";
 import { resizeImageFile } from "../lib/image";
 import { shortcut } from "../lib/shortcuts";
 import { timeUntilReset } from "../lib/hookQuota";
-
-const LockIcon = ({ className }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect x="4.5" y="10" width="15" height="10" rx="2" />
-    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-  </svg>
-);
+import BrandSelect, { LockIcon } from "./Select";
 
 // Text input / textarea that is read-only behind a lock until Premium; any
 // attempt to use it calls onLocked instead.
@@ -33,122 +28,21 @@ function LockedField({ locked, onLocked, as: Tag = "input", className = "", ...p
   );
 }
 
-// premium: lock + centred value (Style & Output). locked: lock + left-aligned value;
-// the menu still opens so the options can be browsed, but picking one calls
-// onLocked instead of onChange (Advanced Behaviour).
-function BrandSelect({ value, onChange, options, label, premium = false, locked = false, onLocked }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
-  const triggerRef = useRef(null);
-  const optionRefs = useRef([]);
-  const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
-  const selected = options[selectedIndex];
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onPointerDown = (event) => {
-      if (!rootRef.current?.contains(event.target)) setOpen(false);
-    };
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") {
-        event.stopPropagation();
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (open) optionRefs.current[selectedIndex]?.focus();
-  }, [open, selectedIndex]);
-
-  const moveFocus = (event) => {
-    const currentIndex = optionRefs.current.indexOf(document.activeElement);
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      const direction = event.key === "ArrowDown" ? 1 : -1;
-      optionRefs.current[(currentIndex + direction + options.length) % options.length]?.focus();
-    } else if (event.key === "Home" || event.key === "End") {
-      event.preventDefault();
-      optionRefs.current[event.key === "Home" ? 0 : options.length - 1]?.focus();
-    } else if (event.key === "Tab") {
-      setOpen(false);
-    }
-  };
-
-  return (
-    <div className={"bp-dd" + (open ? " open" : "") + (premium ? " bp-dd-premium" : "") + (locked ? " bp-dd-locked" : "")} ref={rootRef}>
-      <button
-        type="button"
-        ref={triggerRef}
-        className="bp-dd-trigger"
-        aria-label={label}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => setOpen((isOpen) => !isOpen)}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown" && !open) {
-            event.preventDefault();
-            setOpen(true);
-          }
-        }}
-      >
-        {(premium || locked) && <LockIcon className="bp-dd-lock" />}
-        <span className="bp-dd-value">{selected?.label ?? value}</span>
-        <span className="bp-dd-chev" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m5 9 7 7 7-7" />
-          </svg>
-        </span>
-      </button>
-      {open && (
-        <ul className="bp-dd-menu" role="listbox" aria-label={label} onKeyDown={moveFocus}>
-          {options.map((option, index) => (
-            <li key={option.value} role="presentation">
-              <button
-                type="button"
-                ref={(element) => { optionRefs.current[index] = element; }}
-                className={"bp-dd-opt" + (option.value === value ? " selected" : "")}
-                role="option"
-                aria-selected={option.value === value}
-                onClick={() => {
-                  if (!locked) onChange(option.value);
-                  else if (option.value !== value) onLocked?.();
-                  setOpen(false);
-                  triggerRef.current?.focus();
-                }}
-              >
-                <span className="bp-dd-opt-label">
-                  {(option.locked || (locked && option.value !== value)) && <LockIcon className="bp-dd-opt-lock" />}
-                  <span>{option.label}</span>
-                </span>
-                {option.value === value && (
-                  <svg className="bp-dd-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m4.5 12.5 5 5L19.5 7" />
-                  </svg>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
+// Export formats for the Quick Grid's copy (App.jsx handleExport kinds).
+const EXPORT_OPTIONS = [
+  { value: "copy", label: "Copy all" },
+  { value: "txt", label: ".txt file" },
+  { value: "csv", label: ".csv file" },
+];
 
 export default function BrandPanel({
   brand, onField, stylePack, onStylePack, premium,
-  researchCount, isSaved, dirty, saving, focusRequest, hookQuota,
-  onSave, onDelete, onResearch, onCoherence, onHook, onHistory, onStatus, onClose,
+  researchCount, isSaved, dirty, saving, focusRequest, hookQuota, canExport,
+  onSave, onDelete, onResearch, onCoherence, onHook, onHistory, onExport, onStatus, onClose,
 }) {
   // Advanced Behaviour (including the style pack) is Premium and starts collapsed.
   const [advOpen, setAdvOpen] = useState(false);
+  const [exportKind, setExportKind] = useState("copy");
   const [upsell, setUpsell] = useState(null); // { name, where: "advanced" }
   const fileInputRef = useRef(null);
   const bind = (k) => ({ value: brand[k] ?? "", onChange: (e) => onField(k, e.target.value) });
@@ -183,7 +77,7 @@ export default function BrandPanel({
     try {
       onField("logo", await resizeImageFile(file));
     } catch {
-      onStatus?.("That file couldn't be read as an image. Try a PNG, JPG or SVG.", "err");
+      onStatus?.(...toast("imageUnreadable"));
     }
   };
 
@@ -221,7 +115,8 @@ export default function BrandPanel({
           type="button"
           className="rsb-history"
           aria-label="Generation history"
-          title={isSaved ? "Generation history" : "Generation history — save the brand to keep it"}
+          title={isSaved ? "Generation history" : "Save the brand to see its history"}
+          disabled={!isSaved}
           onClick={onHistory}
         >
           {/* A list of past entries with a clock: a log of what was generated. */}
@@ -334,7 +229,7 @@ export default function BrandPanel({
         </button>
         {advOpen && (
           <div className="bp-card bp-card-cream" id="bp-advanced">
-            
+
             <div className="bp-field">
               <label className="bp-label" htmlFor="bp-pain">Customer Pain Points</label>
               <LockedField locked={advLocked} onLocked={lockAdvanced} id="bp-pain" className="bp-input" type="text" placeholder="What's bothering them right before this moment?" {...bind("pain")} />
@@ -435,6 +330,28 @@ export default function BrandPanel({
             </div>
           </div>
           <button type="button" className="bp-gen-btn" onClick={onHook}>Generate</button>
+        </div>
+      </section>
+
+      {/* The Quick Grid's copy: pick a format, then copy it or download the file. */}
+      <section className="bp-section bp-export-section">
+        <h3 className="bp-section-title">Export</h3>
+        <div className="bp-card">
+          <div className="bp-export-row">
+            <BrandSelect label="Export format" value={exportKind} onChange={setExportKind} options={EXPORT_OPTIONS} />
+            <button
+              type="button"
+              className="bp-copy bp-export-btn"
+              title={canExport ? "Export the Quick Grid's copy" : "Generate copy on the Quick Grid first to export it"}
+              disabled={!canExport}
+              onClick={() => onExport(exportKind)}
+            >
+              Export
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-2" />
+              </svg>
+            </button>
+          </div>
         </div>
       </section>
     </div>

@@ -639,6 +639,290 @@
   flex: none;
 }
 
+/* ---------- Node card: settings menu (the arrow beside the title) ---------- */
+
+/* Each card is its own stacking context, so the card with the open menu is
+   lifted above the cards after it. */
+.ncard:has(.ncard-sheet) {
+  position: relative;
+  z-index: 20;
+}
+
+/* The panel anchors to the header, so it opens under the title at any width. */
+.ncard-head {
+  position: relative;
+}
+
+.ncard-sheet-root {
+  flex: none;
+  display: flex;
+}
+
+/* Sits right after the title, as a tile like the card's action buttons. */
+.ncard-sheet-trigger {
+  --sz: clamp(30px, calc(var(--pl-u, 3.6px) * 8.4), 40px);
+  position: relative;
+  width: var(--sz);
+  height: var(--sz);
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin-left: calc(10px - var(--ncard-head-gap, 12px));
+  padding: 0;
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border: 0;
+  border-radius: calc(var(--sz) * var(--ui-ratio-sm));
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.ncard-sheet-trigger svg {
+  width: 46%;
+  height: 46%;
+  transition: transform 220ms var(--shell-ease);
+}
+
+.ncard-sheet-trigger:hover,
+.ncard-sheet-trigger.is-open {
+  background: var(--shell-tint-2);
+}
+
+.ncard-sheet-trigger.is-open svg {
+  transform: rotate(180deg);
+}
+
+.ncard-sheet-trigger:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
+/* --sheet-fs: text size, scaled with the card like the card's own copy, so it
+   stays small on phones. */
+.ncard-sheet {
+  --sheet-fs: clamp(12px, calc(var(--pl-u, 3.6px) * 3.2), 13.5px);
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  left: 0;
+  box-sizing: border-box;
+  width: min(100%, 360px);
+  max-height: min(60vh, 380px);
+  overflow-y: auto;
+  padding: 8px;
+  background: #fff;
+  border: 0;
+  border-radius: var(--ui-r);
+  box-shadow: var(--pl-shadow-3, 0 10px 28px rgba(10, 20, 80, 0.14));
+  transform-origin: top left;
+  animation: model-menu-pop var(--pl-d-3, 240ms) var(--pl-ease-spring, var(--shell-ease)) both;
+}
+
+.ncard-sheet-list,
+.ncard-sheet-edit {
+  display: grid;
+  gap: 2px;
+}
+
+.ncard-sheet-edit {
+  gap: 8px;
+  animation: ncard-content-in 200ms var(--shell-ease) both;
+}
+
+.ncard-sheet-item {
+  --sz: 40px;
+  width: 100%;
+  min-height: var(--sz);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--sz) * var(--ui-ratio));
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--sheet-fs);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.ncard-sheet-item:hover,
+.ncard-sheet-item:focus-visible,
+.ncard-sheet-item[aria-checked="true"] {
+  background: var(--shell-tint);
+  outline: none;
+}
+
+.ncard-sheet-label {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* The current value, cut short; the arrow stays at the end. */
+.ncard-sheet-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--shell-muted);
+  font-weight: 500;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ncard-sheet-item.is-set .ncard-sheet-value {
+  color: var(--shell-ink);
+}
+
+.ncard-sheet-arrow,
+.ncard-sheet-check {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-left: auto;
+}
+
+.ncard-sheet-arrow {
+  color: var(--shell-muted);
+}
+
+.ncard-sheet-head {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--shell-ink);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: var(--sheet-fs);
+  font-weight: 700;
+}
+
+.ncard-sheet-back {
+  --sz: 32px;
+  width: var(--sz);
+  height: var(--sz);
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--sz) * var(--ui-ratio-sm));
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.ncard-sheet-back svg {
+  width: 55%;
+  height: 55%;
+}
+
+.ncard-sheet-back:hover,
+.ncard-sheet-back:focus-visible {
+  background: var(--shell-tint);
+  outline: none;
+}
+
+.ncard .ncard-sheet-input {
+  --sz: 42px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--sz);
+  margin: 0;
+  padding: 10px 14px;
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border: 0;
+  border-radius: calc(var(--sz) * var(--ui-ratio));
+  box-shadow: none;
+  font: inherit;
+  font-size: var(--sheet-fs);
+  resize: vertical;
+}
+
+/* Hover and focus keep the same tint: no darker fill, no coloured border. */
+.ncard .ncard-sheet-input:hover,
+.ncard .ncard-sheet-input:focus {
+  background: var(--shell-tint);
+  box-shadow: none;
+  outline: none;
+}
+
+/* Number box: the browser's spin arrows (white, unstylable) are hidden and
+   replaced by two small arrows on the box's own tint. */
+.ncard-sheet-number {
+  position: relative;
+}
+
+.ncard .ncard-sheet-number .ncard-sheet-input {
+  padding-right: 40px;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.ncard-sheet-number .ncard-sheet-input::-webkit-outer-spin-button,
+.ncard-sheet-number .ncard-sheet-input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.ncard-sheet-steps {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  transform: translateY(-50%);
+}
+
+.ncard-sheet-steps button {
+  width: 24px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--shell-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.ncard-sheet-steps button:hover {
+  color: var(--shell-ink);
+  background: transparent;
+}
+
+.ncard-sheet-steps svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Touch: bigger tap targets. */
+@media (pointer: coarse) {
+  .ncard-sheet-item {
+    --sz: 44px;
+  }
+
+  .ncard-sheet-back {
+    --sz: 40px;
+  }
+}
+
+/* Narrow cards: the panel takes the card's width and drops the value previews. */
+@container ncard (max-width: 360px) {
+  .ncard-sheet {
+    width: 100%;
+  }
+
+  .ncard-sheet-value {
+    display: none;
+  }
+}
+
 /* ---------- Node card: settings (Node Studio's fields) ---------- */
 
 /* Replaces the copy in the same box, so the card keeps its size; scrolls if tall. */
@@ -1227,196 +1511,230 @@
   animation: confirm-in 260ms var(--shell-ease) both;
 }
 
+/* The illustration fills the space the copy leaves (the card's height is
+   fixed in polish/modals.css); its scene sits centred in it. */
 .tour-art {
   position: relative;
-  flex: none;
-  height: clamp(170px, 30vh, 214px);
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
   overflow: hidden;
-  
   background:
     radial-gradient(70% 90% at 50% 0%, rgba(23, 60, 245, 0.16) 0%, transparent 70%),
     linear-gradient(180deg, #dfe5ff 0%, #f3f6ff 58%, #fff 100%);
 }
-
-.tour-art > * {
-  position: absolute;
-  animation: tour-pop 420ms var(--shell-ease) both;
-  animation-delay: var(--d, 0ms);
-}
-
-.tour-art > :nth-child(2) { --d: 60ms; }
-.tour-art > :nth-child(3) { --d: 120ms; }
-.tour-art > :nth-child(4) { --d: 180ms; }
-.tour-art > :nth-child(5) { --d: 240ms; }
-.tour-art > :nth-child(6) { --d: 300ms; }
 
 /* Uses `translate`/`scale`, not `transform`, so inline positioning transforms survive. */
 @keyframes tour-pop {
   from { opacity: 0; translate: 0 10px; scale: 0.96; }
 }
 
-.tour-card {
+/* A scene is a small mock of the real screen at a fixed size, so every step
+   reads at the same scale. Type stays at 11px and up, every line fits on one
+   row, and each piece rises in one after another. */
+.tour-scene {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--shell-ink);
+  font-size: 12px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.tour-scene > * {
+  animation: tour-pop 420ms var(--shell-ease) both;
+  animation-delay: var(--d, 0ms);
+}
+
+.tour-scene > :nth-child(2) { --d: 70ms; }
+.tour-scene > :nth-child(3) { --d: 140ms; }
+.tour-scene > :nth-child(4) { --d: 210ms; }
+
+/* Phones: the same scene, a little smaller. */
+@media (max-width: 480px) {
+  .tour-scene { zoom: 0.88; }
+}
+
+/* White surfaces with one soft shadow. */
+.tour-panel,
+.tour-mini,
+.tour-node,
+.tour-composer,
+.tour-figma {
+  background: #fff;
+  border-radius: max(10px, calc(var(--ui-r) - 10px));
+  box-shadow: 0 10px 28px rgba(13, 20, 69, 0.1);
+}
+
+.tour-panel {
+  width: 200px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 12px 14px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 14px 34px rgba(13, 20, 69, 0.14);
+  padding: 14px;
 }
 
-.tour-card.is-navy {
-  align-items: center;
-  gap: 4px;
-  padding: 18px 14px;
-  color: #fff;
-  text-align: center;
-  background: linear-gradient(150deg, #1d2d9a 0%, #0a1450 100%);
-}
-
-.tour-card-kicker {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
-
-.tour-card strong {
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.tour-card-sub {
-  font-size: 10.5px;
-  opacity: 0.75;
-}
-
-.tour-chip,
-.tour-pill,
-.tour-zoom {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 11px;
-  color: var(--shell-ink);
-  background: #fff;
-  border-radius: 999px;
-  box-shadow: 0 8px 20px rgba(13, 20, 69, 0.1);
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.tour-chip b {
-  width: 7px;
-  height: 7px;
-  background: var(--c);
-  border-radius: 50%;
-}
-
-.tour-pill.is-blue {
-  color: #fff;
-  background: var(--shell-blue);
-}
-
-.tour-pill.is-soft {
-  color: #fff;
-  background: #0a1450;
-}
-
-.tour-kbd {
-  padding: 5px 9px;
-  color: var(--shell-ink);
-  background: #fff;
-  border: 1px solid #dfe3f2;
-  border-bottom-width: 2px;
-  border-radius: 8px;
-  font-size: 10.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.tour-field-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.tour-label {
   color: #70748d;
-  font-size: 9.5px;
-  font-weight: 600;
-}
-
-.tour-field-label em {
-  padding: 1px 6px;
-  color: var(--shell-blue);
-  background: #eef0ff;
-  border-radius: 999px;
-  font-size: 8.5px;
-  font-style: normal;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .tour-field {
-  padding: 7px 10px;
+  padding: 8px 10px;
   background: var(--shell-tint);
-  border-radius: 10px;
-  font-size: 11.5px;
+  border-radius: calc(32px * var(--ui-ratio-sm));
   font-weight: 600;
 }
 
-.tour-field.is-tall {
-  padding: 9px 10px;
+.tour-field + .tour-label {
+  margin-top: 4px;
 }
 
-.tour-lines {
-  width: 100%;
+.tour-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tour-tag {
+  padding: 5px 9px;
+  color: var(--shell-blue);
+  background: #eef1ff;
+  border-radius: calc(24px * var(--ui-ratio-sm));
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Step 1: the left rail's brand list beside the brand panel. */
+.tour-rail {
+  width: 116px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
+  padding: 12px 8px;
+  color: #fff;
+  background: var(--shell-navy);
+  border-radius: max(10px, calc(var(--ui-r) - 10px));
+  box-shadow: 0 10px 28px rgba(13, 20, 69, 0.18);
 }
 
-.tour-lines i {
-  display: block;
-  height: 5px;
-  background: #d9def3;
-  border-radius: 3px;
+.tour-rail-title {
+  margin: 0 6px 4px;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.6;
 }
 
-.tour-lines i:last-child:not(:first-child) {
-  width: 62%;
+.tour-rail-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border-radius: calc(32px * var(--ui-ratio-sm));
+  font-weight: 600;
+  opacity: 0.72;
+}
+
+.tour-rail-item.is-on {
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
+
+/* Logos in white, no tile: they read as part of the rail. */
+.tour-mark {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: #fff;
+}
+
+/* Step 2: the message box over a filled Quick Grid. */
+.tour-scene-grid {
+  width: 352px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.tour-composer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  font-weight: 500;
+}
+
+.tour-composer b {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 14px;
+  color: #fff;
+  background: var(--shell-navy);
+  border-radius: calc(30px * var(--ui-ratio-sm));
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .tour-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
 }
 
 .tour-mini,
 .tour-node {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 9px 10px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 10px 24px rgba(13, 20, 69, 0.1);
+  gap: 4px;
+  padding: 10px 12px;
 }
 
-.tour-mini span,
-.tour-node span {
-  font-size: 10px;
-  font-weight: 700;
+.tour-mini-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #70748d;
+  font-size: 11px;
+  font-weight: 500;
 }
 
-.tour-node {
-  border-left: 3px solid var(--shell-blue);
+.tour-mini-label i {
+  width: 7px;
+  height: 7px;
+  background: var(--c);
+  border-radius: 50%;
+}
+
+.tour-mini-copy {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Step 3: three linked nodes on the canvas. */
+.tour-scene-nodes {
+  width: 340px;
+  height: 160px;
+  display: block;
+}
+
+.tour-scene-nodes > .tour-node {
+  position: absolute;
+  width: 144px;
 }
 
 .tour-links {
+  position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 
 .tour-links path {
@@ -1424,51 +1742,70 @@
   stroke: #8fa0ff;
   stroke-width: 1.5;
   stroke-dasharray: 4 4;
-  vector-effect: non-scaling-stroke;
 }
 
-.tour-zoom {
-  gap: 9px;
-  font-size: 10.5px;
-}
-
-.tour-zoom b {
-  font-size: 13px;
-  font-weight: 500;
-}
-
+/* Step 4: the export menu, then the copy landing in a Figma layer. */
 .tour-export {
-  display: flex;
-  gap: 6px;
+  width: 150px;
+  gap: 4px;
 }
 
-.tour-export b {
-  padding: 6px 10px;
-  background: var(--shell-tint);
-  border-radius: 999px;
-  font-size: 11px;
+.tour-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: calc(32px * var(--ui-ratio-sm));
   font-weight: 600;
 }
 
-.tour-export b:first-child {
-  color: #fff;
-  background: var(--shell-blue);
+.tour-option.is-on {
+  background: var(--shell-tint);
 }
 
-/* Figma step: the logo on a white tile. */
+.tour-option i {
+  color: var(--shell-blue);
+  font-style: normal;
+}
+
+.tour-arrow {
+  width: 34px;
+  height: 14px;
+  flex: none;
+}
+
+.tour-arrow path {
+  fill: none;
+  stroke: #8fa0ff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .tour-figma {
-  width: 78px;
-  height: 78px;
-  display: grid;
-  place-items: center;
-  background: #fff;
-  border-radius: 22px;
-  box-shadow: 0 16px 36px rgba(13, 20, 69, 0.16);
+  width: 146px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
 }
 
-.tour-figma svg {
-  width: 30px;
-  height: 45px;
+.tour-figma-logo svg {
+  width: 16px;
+  height: 24px;
+}
+
+.tour-figma-layer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1.5px solid #0d99ff;
+  border-radius: calc(44px * var(--ui-ratio-sm));
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* All steps' copy stacks in one cell: the card takes the tallest step's height. */
@@ -1495,8 +1832,11 @@
   letter-spacing: -0.03em;
 }
 
+/* The description is a narrow, balanced block: two even lines on every step. */
 .tour-copy > p {
-  margin: 0;
+  max-width: 400px;
+  margin: 0 auto;
+  text-wrap: balance;
   color: #5d6280;
   font-size: 14.5px;
   line-height: 1.6;
@@ -3958,7 +4298,7 @@
   .research-modal,
   .coherence-modal,
   .tour,
-  .tour-art > *,
+  .tour-scene > *,
   .tour-copy[data-active="true"],
   .pv {
     animation: none;
@@ -4080,7 +4420,6 @@
 /* ---------- Solid: navy / indigo fill ---------- */
 
 .toolbar-icon-btn:hover,
-.ws-topbar .toolbar-add-node:hover,
 .sn-round.active:hover,
 .qg-empty button:hover,
 .ncard-retry:hover {
@@ -4094,13 +4433,15 @@
 .sn-add,
 .toolbar-node-menu button,
 .model-selector-trigger,
-.ws-topbar .model-selector-trigger {
+.ws-topbar .model-selector-trigger,
+.ws-topbar .toolbar-add-node {
   transition: var(--hover-transition), transform 120ms ease, scale var(--shell-dur) var(--shell-ease);
 }
 
 .sn-add:hover,
 .toolbar-node-menu button:hover,
-.model-selector-trigger:hover {
+.model-selector-trigger:hover,
+.ws-topbar .toolbar-add-node:hover:not([aria-expanded="true"]) {
   background: #fff;
   transform: none;
   scale: var(--hover-grow);
@@ -4111,10 +4452,11 @@
   box-shadow: 0 1px 2px rgba(10, 20, 80, 0.06), 0 4px 14px rgba(10, 20, 80, 0.06);
 }
 
-/* Node Studio's "+" fills with the Generate button's blue instead of growing. */
+/* Node Studio's "+" takes the same light hover fill as a card's collapse arrow
+   (.sn-toggle); the "+" itself stays navy. */
 .sn-add:hover {
-  color: #fff;
-  background: var(--shell-blue);
+  color: var(--shell-navy);
+  background: var(--hover-light);
   scale: none;
 }
 
@@ -4256,8 +4598,9 @@
   border-radius: 50%;
 }
 
-/* Collapsed rail: "+" washes like every other rail row. Open rail: it's a
-   white pill, so it hovers like any other white control. */
+/* Collapsed rail: "+" washes like every other rail row. Open rail: the white
+   box fades in on hover (layout.css). The selector outranks the generic rail
+   wash above. */
 .lnav[data-open="false"] .lnav-add:hover,
 .lnav[data-open="false"] .lnav-add:active {
   color: #fff;
@@ -4265,7 +4608,7 @@
 }
 
 .lnav[data-open="true"] .lnav-add:hover {
-  background: var(--hover-light);
+  background: #fff;
 }
 
 /* ---------- Danger ---------- */

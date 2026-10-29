@@ -40,11 +40,9 @@
   #root .ncard:not(.is-leaving):hover { box-shadow: var(--pl-shadow-2) !important; }
 }
 
-/* Soft node-tinted ring while editing copy or a settings field */
+/* Lifted while editing copy or a settings field (no coloured ring). */
 #root .ncard:has(.is-editable:focus, textarea:focus, input:focus, select:focus) {
-  box-shadow:
-    var(--pl-shadow-2),
-    0 0 0 3px color-mix(in srgb, var(--node-color, var(--shell-blue)) 16%, transparent) !important;
+  box-shadow: var(--pl-shadow-2) !important;
 }
 
 /* Category dot: gentle breathe only while the card is being edited */
@@ -106,6 +104,8 @@
   animation: model-menu-pop var(--pl-d-3) var(--pl-ease-spring) both;
 }
 #root .ncard-select-list { box-shadow: var(--pl-shadow-3) !important; }
+/* Card settings menu: no border, so the shadow is its edge. */
+#root .ncard-sheet { box-shadow: var(--pl-shadow-3) !important; }
 
 /* ---------- Card body: loading + new copy arriving ----------------------- */
 /* Skeleton: calmer, staggered sweep */
@@ -356,23 +356,28 @@ html body .model-selector-check { width: 14px; height: 14px; }
   --pl-u: calc(var(--pl-cardw) / 100);   /* 1% of a column */
   gap: clamp(10px, 1.6cqw, 18px);
 }
-.qg { padding-left: clamp(12px, 1.8cqw, 24px); padding-right: clamp(12px, 1.8cqw, 24px); }
+.qg { padding-left: var(--ws-gutter); padding-right: var(--ws-gutter); }
 
-html body .ncard-head { gap: clamp(8px, calc(var(--pl-u) * 3), 20px); padding-left: clamp(2px, calc(var(--pl-u) * 1.4), 6px); }
+html body .ncard-head { --ncard-head-gap: clamp(8px, calc(var(--pl-u) * 3), 20px); gap: var(--ncard-head-gap); padding-left: clamp(2px, calc(var(--pl-u) * 1.4), 6px); }
 html body .ncard-pill { font-size: clamp(13px, calc(var(--pl-u) * 3.7), 18px); gap: clamp(7px, calc(var(--pl-u) * 2.2), 12px); }
 html body .ncard-dot { width: clamp(8px, calc(var(--pl-u) * 2.2), 11px); height: clamp(8px, calc(var(--pl-u) * 2.2), 11px); }
 html body .ncard-actions { gap: clamp(5px, calc(var(--pl-u) * 1.6), 10px); }
-html body .ncard-action { width: clamp(30px, calc(var(--pl-u) * 8.4), 40px); height: clamp(30px, calc(var(--pl-u) * 8.4), 40px); }
+/* --ncard-act / --ncard-ctl: the sizes radius.css scales the corners from. */
+html body .ncard-action { --ncard-act: clamp(30px, calc(var(--pl-u) * 8.4), 40px); width: var(--ncard-act); height: var(--ncard-act); }
 
 html body .ncard-select-trigger {
-  height: clamp(28px, calc(var(--pl-u) * 7.4), 36px);
+  --ncard-ctl: clamp(28px, calc(var(--pl-u) * 7.4), 36px);
+  height: var(--ncard-ctl);
   font-size: clamp(10.5px, calc(var(--pl-u) * 2.9), 13px);
   padding: 0 clamp(9px, calc(var(--pl-u) * 2.6), 12px) 0 clamp(10px, calc(var(--pl-u) * 3), 14px);
 }
 html body .ncard-select-chevron { width: clamp(11px, calc(var(--pl-u) * 3), 13px); height: clamp(11px, calc(var(--pl-u) * 3), 13px); }
 
 html body .ncard-body {
-  padding: clamp(12px, calc(var(--pl-u) * 4.4), 26px) clamp(12px, calc(var(--pl-u) * 4.2), 24px);
+  /* Named so the Copy button can sit in the corner past them (layout.css). */
+  --ncard-pad-y: clamp(12px, calc(var(--pl-u) * 4.4), 26px);
+  --ncard-pad-x: clamp(12px, calc(var(--pl-u) * 4.2), 24px);
+  padding: var(--ncard-pad-y) var(--ncard-pad-x);
   font-size: clamp(12.5px, calc(var(--pl-u) * 3.3), 16px);
   line-height: 1.42;
 }

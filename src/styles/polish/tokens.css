@@ -39,6 +39,17 @@
 
   /* One radius for the whole app: 24px on desktop (~1000px+), fluid down to 14px on small phones */
   --ui-r: clamp(14px, 8px + 1.6vw, 24px);
+  /* Corner-to-height ratio of the toolbar's square buttons (24px on a ~58px
+     download button). Small controls scale their corners by it, so they read
+     as rounded squares instead of circles or pills. */
+  --ui-ratio: 0.42;
+  /* Small square buttons (~30-40px): at 0.42 they still read as circles, so
+     they take tighter corners to look like the download button. */
+  --ui-ratio-sm: 0.3;
+  --ui-icon-r: calc(var(--ui-icon) * var(--ui-ratio));
+  /* Node Studio's Generate button corner (47px tall). Every text button and
+     CTA in the popups uses exactly this. */
+  --btn-r: calc(47px * var(--ui-ratio));
   --pl-r-xs: var(--ui-r);
   --pl-r-sm: var(--ui-r);
   --pl-r-md: var(--ui-r);

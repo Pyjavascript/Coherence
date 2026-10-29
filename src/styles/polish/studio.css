@@ -134,9 +134,9 @@
 }
 #root .sn-field input:hover, #root .sn-field textarea:hover, #root .sn-field select:hover { box-shadow: var(--pl-shadow-0) !important; }
 
-/* "+" add buttons: elevation on hover only (app keeps its scale behaviour) */
-.sn-add { transition: var(--hover-transition), box-shadow var(--pl-d-2) var(--pl-ease-out), transform var(--pl-d-1) var(--pl-ease-out), scale var(--pl-d-2) var(--pl-ease-out); }
-#root .sn-add:hover { box-shadow: var(--pl-shadow-2) !important; }
+/* "+" add buttons: on hover they only fade a little (enhancements.css), so no
+   extra elevation here. */
+.sn-add { transition: var(--hover-transition), opacity var(--pl-d-2) var(--pl-ease-out), transform var(--pl-d-1) var(--pl-ease-out), scale var(--pl-d-2) var(--pl-ease-out); }
 
 /* ---------- Connectors -------------------------------------------------- */
 /* NodeStudio sets pathLength="1" + data-pl-draw on new / re-entered paths */

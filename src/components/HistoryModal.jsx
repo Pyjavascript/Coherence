@@ -68,7 +68,7 @@ const scrollSideways = (e) => {
 
 // brandId = null: a brand that isn't saved yet, whose history is kept in
 // memory until its first save.
-export default function HistoryModal({ brandId, brandName, onCopy, onRestore, onClose }) {
+export default function HistoryModal({ brandId, onCopy, onRestore, onClose }) {
   const [state, setState] = useState(() => (brandId
     ? { status: "loading", rows: [] }
     : { status: "ready", rows: getPendingGenerations() }));
@@ -88,10 +88,10 @@ export default function HistoryModal({ brandId, brandName, onCopy, onRestore, on
 
   return (
     <Modal title="History" onClose={onClose} modalClassName="research-modal history-modal">
-      <p className="hook-description">Everything generated for {brandName || "this brand"}, newest first.</p>
+      <p className="hook-description">Everything you've generated, newest first.</p>
       {!brandId && (
         <p className="hook-description history-unsaved">
-          This brand isn't saved yet. Save it to keep this history — it's lost if you open another brand first.
+          Save this brand to keep its history.
         </p>
       )}
       {mediums.length > 1 && (

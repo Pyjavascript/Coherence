@@ -9,6 +9,7 @@
 
 /* ---------- shared keyframes (prefixed pl-sh-*) ---------- */
 @keyframes pl-sh-rise { from { opacity: 0; translate: 0 var(--pl-rise); } }
+@keyframes pl-sh-slide-in { from { opacity: 0; translate: calc(var(--pl-rise) * 3) 0; } }
 @keyframes pl-sh-dialog-in { from { opacity: 0; translate: 0 6px; scale: var(--pl-pop-from); } }
 @keyframes pl-sh-scrim-in {
   from { opacity: 0; -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px); }
@@ -104,11 +105,13 @@
 .shell-scrim[data-visible=true] { -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .app-shell[data-bp=mobile][data-drawer=right] .shell-scrim { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
-/* desktop: panel is opacity-only in the app -> add a short eased slide via `translate` */
+/* desktop: the floating panel slides in from past the window's right edge to
+   its place, right to left, and back out the same way. Purely horizontal: no
+   scale, so nothing appears to rise or jump. */
 .app-shell[data-bp=desktop] .rsb {
-  translate: var(--pl-rise) 0;
+  translate: calc(100% + var(--gap) + var(--shell-pad)) 0;
   transition:
-    opacity var(--pl-d-2) var(--pl-ease-in),
+    opacity var(--pl-d-3) var(--pl-ease-in),
     translate var(--pl-d-3) var(--pl-ease-in),
     transform var(--shell-dur) var(--shell-ease),
     visibility 0s linear var(--pl-d-3);
@@ -116,7 +119,7 @@
 .app-shell[data-bp=desktop][data-right=open] .rsb {
   translate: 0 0;
   transition:
-    opacity var(--pl-d-3) var(--pl-ease-out) var(--pl-stagger),
+    opacity var(--pl-d-2) var(--pl-ease-out),
     translate var(--pl-d-4) var(--pl-ease-out),
     transform var(--shell-dur) var(--shell-ease),
     visibility 0s;
@@ -132,9 +135,10 @@
   transition: opacity var(--pl-d-2) var(--pl-ease-out), transform var(--pl-d-4) var(--pl-ease-out), visibility 0s;
 }
 
-/* sections stagger in each time the panel opens (RightSidebar sets data-pl-enter-rsb) */
+/* sections stagger in each time the panel opens (RightSidebar sets
+   data-pl-enter-rsb), trailing in from the right like the panel itself */
 .rsb[data-pl-enter-rsb] .rsb-scroll > * {
-  animation: pl-sh-rise var(--pl-d-4) var(--pl-ease-out) backwards;
+  animation: pl-sh-slide-in var(--pl-d-4) var(--pl-ease-out) backwards;
   animation-delay: calc(var(--pl-stagger) * (var(--pl-si, 0) + 1));
 }
 .rsb-scroll > :nth-child(1) { --pl-si: 0; }
@@ -281,31 +285,9 @@ html body .rsb .bp-section-chevron.open { transform: rotate(180deg); }
 /* ==========================================================================
    TOUR
    ========================================================================== */
-/* art: keep the app's tour-pop entrance, then every piece floats on its own
-   loop (its own speed, drift and tilt), so the scene never moves in lockstep.
-   translate / rotate compose with the inline positioning transforms. */
-@keyframes tour-float {
-  0%, 100% { translate: 0 0; rotate: 0deg; }
-  50% { translate: var(--pl-fx, 0px) var(--pl-fy, -6px); rotate: var(--pl-fr, 0deg); }
-}
+/* art: the scene's pieces rise in (enhancements.css); the node links' dashes
+   flow from one node to the next. */
 @keyframes tour-dash { to { stroke-dashoffset: -16; } }
-
-.tour-art > :not(.tour-links) {
-  animation:
-    tour-pop var(--pl-d-4) var(--pl-ease-out) var(--d, 0ms) both,
-    tour-float calc(3600ms * var(--pl-fk, 1)) var(--pl-ease-inout) calc(var(--d, 0ms) + var(--pl-d-4)) infinite;
-}
-.tour-art > :nth-child(1) { --pl-fk: 1.05; --pl-fx: 2px;  --pl-fy: -7px; --pl-fr: -1.5deg; }
-.tour-art > :nth-child(2) { --pl-fk: 1.3;  --pl-fx: -3px; --pl-fy: -6px; --pl-fr: 1.5deg; }
-.tour-art > :nth-child(3) { --pl-fk: 1.15; --pl-fx: 2px;  --pl-fy: 6px;  --pl-fr: -1deg; }
-.tour-art > :nth-child(4) { --pl-fk: 1.4;  --pl-fx: -3px; --pl-fy: -7px; --pl-fr: 1deg; }
-.tour-art > :nth-child(5) { --pl-fk: 0.95; --pl-fx: 1px;  --pl-fy: 7px;  --pl-fr: -1.5deg; }
-.tour-art > :nth-child(n+6) { --pl-fk: 1.2; --pl-fx: 2px;  --pl-fy: -6px; --pl-fr: 1deg; }
-/* Big pieces (cards, grids, the Figma tile) drift slower and tilt less. */
-.tour-art > :is(.tour-card, .tour-grid, .tour-figma) { --pl-fk: 1.5; --pl-fx: 0px; --pl-fy: -5px; --pl-fr: 0.6deg; }
-.tour-art > .tour-figma { --pl-fy: -8px; --pl-fr: 3deg; }
-/* The node links stay put; their dashes flow from one node to the next. */
-.tour-art > .tour-links { animation: tour-pop var(--pl-d-4) var(--pl-ease-out) var(--d, 0ms) both; }
 .tour-links path { animation: tour-dash 1.1s linear infinite; }
 
 /* step copy: directional crossfade (TourModal sets --pl-dir on .tour) */
@@ -352,7 +334,7 @@ html body .rsb .bp-section-chevron.open { transform: rotate(180deg); }
 
 /* ---------- reduced motion: no ambient loops / FLIP ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .tour-art > *, .tour-links path, .tour-copy[data-active=true], .overlay, .coherence-overlay,
+  .tour-scene > *, .tour-links path, .tour-copy[data-active=true], .overlay, .coherence-overlay,
   .overlay > [role], .rsb[data-pl-enter-rsb] .rsb-scroll > *,
   .lnav .rail-credits-meter::before, .lnav .rail-credits-meter::after { animation: none !important; }
 }

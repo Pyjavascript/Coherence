@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { DEFAULT_BRAND } from "../lib/constants";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { LIMITS } from "../lib/clientId";
+import { toast } from "../lib/brandPanelCopy";
 import {
   getBrands,
   createBrand,
@@ -114,20 +115,17 @@ export function useBrandWorkspace(setStatus, userId) {
     try {
       setNotes(await getResearchNotes(id));
     } catch {
-      setStatus("Couldn't load research notes.", "err");
+      setStatus(...toast("notesLoadFailed"));
     }
   };
 
   const save = async () => {
     if (!brand.name.trim())
-      return setStatus("Name the brand before saving.", "err");
+      return setStatus(...toast("saveNoName"));
     if (!isSupabaseConfigured)
-      return setStatus("Saving isn't available in this view.", "err");
+      return setStatus(...toast("saveUnavailable"));
     if (!currentId && brands.length >= LIMITS.brands)
-      return setStatus(
-        `Brand limit reached (${LIMITS.brands} per browser).`,
-        "err",
-      );
+      return setStatus(...toast("saveLimit", { n: LIMITS.brands }));
     if (saving) return;
     setSaving(true);
     try {
@@ -146,14 +144,11 @@ export function useBrandWorkspace(setStatus, userId) {
       await refresh();
       if (pending.length) setNotes(await getResearchNotes(saved.id));
       setFileLabel(saved.name);
-      setStatus("Brand saved.", "ok");
+      setStatus(...toast("saveSuccess"));
     } catch {
       if (!currentId && brands.length >= LIMITS.brands)
-        return setStatus(
-          `Brand limit reached (${LIMITS.brands} per browser).`,
-          "err",
-        );
-      setStatus("Couldn't save brand.", "err");
+        return setStatus(...toast("saveLimit", { n: LIMITS.brands }));
+      setStatus(...toast("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -166,9 +161,9 @@ export function useBrandWorkspace(setStatus, userId) {
       setCurrentId(null);
       await refresh();
       fill({}, scope, []);
-      setStatus("Brand deleted.");
+      setStatus(...toast("deleteSuccess"));
     } catch {
-      setStatus("Couldn't delete brand.", "err");
+      setStatus(...toast("deleteFailed"));
     }
   };
 
@@ -182,7 +177,7 @@ export function useBrandWorkspace(setStatus, userId) {
         });
         setNotes((list) => [...list, n]);
       } catch {
-        setStatus("Couldn't add note.", "err");
+        setStatus(...toast("noteAddFailed"));
       }
     } else {
       // Unsaved brand: keep locally (like the prototype); persisted on "Save brand".
@@ -205,7 +200,7 @@ export function useBrandWorkspace(setStatus, userId) {
       try {
         await deleteResearchNote(id);
       } catch {
-        return setStatus("Couldn't delete note.", "err");
+        return setStatus(...toast("noteDeleteFailed"));
       }
     }
     setNotes((list) => list.filter((x) => x.id !== id));

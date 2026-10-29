@@ -23,11 +23,14 @@
   --md-list: 12px;          /* dense list cards (history, notes) */
   --md-btn-fs: 16px;        /* button labels keep their size */
   --md-btn-h: 48px;         /* primary / secondary action height */
-  --md-btn-r: var(--ui-r);
+  /* Buttons take the Generate button's corner (--btn-r); small square ones
+     (the close icon) 0.3 x their size. */
+  --md-btn-r: var(--btn-r);
   --md-ctl-h: 46px;         /* text inputs in forms */
   /* fluid: the close icon and the space above the heading shrink on small screens */
   --md-close: clamp(32px, 28px + 1vw, 36px);       /* close-button hit area */
   --md-close-inset: clamp(6px, 4px + .5vw, 8px);   /* close icon distance from the top + right edges */
+  --md-close-r: calc(var(--md-close) * var(--ui-ratio-sm));
   --md-head-top: clamp(30px, 24px + 1vw, 36px);    /* heading top, measured from the modal top */
   --md-head-drop: calc(var(--md-head-top) - var(--md-pad));
   --md-line: #e8ebf6;       /* existing hairline used across the light modals */
@@ -108,7 +111,7 @@ html body .overlay .modal-head > button {
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--md-close-r);
   transform: none;
 }
 /* Press: shrink in place. Beats the old centred-header rule
@@ -129,7 +132,7 @@ html body .overlay .coherence-close {
   display: grid;
   place-items: center;
   padding: 0;
-  border-radius: 50%;
+  border-radius: var(--md-close-r);
 }
 html body .overlay :is(.modal-head > button, .coherence-close, .profile-close) svg { width: 18px; height: 18px; }
 html body .overlay > .profile-modal { position: relative; }
@@ -139,6 +142,7 @@ html body .overlay .profile-close {
   right: var(--md-close-inset);
   width: var(--md-close);
   height: var(--md-close);
+  border-radius: var(--md-close-r);
 }
 html body .overlay .usage-head { padding-right: calc(var(--md-pad) + var(--md-close)); }
 html body .overlay .usage-modal .usage-close { position: absolute; margin: 0; align-self: auto; }
@@ -187,6 +191,22 @@ html body .overlay :is(.research-note-body p, .history-item) {
 html body .overlay :is(.research-note-body h3) { font-size: var(--md-list); font-weight: 600; }
 html body .overlay .confirm-note { font-size: var(--md-body); font-weight: 600; }
 html body .overlay .tour-copy > .tour-sample { font-size: var(--md-body); }
+/* The tour's step descriptions read at 14px (two lines, enhancements.css). */
+html body .overlay .tour-copy > p:not(.tour-sample) { font-size: 14px; line-height: 1.45; }
+
+/* Every popup's description is set like the tour's: 14px, tight tracking, in a
+   narrow centred block whose lines are balanced. */
+html body .overlay p:is(.modal-subtitle, .hook-description, .research-description, .coherence-description, .confirm-body, .confirm-note) {
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+/* The usage header's line sits beside its icon, so it keeps its width. */
+html body .overlay .usage-head-text p { font-size: 14px; }
 
 /* ---------- 4. Form fields ------------------------------------------------- */
 html body .overlay :is(.hook-brief, .research-field textarea, .coherence-prompt) {
@@ -195,7 +215,7 @@ html body .overlay :is(.hook-brief, .research-field textarea, .coherence-prompt)
   letter-spacing: var(--md-body-ls);
 }
 html body .overlay .auth-field input { height: var(--md-btn-h); border-radius: var(--md-btn-r); font-size: var(--md-body); }
-html body .overlay .profile-input { height: var(--md-ctl-h); border-radius: var(--md-btn-r); font-size: var(--md-body); }
+html body .overlay .profile-input { height: var(--md-ctl-h); border-radius: calc(var(--md-ctl-h) * var(--ui-ratio)); font-size: var(--md-body); }
 html body .overlay .profile-input-icon .profile-input { padding-left: 44px; }
 html body .overlay .profile-row { padding: 12px 0; }
 html body .overlay .profile-banner { height: 88px; }
@@ -284,7 +304,10 @@ html body .overlay .usage-actions .profile-save { min-width: 140px; flex: 0 0 au
 /* Auth: the sign-up form is taller than the shell. Heading and close icon stay
    fixed; only the form scrolls, with the CTA pinned (a white halo masks fields
    as they scroll beneath it). */
-html body .overlay > .auth-modal { padding-bottom: 0; overflow: hidden; }
+/* Auth sizes to its form rather than the shared 470px base: the login form is
+   shorter than that, and the slack pooled under the button. Now the space below
+   Login is the same --md-pad as the sides. */
+html body .overlay > .auth-modal { padding-bottom: 0; overflow: hidden; min-height: 0; }
 html body .overlay .auth-card {
   flex: 1 1 auto;
   min-height: 0;
@@ -382,11 +405,19 @@ html body .overlay .history-actions button { height: 34px; font-size: var(--md-b
 html body .overlay .history-pill { font-size: var(--md-body); font-weight: 600; }
 
 /* Tour: art full-bleed, copy + actions on the shared padding */
-html body .overlay > .tour { display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto; }
-html body .overlay .tour-art { height: clamp(150px, 28vh, 190px); }
-html body .overlay .tour-body {
-  flex: 1 1 auto;
+/* Tour: one fixed size on every step (the shared 460 x 470 base), so the card
+   never grows, shrinks or shifts. The copy, dots and buttons keep their
+   height; the illustration fills the rest. */
+html body .overlay > .tour {
+  height: min(var(--md-h), var(--md-max-h));
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+html body .overlay .tour-art { flex: 1 1 auto; min-height: 0; height: auto; }
+html body .overlay .tour-body {
+  flex: none;
   align-content: center;
   padding: var(--md-pad) var(--md-pad) 0;
 }
@@ -460,7 +491,7 @@ html body .overlay .profile-modal:not(.usage-modal) .profile-input {
   color: var(--shell-ink);
   background: #fff;
   border: 1px solid #e3e8fb;
-  border-radius: var(--ui-r);
+  border-radius: calc(44px * var(--ui-ratio));
   font-size: 13px;
   font-weight: 500;
 }
@@ -491,10 +522,10 @@ html body .overlay .profile-modal:not(.usage-modal) .plugin-access { margin-top:
 html body .overlay .pl-acct-row :is(.profile-pill, .profile-delete) {
   flex: none;
   width: auto;
-  height: 40px;
-  padding: 0 16px;
+  height: var(--md-btn-h);
+  padding: 0 18px;
   gap: 8px;
-  border-radius: var(--md-btn-r);
+  border-radius: var(--btn-r);
   font-size: 14px;
   font-weight: 600;
 }
@@ -688,7 +719,7 @@ html body .overlay .usage-section-chevron {
   place-items: center;
   color: var(--shell-ink);
   background: var(--shell-tint);
-  border-radius: 50%;
+  border-radius: calc(30px * var(--ui-ratio-sm));
   transition: transform var(--pl-d-3) var(--pl-ease-out), background-color var(--pl-d-2) var(--pl-ease-out);
 }
 html body .overlay .usage-section-chevron svg { width: 16px; height: 16px; }
@@ -746,3 +777,12 @@ html body .overlay .usage-modal .usage-model.is-on {
     linear-gradient(160deg, #f6f8ff 0%, #e8eeff 100%);
 }
 html body .overlay .usage-modal .usage-model-desc { font-size: 10.5px; line-height: 1.4; }
+
+/* Every other text button in the popups (Edit profile, Done, the plugin key
+   actions): the CTAs' height and the Generate button's corner, so all of them
+   match. */
+html body .overlay :is(.profile-pill, .profile-save, .profile-cancel, .profile-delete) {
+  height: var(--md-btn-h);
+  min-height: var(--md-btn-h);
+  border-radius: var(--btn-r);
+}

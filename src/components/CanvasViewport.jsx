@@ -11,6 +11,27 @@ export default function CanvasViewport({ children }) {
   const pinchRef = useRef(null);
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
 
+  // The canvas runs up under the transparent toolbar, so the home view moves
+  // the content down until its top (the column titles) sits 16px below the
+  // toolbar instead of behind it.
+  // Both are measured inside the surface, so the hidden view's fade-in
+  // transform (it's often hidden when this runs) doesn't skew them: the
+  // toolbar's height is the surface's negative top (layout.css), and the
+  // content's top is read relative to the world at its on-screen scale.
+  const homeY = useCallback((zoom) => {
+    const el = viewportRef.current;
+    const world = el?.querySelector(".canvas-world");
+    if (!el || !world || !world.offsetWidth) return 0;
+    const items = world.querySelectorAll(".sn-col-head, .cn");
+    if (!items.length) return 0;
+    const w = world.getBoundingClientRect();
+    const scale = w.width / world.offsetWidth || 1;
+    let top = Infinity;
+    items.forEach((item) => { top = Math.min(top, (item.getBoundingClientRect().top - w.top) / scale); });
+    const barBottom = Math.max(0, -parseFloat(getComputedStyle(el).top) || 0);
+    return Math.max(0, Math.round(barBottom + 16 - top * zoom));
+  }, []);
+
   // On a phone, keep the first column fitted until the user pans or zooms.
   const autoZoom = useRef(null);
   useEffect(() => {
@@ -23,12 +44,13 @@ export default function CanvasViewport({ children }) {
         if (autoZoom.current != null && Math.abs(current.zoom - autoZoom.current) > 0.02) return current;
         if (!mq.matches) {
           autoZoom.current = 1;
-          return current.zoom === 1 && current.x === 0 && current.y === 0 ? current : { x: 0, y: 0, zoom: 1 };
+          const y = homeY(1);
+          return current.zoom === 1 && current.x === 0 && current.y === y ? current : { x: 0, y, zoom: 1 };
         }
         // First column: 40px inset + a 400px node (NODE_W) + a little air.
         const zoom = clampZoom((el.clientWidth - 24) / 460);
         autoZoom.current = zoom;
-        return { x: 8, y: 0, zoom };
+        return { x: 8, y: homeY(zoom), zoom };
       });
     };
     fit();
@@ -39,7 +61,7 @@ export default function CanvasViewport({ children }) {
       observer.disconnect();
       mq.removeEventListener("change", fit);
     };
-  }, []);
+  }, [homeY]);
   const [isPanning, setIsPanning] = useState(false);
   const viewRef = useRef(view);
   viewRef.current = view;
@@ -182,7 +204,7 @@ export default function CanvasViewport({ children }) {
       </div>
       <div className="canvas-controls" aria-label="Canvas zoom controls">
         <button type="button" onClick={() => changeZoom(-0.1)} aria-label="Zoom out">−</button>
-        <button type="button" className="canvas-zoom-level" onClick={() => setView({ x: 0, y: 0, zoom: 1 })} title="Reset view">
+        <button type="button" className="canvas-zoom-level" onClick={() => setView({ x: 0, y: homeY(1), zoom: 1 })} title="Reset view">
           {Math.round(view.zoom * 100)}%
         </button>
         <button type="button" onClick={() => changeZoom(0.1)} aria-label="Zoom in">+</button>

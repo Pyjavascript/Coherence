@@ -38,7 +38,8 @@ function EditableText({ className, value, label, onCommit }) {
 
 // Body of a node: placeholder, skeleton, error, or the generated copy.
 // `version` changes every time new content lands, re-running the fade-in.
-export default function NodeContent({ meta, status, item, version, message, onRetry, onEdit }) {
+// footer: shown under the generated copy, bottom-right (the Copy button).
+export default function NodeContent({ meta, status, item, version, message, onRetry, onEdit, footer }) {
   if (status === "loading" && !item) {
     return (
       <div className="ncard-body" aria-busy="true">
@@ -89,6 +90,7 @@ export default function NodeContent({ meta, status, item, version, message, onRe
           />
         ) : null}
       </div>
+      {footer}
     </div>
   );
 }

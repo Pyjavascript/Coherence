@@ -67,8 +67,10 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 .rail-footer-action { border-radius: var(--ui-r); }
 .rail-footer-icon { border-radius: var(--ui-r); }
 .canvas-surface { border-radius: var(--ui-r); }
-.canvas-controls { border-radius: var(--ui-r); }
-.canvas-controls button { border-radius: var(--ui-r); }
+/* Zoom box: the "?" button's corner (it's the same ~40px tall); its buttons
+   sit 5px inside, so their corners are that much tighter. */
+.canvas-controls { border-radius: calc(40px * var(--ui-ratio-sm)); }
+.canvas-controls button { border-radius: calc(40px * var(--ui-ratio-sm) - 5px); }
 .toolbar-add-node { border-radius: var(--ui-r); }
 .toolbar-add-spark i { border-radius: var(--ui-r); }
 .toolbar-node-menu { border-radius: var(--ui-r); }
@@ -205,11 +207,15 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 }
 .app-shell[data-bp=tablet] .lnav[data-open=true] { border-radius: var(--ui-r); }
 .app-shell[data-bp=mobile] .lnav { border-radius: var(--ui-r); }
-.lnav-row,.lnav-head { border-radius: var(--ui-r); }
-.lnav-avatar { border-radius: var(--ui-r); }
+/* Left rail: icon tiles, their rows and the usage ring are rounded squares
+   (--ui-icon-r), not circles. The ring's layers stay concentric. */
+.lnav-row,.lnav-head { border-radius: var(--ui-icon-r); }
+.lnav-avatar,.lnav-icon,.lnav .rail-credits-meter,.lnav-toggle:hover .lnav-slot { border-radius: var(--ui-icon-r); }
+.lnav .rail-credits-meter::before { border-radius: calc(var(--ui-icon-r) - var(--ui-icon) * 0.12); }
+.lnav .rail-credits-meter::after { border-radius: calc(var(--ui-icon-r) - var(--ui-icon) * 0.12 - 3px); }
 .lnav .rail-account-card,.lnav .rail-usage-card { border-radius: var(--ui-r); }
 .rsb { border-radius: var(--ui-r); }
-.rsb .rsb-head button { border-radius: var(--ui-r); }
+.rsb .rsb-head button { border-radius: calc(40px * var(--ui-ratio-sm)); }
 .rsb .bp-card { border-radius: var(--ui-r); }
 .rsb .bp-input,.rsb .bp-textarea { border-radius: var(--ui-r); }
 .rsb .bp-dd-trigger,.rsb .bp-row2 .bp-dd-trigger { border-radius: var(--ui-r); }
@@ -232,16 +238,20 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
   .ws-topbar .toolbar-node-menu { border-radius: var(--ui-r); }
 }
 .ws-switch { border-radius: var(--ui-r); }
-.ws-switch-thumb { border-radius: var(--ui-r); }
-.ws-switch-btn { border-radius: var(--ui-r); }
+.ws-switch-thumb { border-radius: calc(var(--ui-r) - var(--ws-pad)); }
+.ws-switch-btn { border-radius: calc(var(--ui-r) - var(--ws-pad)); }
 .qg-empty { border-radius: var(--ui-r); }
-.qg-empty button { border-radius: var(--ui-r); }
+.qg-empty button { border-radius: var(--btn-r); }
 .ncard { border-radius: var(--ui-r); }
 .ncard-dot { border-radius: var(--ui-r); }
-.ncard-action { border-radius: var(--ui-r); }
+/* Card icon buttons and dropdown pills: the download button's proportions. */
+.ncard-action { border-radius: calc(var(--ncard-act, 40px) * var(--ui-ratio-sm)); }
+.ncard-select-trigger { border-radius: calc(var(--ncard-ctl, 36px) * var(--ui-ratio)); }
+.ncard-select-option { border-radius: calc(36px * var(--ui-ratio)); }
 .ncard-menu { border-radius: var(--ui-r); }
 .ncard-menu button { border-radius: var(--ui-r); }
-.ncard-body { border-radius: var(--ui-r); }
+/* The copy box takes the card's own corner, so the two always match. */
+.ncard-body { border-radius: inherit; }
 .ncard-skel { border-radius: var(--ui-r); }
 .ncard-retry { border-radius: var(--ui-r); }
 .ncard-vtab { border-radius: var(--ui-r); }
@@ -253,13 +263,13 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 .sn-joint:before,.sn-joint:after { border-radius: var(--ui-r); }
 .ws-view-nodes .sn-node { border-radius: var(--ui-r); }
 .sn-icon { border-radius: var(--ui-r); }
-.ws-view-nodes .sn-title { border-radius: var(--ui-r); }
-.sn-mini,.sn-toggle { border-radius: var(--ui-r); }
+.ws-view-nodes .sn-title { border-radius: calc(35px * var(--ui-ratio)); }
+.sn-mini,.sn-toggle { border-radius: calc(33px * var(--ui-ratio-sm)); }
 .sn-body { border-radius: var(--ui-r); }
-.sn-field input,.sn-field textarea,.sn-field select { border-radius: var(--ui-r); }
+.sn-field input,.sn-field textarea,.sn-field select { border-radius: calc(49px * var(--ui-ratio)); }
 .sn-tag { border-radius: var(--ui-r); }
-.sn-gen { border-radius: var(--ui-r); }
-.sn-round { border-radius: var(--ui-r); }
+.sn-gen { border-radius: var(--btn-r); }
+.sn-round { border-radius: calc(47px * var(--ui-ratio-sm)); }
 .sn-actions .share-menu { border-radius: var(--ui-r); }
 .sn-out { border-radius: var(--ui-r); }
 .sn-vtab { border-radius: var(--ui-r); }
@@ -280,20 +290,15 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 .pv-lines i { border-radius: var(--ui-r); }
 .pv-pack-box { border-radius: var(--ui-r); }
 .tour { border-radius: var(--ui-r); }
-.tour-card { border-radius: var(--ui-r); }
-.tour-kbd { border-radius: var(--ui-r); }
-.tour-field { border-radius: var(--ui-r); }
-.tour-lines i { border-radius: var(--ui-r); }
-.tour-mini,.tour-node { border-radius: var(--ui-r); }
 .tour-actions button { border-radius: var(--ui-r); }
 .confirm-dialog { border-radius: var(--ui-r); }
 .confirm-actions button { border-radius: var(--ui-r); }
 .history-entry { border-radius: var(--ui-r); }
 .hook-modal,.research-modal,.coherence-modal,.confirm-dialog,.confirm-dialog:not(.is-danger) { border-radius: var(--ui-r); }
-.hook-generate,.research-add,.coherence-copy,.confirm-ok:not(.is-danger) { border-radius: var(--ui-r); }
-.hook-copy,.confirm-cancel { border-radius: var(--ui-r); }
+.hook-generate,.research-add,.coherence-copy,.confirm-ok:not(.is-danger) { border-radius: var(--btn-r); }
+.hook-copy,.confirm-cancel { border-radius: var(--btn-r); }
 .profile-modal { border-radius: var(--ui-r); }
-.profile-pill { border-radius: var(--ui-r); }
+.profile-pill { border-radius: var(--btn-r); }
 .profile-input { border-radius: var(--ui-r); }
 .plugin-access { border-radius: var(--ui-r); }
 .pa-trigger { border-radius: var(--ui-r); }
@@ -301,10 +306,10 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 .pa-info { border-radius: var(--ui-r); }
 .pa-key { border-radius: var(--ui-r); }
 .pa-key-field { border-radius: var(--ui-r); }
-.pa-icon-btn { border-radius: var(--ui-r); }
+.pa-icon-btn { border-radius: calc(32px * var(--ui-ratio-sm)); }
 .pa-empty { border-radius: var(--ui-r); }
-.pa-actions .profile-save,.pa-actions .profile-delete { border-radius: var(--ui-r); }
-.profile-delete,.profile-cancel,.profile-save { border-radius: var(--ui-r); }
+.pa-actions .profile-save,.pa-actions .profile-delete { border-radius: var(--btn-r); }
+.profile-delete,.profile-cancel,.profile-save { border-radius: var(--btn-r); }
 .usage-head-icon { border-radius: var(--ui-r); }
 .uc-card { border-radius: var(--ui-r); }
 .usage-model { border-radius: var(--ui-r); }
@@ -313,3 +318,19 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 @media (max-width: 767.98px) {
   .toast { border-radius: var(--ui-r); }
 }
+
+/* Controls that were still circles or pills at their size: the toolbar's
+   proportions instead (--ui-ratio for wide ones, --ui-ratio-sm for small squares). */
+.tour-launch { border-radius: calc(40px * var(--ui-ratio-sm)); }
+.toast-close { border-radius: calc(21px * var(--ui-ratio-sm)); }
+
+/* Buttons that were still circles or pills (sizes from their own rules). */
+.auth-password button { border-radius: calc(36px * var(--ui-ratio-sm)); }
+.rsb .bp-upsell button { border-radius: calc(28px * var(--ui-ratio-sm)); }
+.bp-chevron-slot { border-radius: calc(36px * var(--ui-ratio-sm)); }
+.ncard-fav { border-radius: calc(28px * var(--ui-ratio)); }
+.history-filters button { border-radius: calc(32px * var(--ui-ratio)); }
+.history-actions button { border-radius: calc(34px * var(--ui-ratio)); }
+.pa-chevron { border-radius: calc(30px * var(--ui-ratio-sm)); }
+.usage-key-btn { border-radius: calc(34px * var(--ui-ratio-sm)); }
+.usage-api-key { border-radius: calc(34px * var(--ui-ratio)); }

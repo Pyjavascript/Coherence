@@ -9,6 +9,8 @@ import { saveGeneration } from "../services/brands";
 import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { reducedMotion, tokenMs } from "../lib/motion";
 import BannedCheck from "./nodes/BannedCheck";
+import Select from "./Select";
+import { fieldPlaceholders } from "../lib/placeholders";
 
 const uid =() => "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 // Vertical gap between a node and the node stacked below it.
@@ -35,6 +37,9 @@ const curve = (x1, y1, x2, y2) => {
   return `M ${x1} ${y1} C ${x1} ${y1 + a}, ${x2} ${y2 - a}, ${x2} ${y2}`;
 };
 const SR_ONLY = { position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" };
+// Options for the Platform / Component dropdowns.
+const PLATFORM_OPTIONS = PLATFORMS.map((p) => ({ value: p, label: p }));
+const COMPONENT_OPTIONS = Object.entries(WEBSITE_COMPONENTS).map(([value, c]) => ({ value, label: c.label }));
 const isTyping = (el) => Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
 const XIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
@@ -70,14 +75,14 @@ function makeNode(category, existing, x = null, y = null) {
   });
 }
 
-// Starter briefs describe each channel's job, never a product: the product
-// comes from the brand's message, so they work for any brand.
+// Starter nodes start with an empty job requirement (the placeholder explains
+// it), so the copy follows the brand's message until one is written.
 function seedNodes() {
-  const email = baseNode({ x: COL_X.email, y: 100, category: "email", label: "Launch email", brief: "Announce the brand message to subscribers who've browsed before but haven't bought yet.", words: 110 });
-  const social = baseNode({ x: COL_X.social, y: 100, category: "social", label: "Instagram launch post", brief: "Tease the brand message for a cold audience scrolling past.", words: 40, platform: "Instagram" });
-  const website = baseNode({ x: COL_X.website, y: 100, category: "website", label: "Homepage hero", brief: "Set the emotional frame for a first-time visitor landing on the homepage.", words: 30, component: "hero" });
-  const packaging = baseNode({ x: COL_X.packaging, y: 100, category: "packaging", label: "Box front line", brief: "A short line for the front of the pack that sells the product at a glance.", words: NODE_DEFAULT_WORDS.packaging });
-  const advertising = baseNode({ x: COL_X.advertising, y: 100, category: "advertising", label: "Launch ad", brief: "Stop a cold audience mid-scroll and make them curious about the brand message.", words: NODE_DEFAULT_WORDS.advertising });
+  const email = baseNode({ x: COL_X.email, y: 100, category: "email", label: "Launch email", words: 110 });
+  const social = baseNode({ x: COL_X.social, y: 100, category: "social", label: "Instagram launch post", words: 40, platform: "Instagram" });
+  const website = baseNode({ x: COL_X.website, y: 100, category: "website", label: "Homepage hero", words: 30, component: "hero" });
+  const packaging = baseNode({ x: COL_X.packaging, y: 100, category: "packaging", label: "Box front line", words: NODE_DEFAULT_WORDS.packaging });
+  const advertising = baseNode({ x: COL_X.advertising, y: 100, category: "advertising", label: "Launch ad", words: NODE_DEFAULT_WORDS.advertising });
   return [email, social, website, packaging, advertising];
 }
 
@@ -88,7 +93,27 @@ const svg = (children) => (
 
 const CAT_ICONS = {
   email: svg(<><rect x="3.5" y="5.5" width="17" height="13" rx="3.5" /><path d="m7 9.5 5 3.5 5-3.5" /></>),
-  social: svg(<><rect x="4" y="4" width="16" height="16" rx="5" /><circle cx="12" cy="12" r="3.6" /><circle cx="16.8" cy="7.2" r=".6" fill="currentColor" /></>),
+  // A filled mark on its own 345-unit grid (not the line icons' 24), in the icon colour.
+  social: (
+    <svg viewBox="0 0 345 345" fill="currentColor" aria-hidden="true">
+      <path d="M196.759 98.3321V147.498H147.569V98.3321H196.759Z" />
+      <path d="M196.767 196.671V245.837H147.577V196.671H196.767Z" />
+      <path d="M344.332 196.671V245.837H295.142V196.671H344.332Z" />
+      <path d="M0 196.671V245.837H49.1899V196.671H0Z" />
+      <path d="M196.759 8.01086e-05V49.1655H245.949V8.01086e-05H196.759Z" />
+      <path d="M147.573 8.01086e-05V49.1655H98.3831V8.01086e-05H147.573Z" />
+      <path d="M245.949 196.667L196.759 196.667V147.502L245.949 147.502V196.667Z" />
+      <path d="M295.143 295.006L245.953 295.006V245.841L295.143 245.841V295.006Z" />
+      <path d="M49.1895 295.006L98.3794 295.006V245.841L49.1895 245.841V295.006Z" />
+      <path d="M245.949 98.3281L295.139 98.3281V49.1627L245.949 49.1627V98.3281Z" />
+      <path d="M98.3832 98.3281L49.1934 98.3281V49.1627L98.3832 49.1627V98.3281Z" />
+      <path d="M245.949 344.176L196.759 344.176V295.011L245.949 295.011V344.176Z" />
+      <path d="M98.3831 344.176L147.573 344.176V295.011L98.3831 295.011V344.176Z" />
+      <path d="M295.142 147.498L344.332 147.498V98.3321L295.142 98.3321V147.498Z" />
+      <path d="M49.1899 147.498L0 147.498L0 98.3321L49.1899 98.3321V147.498Z" />
+      <path d="M147.569 196.689L98.3794 196.689V147.524L147.569 147.524V196.689Z" />
+    </svg>
+  ),
   website: svg(<><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.6 2.4 3.8 5.2 3.8 8.5S14.6 18.1 12 20.5M12 3.5C9.4 5.9 8.2 8.7 8.2 12s1.2 6.1 3.8 8.5" /></>),
   packaging: svg(<><path d="M3.5 7.5 12 3.5l8.5 4v9L12 20.5l-8.5-4z" /><path d="M3.5 7.5 12 11.5l8.5-4M12 11.5v9" /></>),
   advertising: svg(<><path d="M4 10v4h3l6 4V6L7 10z" /><path d="M16.5 9a4 4 0 0 1 0 6" /></>),
@@ -141,7 +166,7 @@ function NodeOutput({ node, banned, onVariant }) {
 // linkEnd: "src" / "tgt" while a link touching this node is hovered or selected.
 // drop: "ok" / "no" while a new link is dragged over this node.
 function StudioNode({
-  node, banned, expanded, onToggle, labelOf, linkEnd, drop, onField, onGenerate, onUnlink, onTagHover, onDelete, onCopy, onVariant,
+  node, banned, expanded, onToggle, linkEnd, drop, onField, onGenerate, onDelete, onCopy, onVariant,
 }) {
   const cat = NODE_CATS[node.category];
   const comp = node.component || "hero";
@@ -186,21 +211,17 @@ function StudioNode({
         <div className="sn-collapse-inner">
           <div className="sn-body">
             <div className="sn-field"><label>Job Requirement</label>
-              <AutoTextarea placeholder="What must this piece do? e.g. Win back customers who haven't ordered in 3 months. Leave empty to use the brand message." value={node.brief} onChange={(e) => onField("brief", e.target.value)} />
+              <AutoTextarea placeholder={fieldPlaceholders(node.category).job} value={node.brief} onChange={(e) => onField("brief", e.target.value)} />
             </div>
             {node.category === "social" && (
               <div className="sn-field"><label>Platform</label>
-                <select value={node.platform} onChange={(e) => onField("platform", e.target.value)}>
-                  {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
-                </select>
+                <Select label="Platform" value={node.platform} options={PLATFORM_OPTIONS} onChange={(value) => onField("platform", value)} />
               </div>
             )}
             {node.category === "website" && (
               <>
                 <div className="sn-field"><label>Component</label>
-                  <select value={comp} onChange={(e) => onField("component", e.target.value)}>
-                    {Object.entries(WEBSITE_COMPONENTS).map(([k, c]) => <option key={k} value={k}>{c.label}</option>)}
-                  </select>
+                  <Select label="Component" value={comp} options={COMPONENT_OPTIONS} onChange={(value) => onField("component", value)} />
                 </div>
                 {comp === "pointers" && (
                   <div className="sn-field"><label>How many pointers</label>
@@ -215,39 +236,9 @@ function StudioNode({
                 onChange={(e) => onField("words", e.target.value === "" ? "" : parseInt(e.target.value, 10) || 0)} />
             </div>
             <div className="sn-field"><label>Specific Requirements</label>
-              <AutoTextarea placeholder="Format, must-include line, banned words override..." value={node.requirements} onChange={(e) => onField("requirements", e.target.value)} />
+              <AutoTextarea placeholder={fieldPlaceholders(node.category).req} value={node.requirements} onChange={(e) => onField("requirements", e.target.value)} />
             </div>
-            {node.connections.length > 0 && (
-              <div className="sn-tags">
-                {/* Each "linked to" tag disconnects its link; hovering it lights the line. */}
-                {node.connections.map((id) => (
-                  <span
-                    className="sn-tag"
-                    key={id}
-                    role="button"
-                    tabIndex={0}
-                    title={`Disconnect from ${labelOf(id)}`}
-                    aria-label={`Disconnect from ${labelOf(id)}`}
-                    onClick={(e) => { e.stopPropagation(); onUnlink(id); }}
-                    onKeyDown={(e) => {
-                      if (e.key !== "Enter" && e.key !== " ") return;
-                      e.preventDefault();
-                      onUnlink(id);
-                    }}
-                    onPointerEnter={() => onTagHover(id)}
-                    onPointerLeave={() => onTagHover(null)}
-                    onFocus={() => onTagHover(id)}
-                    onBlur={() => onTagHover(null)}
-                  >
-                    🔗 {labelOf(id)}
-                  </span>
-                ))}
-              </div>
-            )}
             <div className="sn-actions">
-              <button type="button" className="sn-gen" disabled={node.generating} onClick={onGenerate}>
-                {node.generating ? "Generating..." : node.variants.length ? "Regenerate" : "Generate"}
-              </button>
               <button
                 type="button"
                 className={"sn-round" + (copied ? " is-copied" : "")}
@@ -257,6 +248,9 @@ function StudioNode({
                 onClick={copy}
               >
                 {copied ? <CheckIcon /> : <CopyIcon />}
+              </button>
+              <button type="button" className="sn-gen" disabled={node.generating} onClick={onGenerate}>
+                {node.generating ? "Generating..." : node.variants.length ? "Regenerate" : "Generate"}
               </button>
             </div>
           </div>
@@ -300,7 +294,7 @@ function DraggableNode({ node, dragging, enterIdx, onSize, onPointerDown, onClic
       onPointerDown={onPointerDown}
       onClickCapture={onClickCapture}
     >
-      {children}       
+      {children}
 
       {/* Floating Plus Button at the bottom of the node - hides if node has connections */}
       {node.connections.length === 0 && (
@@ -465,7 +459,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     if (e.pointerType === "mouse" && e.button !== 0) return;
     // A second finger is the start of a pinch, which the canvas handles.
     if (!e.isPrimary) return;
-    if (e.target.closest("input, textarea, select, button, .sn-out, .sn-vtabs, .sn-head-actions")) return;
+    if (e.target.closest("input, textarea, select, button, .bp-dd, .sn-out, .sn-vtabs, .sn-head-actions")) return;
     e.stopPropagation();
 
     const pointerId = e.pointerId;
@@ -483,7 +477,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
       if (moveEvt.pointerId !== pointerId) return;
       const dx = (moveEvt.clientX - startX) / (scale || 1);
       const dy = (moveEvt.clientY - startY) / (scale || 1);
-      
+
       if (!moved) {
         if (Math.hypot(dx, dy) < 4) return;
         moved = true;
@@ -491,7 +485,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
         zCounter.current += 1;
         patch(node.id, { z: zCounter.current });
       }
-      
+
       // Nodes can go anywhere on the canvas, including left of / above where they start.
       patch(node.id, { x: originX + dx, y: originY + dy });
     };
@@ -596,7 +590,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     commit((list) => {
       const parentIndex = list.findIndex((n) => n.id === parentId);
       if (parentIndex === -1) return list;
-       
+
       const parent = list[parentIndex];
       const pSize = sizesRef.current[parentId] || { h: 300 };
       const next = [...list];
@@ -605,13 +599,13 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
       // after this; onSize then pushes this node down to keep the gap.
       const newNode = makeNode(category, next, parent.x, parent.y + pSize.h + NODE_GAP);
       next.push(newNode);
-       
+
       // Auto-connect line
       next[parentIndex] = {
         ...parent,
         connections: [...parent.connections, newNode.id]
       };
-       
+
       added = newNode.id;
       return next;
     });
@@ -1119,7 +1113,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
           {COL_ORDER.map((key) => {
             const cat = NODE_CATS[key];
             const list = nodes.filter((n) => n.category === key);
-            
+
             return (
               <section className="sn-col" key={key} style={{ pointerEvents: 'auto', position: 'relative', flex: `0 0 ${NODE_W}px`, width: NODE_W }}>
                 {list.length === 0 && !cat.comingSoon && (
@@ -1133,7 +1127,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
                       {svg(<path d="M12 5v14M5 12h14" />)}
                     </button>
                   </>
-                )}                 
+                )}
                 {/* {cat.comingSoon && (
                   <div className="sn-node sn-soon" style={{ marginTop: '80px' }}>
                     <header className="sn-head">
@@ -1165,12 +1159,12 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
                 <header className="sn-col-head" style={{ "--cat": NODE_CATS[n.category].color, position: 'absolute', top: -COL_HEAD_OFFSET, left: 0, right: 0, width: NODE_W, cursor: 'grab' }}>
                   <span className="sn-col-dot" aria-hidden="true" />
                   <h2>{NODE_CATS[n.category].label}</h2>
-                
+
                   {!NODE_CATS[n.category].comingSoon && <span className="sn-count" aria-label={`${topInfo.total} nodes`}>{topInfo.total}</span>}
                 </header>
               )}
               <StudioNode
-                node={n} labelOf={labelOf}
+                node={n}
                 banned={ctx.brand.banned}
                 expanded={expanded.has(n.id)}
                 onToggle={() => setOpen(n.id, !expanded.has(n.id))}
@@ -1178,8 +1172,6 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
                 drop={linkDrag?.hit?.id === n.id ? linkDrag.hit.state : null}
                 onField={(f, v) => patch(n.id, { [f]: v })}
                 onGenerate={() => generateNode(n.id)}
-                onUnlink={(tid) => unlinkNodes(n.id, tid)}
-                onTagHover={(tid) => (tid ? hoverLine(linkKey(n.id, tid)) : scheduleHoverClear())}
                 onDelete={() => deleteNode(n.id)}
                 onCopy={() => copyNode(n)}
                 onVariant={(i) => {

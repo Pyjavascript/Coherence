@@ -1,0 +1,263 @@
+/* ==========================================================================
+   Wayfinding: the "Get started" strip above the message box
+   (components/GettingStarted.jsx) and the labelled Brand panel toggle.
+   ========================================================================== */
+
+/* The tray stacks the strip over the message box. Its width (one width in both
+   views, composer.css) decides how compact the strip is. */
+.ws-tray {
+  container: gs-tray / inline-size;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.gs {
+  align-self: center;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px 5px 14px;
+  color: var(--shell-ink);
+  background: rgb(255 255 255 / 0.92);
+  border-radius: calc(40px * var(--ui-ratio));
+  box-shadow: 0 10px 26px -14px rgba(23, 60, 245, 0.45), 0 2px 8px rgba(24, 38, 99, 0.08);
+  backdrop-filter: blur(8px);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 13px;
+  animation: mc-in var(--pl-d-3) var(--pl-ease-out) both;
+}
+
+.gs button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.gs button:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
+.gs-title {
+  flex: none;
+  margin-right: 6px;
+  color: #6b7091;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.gs-steps {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A thin chevron between steps. */
+.gs-step + .gs-step::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin: 0 6px 0 4px;
+  border-top: 1.6px solid #b6bad3;
+  border-right: 1.6px solid #b6bad3;
+  transform: rotate(45deg);
+}
+
+.gs-step {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.gs-step button {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px 5px 5px;
+  color: #6b7091;
+  background: transparent;
+  border: 0;
+  border-radius: calc(30px * var(--ui-ratio));
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.gs-step button:hover {
+  color: var(--shell-ink);
+  background: #eef0ff;
+}
+
+.gs-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gs-num {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: #6b7091;
+  background: #eceef8;
+  border-radius: calc(20px * var(--ui-ratio-sm));
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.gs-num svg {
+  width: 12px;
+  height: 12px;
+}
+
+.gs-step[data-state="current"] button {
+  color: var(--shell-blue);
+  background: #eef0ff;
+}
+
+.gs-step[data-state="current"] .gs-num {
+  color: #fff;
+  background: var(--shell-blue);
+}
+
+.gs-step[data-state="done"] button {
+  color: #8e93ad;
+}
+
+.gs-step[data-state="done"] .gs-label {
+  text-decoration: line-through;
+  text-decoration-color: rgb(142 147 173 / 0.6);
+}
+
+.gs-step[data-state="done"] .gs-num {
+  color: #fff;
+  background: #1f9c6e;
+}
+
+.gs-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.gs-sample {
+  flex: none;
+  margin-left: 6px;
+  padding: 5px 10px;
+  color: var(--shell-blue);
+  background: transparent;
+  border: 0;
+  border-radius: calc(27px * var(--ui-ratio));
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.gs-sample:hover {
+  background: #eef0ff;
+}
+
+.gs-close {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #8e93ad;
+  background: transparent;
+  border: 0;
+  border-radius: calc(28px * var(--ui-ratio-sm));
+}
+
+.gs-close:hover {
+  color: var(--shell-ink);
+  background: #eef0ff;
+}
+
+.gs-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Narrower trays: drop the title, then every name but the current step's,
+   then the sample link (the tour's last step offers it too). */
+@container gs-tray (max-width: 639px) {
+  .gs-title {
+    display: none;
+  }
+
+  .gs {
+    padding-left: 6px;
+  }
+}
+
+@container gs-tray (max-width: 559px) {
+  .gs-step:not([data-state="current"]) .gs-label {
+    display: none;
+  }
+
+  .gs-step:not([data-state="current"]) button {
+    padding-right: 5px;
+  }
+}
+
+@container gs-tray (max-width: 399px) {
+  .gs-sample {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gs {
+    animation: none;
+  }
+}
+
+/* ---------- Brand panel toggle: icon + "Brand" ------------------------- */
+
+.ws-topbar .toolbar-panel-notch:not(.is-hidden) {
+  width: auto;
+}
+
+.ws-topbar .toolbar-panel-notch .toolbar-panel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  min-width: var(--tb-h);
+  padding: 0 18px 0 14px;
+  font: inherit;
+  font-size: clamp(14px, 1.2vw, 16px);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ws-topbar .toolbar-panel-btn svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+@container ws (max-width: 760px) {
+  .ws-topbar .toolbar-panel-notch .toolbar-panel-btn {
+    padding: 0;
+  }
+
+  .ws-topbar .toolbar-panel-label {
+    display: none;
+  }
+}

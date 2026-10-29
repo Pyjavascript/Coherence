@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { LIMITS } from "../lib/clientId";
 import { Logo } from "../assets/globalAssets";
 import { profileOf } from "./ProfileModal";
@@ -10,13 +11,43 @@ const labelOrder = (i) => ({ "--pl-li": Math.min(i, 8) });
 
 // Every row is [fixed 40px icon slot][label]. The icon slot never moves, so
 // only the labels fade/slide when the sidebar expands or collapses.
-function Row({ as: Tag = "button", className = "", icon, label, order = 0, ...rest }) {
+// fit: a fixed label the open rail is sized to (see useFitLabels).
+function Row({ as: Tag = "button", className = "", icon, label, order = 0, fit = false, ...rest }) {
   return (
     <Tag type={Tag === "button" ? "button" : undefined} className={"lnav-row " + className} {...rest}>
       <span className="lnav-slot">{icon}</span>
-      <span className="lnav-label" style={labelOrder(order)}>{label}</span>
+      <span className="lnav-label" style={labelOrder(order)} data-fit={fit || undefined}>{label}</span>
     </Tag>
   );
+}
+
+// The open rail is as wide as its widest fixed label ([data-fit]: the product
+// name, Minimize, Add Brand, Log in, Credits used) and no wider, so the navy
+// after the labels matches the shell padding before the icons (layout.css
+// --lnav-open). Labels have a fixed box, so the text itself is measured.
+// Brand and profile names don't widen it; they ellipsize. Re-measured when
+// fonts load and on resize, since the type sizes follow the viewport.
+function useFitLabels(rootRef) {
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return undefined;
+    const measure = () => {
+      const range = document.createRange();
+      let widest = 0;
+      root.querySelectorAll("[data-fit]").forEach((label) => {
+        range.selectNodeContents(label);
+        widest = Math.max(widest, range.getBoundingClientRect().width);
+      });
+      if (widest) document.documentElement.style.setProperty("--lnav-label-w", `${Math.ceil(widest) + 1}px`);
+    };
+    measure();
+    document.fonts?.ready.then(measure);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      document.documentElement.style.removeProperty("--lnav-label-w");
+    };
+  }, [rootRef]);
 }
 
 const ProfileIcon = ({ src }) => (
@@ -42,14 +73,16 @@ export default function BrandSidebar({
   const tip = (text) => (open ? undefined : text);
   const profile = user ? profileOf(user) : null;
   const footerOrder = 3 + brands.length;
+  const rootRef = useRef(null);
+  useFitLabels(rootRef);
 
   return (
-    <aside className="lnav" data-open={open} aria-label="Workspace navigation">
+    <aside className="lnav" ref={rootRef} data-open={open} aria-label="Workspace navigation">
       <div className="lnav-head">
         <span className="lnav-slot">
           <span className="lnav-logo"><img src={Logo} alt="" /></span>
         </span>
-        <span className="lnav-label lnav-title rail-product-name" style={labelOrder(0)}>Coherence Content<br />Orchestration</span>
+        <span className="lnav-label lnav-title rail-product-name" style={labelOrder(0)} data-fit>Coherence Content<br />Orchestration</span>
       </div>
 
       <Row
@@ -70,6 +103,7 @@ export default function BrandSidebar({
           )
         }
         label="Minimize"
+        fit
       />
 
       <Row
@@ -77,8 +111,13 @@ export default function BrandSidebar({
         className="lnav-add"
         title={tip("Add brand")}
         onClick={() => onNew("regular")}
-        icon={<span className="lnav-plus" aria-hidden="true">+</span>}
+        icon={
+          // Same glyph box as Minimize's icon (its square spans 3.5–20.5), so
+          // the two sit centred in their slots at the same size.
+          <svg className="lnav-glyph" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17" /></svg>
+        }
         label="Add Brand"
+        fit
       />
 
       <nav className="lnav-brands" aria-label="Brands">
@@ -115,7 +154,7 @@ export default function BrandSidebar({
             label={profile.displayName || user.email}
           />
         ) : (
-          <Row order={footerOrder} title={tip("Log in")} onClick={onLogin} icon={<ProfileIcon />} label="Log in" />
+          <Row order={footerOrder} title={tip("Log in")} onClick={onLogin} icon={<ProfileIcon />} label="Log in" fit />
         )}
         <Row
           order={footerOrder + 1}
@@ -134,6 +173,7 @@ export default function BrandSidebar({
             />
           }
           label="Credits used"
+          fit
         />
       </div>
     </aside>

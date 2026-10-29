@@ -466,7 +466,7 @@ export default function ProfileModal({ user, onClose, onLogout, onSaved, onDelet
             <h2 id={deleteTitleId} className="confirm-title">Delete your account?</h2>
             <div id={deleteBodyId} className="confirm-text">
               <p className="confirm-body">
-                All brands, notes and history for <b>{user.email}</b> will be deleted.
+                Deletes all your brands, notes and history.
               </p>
               <p className="confirm-note">This can't be undone.</p>
             </div>

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { reducedMotion, tokenMs } from "../../lib/motion";
 
-// Layout dock for the Brand / context panel. On desktop the dock grows and the
-// fixed-width panel slides in with it (pushing the workspace); below desktop
-// the panel is a drawer over the workspace.
+// Layout anchor for the Brand / context panel. On desktop the panel floats as a
+// card over the workspace's right side (taking no room); below desktop it is a
+// drawer over the workspace.
 export default function RightSidebar({ open, children }) {
   // The panel's sections rise in one after another each time it opens.
   const [entering, setEntering] = useState(false);

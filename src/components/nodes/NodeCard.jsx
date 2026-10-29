@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import NodeHeader from "./NodeHeader";
-import NodeActions from "./NodeActions";
+import NodeActions, { CopyButton } from "./NodeActions";
 import NodeContent from "./NodeContent";
-import NodeComponentSelect from "./NodeComponentSelect";
+import NodeSettingsMenu from "./NodeSettingsMenu";
 import BannedCheck from "./BannedCheck";
-import { toDisplay, measure, cardLimits } from "../../lib/copyItems";
+import { fieldPlaceholders } from "../../lib/placeholders";
+import { WEBSITE_COMPONENTS } from "../../lib/constants";
+import { toDisplay, measure, cardLimits, defaultWords, minWordsFor, MAX_WORDS } from "../../lib/copyItems";
 
 // Kept for existing imports; the helper now lives in lib/copyItems.
 export { toDisplay };
@@ -16,10 +18,11 @@ const StarIcon = ({ filled }) => (
 );
 
 // node = { id, type, status, items, version, message, width, fav, words, brief, requirements, component, pointerCount }
+// span = how many of the grid's 12 tracks the card takes (QuickGrid packs them).
 // enterIndex = this card's place in the grid's entrance stagger (0 = no wait).
 // banned = the brand's "Never use" list; the shown copy is checked against it.
 export default function NodeCard({
-  node, meta, enterIndex = 0, skipped = false, banned, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
+  node, meta, span, enterIndex = 0, skipped = false, banned, regenDisabled, regenTitle, onRegenerate, onBlocked, onCopy, onDuplicate, onDelete, onEdit, onToggleFav,
   onWordsChange, onSetting, onLabelChange,
 }) {
   // The card's own title, or the medium's name while it's blank.
@@ -51,6 +54,39 @@ export default function NodeCard({
   // Keep measuring the current copy while it regenerates, so the header doesn't shift.
   const meter = measure(item, limits);
 
+  // Node Studio's fields, in Node Studio's order, for the menu beside the title.
+  const settings = onSetting && [
+    {
+      key: "brief", label: "Job requirement", kind: "text",
+      value: node.brief, display: node.brief.trim(), isSet: Boolean(node.brief.trim()),
+      placeholder: fieldPlaceholders(node.type).job,
+      onChange: (value) => onSetting("brief", value),
+    },
+    node.type === "website" && {
+      key: "component", label: "Component", kind: "choice",
+      value: node.component, display: WEBSITE_COMPONENTS[node.component]?.label, isSet: node.component !== "hero",
+      options: Object.entries(WEBSITE_COMPONENTS).map(([key, c]) => [key, c.label]),
+      onChange: (value) => onSetting("component", value),
+    },
+    node.type === "website" && node.component === "pointers" && {
+      key: "pointerCount", label: "How many pointers", kind: "number",
+      value: node.pointerCount, display: String(node.pointerCount), isSet: node.pointerCount !== 3, min: 2, max: 6,
+      onChange: (value) => onSetting("pointerCount", value),
+    },
+    onWordsChange && {
+      key: "words", label: "Target words", kind: "number",
+      value: defaultWords(limits), display: String(defaultWords(limits)), isSet: node.words != null,
+      min: minWordsFor(limits), max: MAX_WORDS,
+      onChange: onWordsChange,
+    },
+    {
+      key: "requirements", label: "Specific requirements", kind: "text",
+      value: node.requirements, display: node.requirements.trim(), isSet: Boolean(node.requirements.trim()),
+      placeholder: fieldPlaceholders(node.type).req,
+      onChange: (value) => onSetting("requirements", value),
+    },
+  ].filter(Boolean);
+
   return (
     <article
       className={"ncard" + (node.width === "full" ? " is-full" : "") + (leaving ? " is-leaving" : "") + (fresh ? " is-fresh" : "")}
@@ -58,7 +94,7 @@ export default function NodeCard({
       data-type={node.type}
       data-skipped={skipped || undefined}
       data-pl-enter={entering || undefined}
-      style={{ "--node-color": meta.color, "--pl-i": enterAt }}
+      style={{ "--node-color": meta.color, "--pl-i": enterAt, gridColumn: span ? `span ${span}` : undefined }}
       aria-label={`${title} card`}
       onAnimationEnd={(e) => {
         if (e.target !== e.currentTarget) return;
@@ -74,23 +110,16 @@ export default function NodeCard({
         limits={limits}
         custom={node.words != null}
         onWordsChange={onWordsChange}
-        picker={node.type === "website" && onSetting && (
-          <NodeComponentSelect
-            value={node.component}
-            label={meta.label}
-            onChange={(value) => onSetting("component", value)}
-          />
-        )}
+        menu={settings && <NodeSettingsMenu label={title} fields={settings} />}
       >
         <NodeActions
           label={title}
           busy={busy}
-          canCopy={canCopy}
+          canRegenerate={node.items.length > 0}
           regenDisabled={regenDisabled || leaving}
           regenTitle={regenTitle}
           onRegenerate={onRegenerate}
           onBlocked={onBlocked}
-          onCopy={() => onCopy([item.headline, item.sub].filter(Boolean).join("\n"))}
           onDuplicate={onDuplicate}
           onDelete={() => setLeaving(true)}
           onClose={() => setLeaving(true)}
@@ -104,6 +133,9 @@ export default function NodeCard({
         message={node.message}
         onRetry={onRegenerate}
         onEdit={onEdit ? (field, text) => onEdit(shown, field, text) : undefined}
+        footer={canCopy && (
+          <CopyButton label={title} onCopy={() => onCopy([item.headline, item.sub].filter(Boolean).join("\n"))} />
+        )}
       />
       {!busy && item && <BannedCheck copy={item} banned={banned} className="ncard-banned" />}
       {!busy && node.items.length > 1 && (

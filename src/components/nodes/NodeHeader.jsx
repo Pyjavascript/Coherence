@@ -6,7 +6,8 @@ const MAX_LABEL = 60;
 
 // label / onLabelChange: the card's title, typed straight into the header like
 // a Node Studio node's name. Left blank, it goes back to the medium's name.
-export default function NodeHeader({ meta, label, onLabelChange, meter, limits, custom, onWordsChange, picker, children }) {
+// menu: the card's settings arrow, right after the title.
+export default function NodeHeader({ meta, label, onLabelChange, meter, limits, custom, onWordsChange, menu, children }) {
   const counted = meter && meter.words > 0;
   const maxWords = defaultWords(limits);
   const fill = counted ? Math.min(100, Math.round((meter.words / meter.maxWords) * 100)) : 0;
@@ -38,10 +39,13 @@ export default function NodeHeader({ meta, label, onLabelChange, meter, limits, 
           <span className="ncard-pill-label">{label || meta.label}</span>
         )}
       </h2>
-      {picker}
+      {menu}
+      {/* The word meter is switched off; while it rendered empty it still took a
+          flex slot, doubling the gap before the action buttons. Restore the block
+          below to bring it back.
+          (Count, limit and unit sit in one group so hiding parts of it never moves the box.)
       <span className={"ncard-meter" + (counted ? " is-" + meter.level : "")} title={title}>
-        {/* Count, limit and unit sit in one group so hiding parts of it never moves the box. */}
-        {/* <span className="ncard-meter-value">
+        <span className="ncard-meter-value">
           {counted && <span className="ncard-meter-text">{meter.words}/</span>}
           {onWordsChange ? (
             <WordsInput
@@ -54,9 +58,10 @@ export default function NodeHeader({ meta, label, onLabelChange, meter, limits, 
           ) : maxWords}
           <span className="ncard-meter-unit">words</span>
           {counted && meter.level === "over" && <span className="ncard-meter-flag">· too long</span>}
-        </span> */}
-        {/* {counted && <span className="ncard-meter-bar" aria-hidden="true"><i style={{ width: `${fill}%` }} /></span>} */}
+        </span>
+        {counted && <span className="ncard-meter-bar" aria-hidden="true"><i style={{ width: `${fill}%` }} /></span>}
       </span>
+      */}
       {children}
     </header>
   );

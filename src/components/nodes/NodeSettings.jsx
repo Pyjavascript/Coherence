@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { WEBSITE_COMPONENTS } from "../../lib/constants";
 import { defaultWords, minWordsFor, MAX_WORDS } from "../../lib/copyItems";
+import { fieldPlaceholders } from "../../lib/placeholders";
 
 // Number field that saves on Enter / blur (Esc cancels), like the header's word box.
 function WordsField({ id, value, min, onCommit }) {
@@ -51,7 +52,7 @@ export default function NodeSettings({ node, meta, limits, onSetting, onWordsCha
         <textarea
           id={`${uid}-brief`}
           rows={2}
-          placeholder="What must this piece do?"
+          placeholder={fieldPlaceholders(node.type).job}
           value={node.brief}
           onChange={(e) => onSetting("brief", e.target.value)}
         />
@@ -91,7 +92,7 @@ export default function NodeSettings({ node, meta, limits, onSetting, onWordsCha
         <textarea
           id={`${uid}-req`}
           rows={2}
-          placeholder="Format, must-include line, banned words override..."
+          placeholder={fieldPlaceholders(node.type).req}
           value={node.requirements}
           onChange={(e) => onSetting("requirements", e.target.value)}
         />

@@ -46,7 +46,7 @@ export const mediaForPlatforms = (platforms) =>
 
 // Quick Grid state + generation logic. Lives in App so the toolbar's Generate
 // button can drive it and so the data survives switching views.
-export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAvailable, setStatus, onGenerated, ensureAuth, onMissingMessage }) {
+export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAvailable, setStatus, onGenerated, ensureAuth, ensureBrand }) {
   const [nodes, setNodes] = useState(seedNodes);
   const [busy, setBusy] = useState(false);
   const [lastAdded, setLastAdded] = useState(null);
@@ -59,12 +59,9 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
   const precheck = () => {
     if (!aiAvailable) { setStatus("AI generation isn't available here.", "err"); return false; }
     if (ensureAuth && !ensureAuth()) return false;
-    if (!ctx.brand.message.trim()) {
-      setStatus("Add a message to adapt first.", "err");
-      onMissingMessage?.();
-      return false;
-    }
-    return true;
+    // Same rule as Node Studio: a message to adapt, and a brand (picked, or a
+    // new one with a name). ensureBrand points at whatever is missing.
+    return ensureBrand({ generate: true });
   };
 
   const generateAll = async () => {
@@ -248,29 +245,42 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
   };
 }
 
-// How many rows the default set of cards takes at `cols` columns, packed the
-// way the grid packs them (row dense). A full-width card spans the whole row,
-// except at three columns where it spans two (layout.css, .ncard.is-full).
-const defaultRows = (cols) => {
-  const used = [];
-  let rows = 0;
-  MEDIA.forEach((m) => {
-    const span = Math.min(cols, m.full ? (cols === 3 ? 2 : cols) : 1);
-    for (let r = 0; ; r += 1) {
-      used[r] = used[r] || Array(cols).fill(false);
-      const at = used[r].findIndex((_, c) => c + span <= cols && used[r].slice(c, c + span).every((taken) => !taken));
-      if (at === -1) continue;
-      for (let c = at; c < at + span; c += 1) used[r][c] = true;
-      rows = Math.max(rows, r + 1);
-      break;
+// The grid has 12 tracks (layout.css), which divide evenly by 1–4 columns.
+const TRACKS = 12;
+
+// How many columns a card takes at `cols` across: a full-width card spans the
+// whole row, except at three columns where it spans two.
+const weightOf = (full, cols) => Math.min(cols, full ? (cols === 3 ? 2 : cols) : 1);
+
+// Packs cards into rows in order, then stretches each row to the full width:
+// a row with room left over (a card was closed, or the next one didn't fit)
+// shares that room between its cards by weight. Returns each card's track span
+// and the row count.
+const packRows = (fulls, cols) => {
+  const rows = [];
+  fulls.forEach((full, i) => {
+    const weight = weightOf(full, cols);
+    const row = rows[rows.length - 1];
+    if (row && row.weight + weight <= cols) {
+      row.cards.push([i, weight]);
+      row.weight += weight;
+    } else {
+      rows.push({ weight, cards: [[i, weight]] });
     }
   });
-  return Math.max(1, rows);
+  const spans = [];
+  rows.forEach((row) => row.cards.forEach(([i, weight]) => { spans[i] = (TRACKS * weight) / row.weight; }));
+  return { spans, rows: Math.max(1, rows.length) };
 };
+
+const DEFAULT_FULLS = MEDIA.map((m) => Boolean(m.full));
 
 export default function QuickGrid({ quick, atGenLimit }) {
   const gridRef = useRef(null);
-  useFlip(gridRef, quick.nodes.map((n) => n.id).join("|"));
+  // Cards across (layout.css --qg-cols, from the stage width).
+  const [cols, setCols] = useState(1);
+  const { spans } = packRows(quick.nodes.map((n) => n.width === "full"), cols);
+  useFlip(gridRef, quick.nodes.map((n, i) => `${n.id}:${spans[i]}`).join("|"));
 
   // The default cards fill one screen. --row-fit is that row height, so cards
   // added beyond the default set keep it and continue below (the grid scrolls)
@@ -282,14 +292,15 @@ export default function QuickGrid({ quick, atGenLimit }) {
     const update = () => {
       const gridStyle = getComputedStyle(grid);
       const scrollStyle = getComputedStyle(scroller);
-      const cols = gridStyle.gridTemplateColumns.split(" ").filter(Boolean).length || 1;
-      const rows = defaultRows(cols);
+      const across = parseInt(gridStyle.getPropertyValue("--qg-cols"), 10) || 1;
+      setCols(across);
+      const { rows } = packRows(DEFAULT_FULLS, across);
       const inner = scroller.clientHeight - parseFloat(scrollStyle.paddingTop) - parseFloat(scrollStyle.paddingBottom);
       const gap = parseFloat(gridStyle.rowGap) || 0;
       grid.style.setProperty("--row-fit", `${Math.max(0, Math.floor((inner - gap * (rows - 1)) / rows))}px`);
     };
-    // The scroller's content box changes with the window, the panels and the
-    // message tray's height (its bottom padding), and so does the column count.
+    // The scroller's content box changes with the window and the panels, and so
+    // does the column count.
     const observer = new ResizeObserver(update);
     observer.observe(scroller);
     return () => observer.disconnect();
@@ -326,7 +337,7 @@ export default function QuickGrid({ quick, atGenLimit }) {
   };
 
   return (
-    <div className="qg">
+    <div className={"qg" + (quick.nodes.length ? "" : " is-empty")}>
       {!quick.nodes.length && (
         <div className="qg-empty">
           <h2>No cards on the grid</h2>
@@ -340,6 +351,7 @@ export default function QuickGrid({ quick, atGenLimit }) {
             key={n.id}
             node={n}
             meta={MEDIA_BY_KEY[n.type]}
+            span={spans[i]}
             enterIndex={firstRender.current ? i : 0}
             skipped={Boolean(quick.targetMedia && !quick.targetMedia.has(n.type))}
             banned={quick.banned}

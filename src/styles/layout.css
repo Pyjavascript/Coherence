@@ -35,16 +35,25 @@
   /* The shell's left padding sits before the icons, so the rail only adds the
      same amount after them: equal navy on both sides of the icon column. */
   --lnav-closed: calc(var(--ui-icon) + var(--shell-pad));
-  --lnav-open: clamp(236px, 19vw, 290px);
   --lnav-row-gap: clamp(15px, 1.2vw, 18px);
 
-  --lnav-label-w: calc(var(--lnav-open) - var(--shell-pad) - var(--ui-icon) - var(--lnav-row-gap));
+  /* The open rail is exactly [icon][gap][labels][--shell-pad], so the navy
+     right of the labels matches the shell's --shell-pad on the left.
+     BrandSidebar.jsx measures the widest fixed label (the product name, at
+     the current font size) into --lnav-label-w on <html>; this is the
+     fallback until it does. */
+  --lnav-label-w: calc(clamp(236px, 19vw, 290px) - var(--shell-pad) - var(--ui-icon) - var(--lnav-row-gap));
+  --lnav-open: calc(var(--ui-icon) + var(--lnav-row-gap) + var(--lnav-label-w) + var(--shell-pad));
   --rsb-w: clamp(320px, 28vw, 420px);
   --tb-h: clamp(44px, 4vw, 58px);
   --notch-gap: clamp(8px, 0.9vw, 14px);
   --tb-pad-top: var(--notch-gap);
   --tb-pad-bottom: clamp(10px, 1.1vw, 16px);
-  --tb-pad-x: var(--tb-pad-top);
+  /* Side gutter of the workspace: the toolbar and the Quick Grid both inset by
+     this, so the toolbar's end buttons line up with the cards' edges. cqw
+     resolves against the ws container where the padding is used. */
+  --ws-gutter: clamp(12px, 1.8cqw, 24px);
+  --tb-pad-x: var(--ws-gutter);
   /* Full toolbar height: Node Studio's canvas extends up under it by this much. */
   --tb-total: calc(var(--tb-pad-top) + var(--tb-h) + var(--tb-pad-bottom));
 }
@@ -276,9 +285,13 @@ body {
   white-space: nowrap;
 }
 
+.lnav {
+  --lnav-glyph: clamp(22px, 1.9vw, 28px);
+}
+
 .lnav-glyph {
-  width: clamp(22px, 1.9vw, 28px);
-  height: clamp(22px, 1.9vw, 28px);
+  width: var(--lnav-glyph);
+  height: var(--lnav-glyph);
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
@@ -306,15 +319,14 @@ body {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.lnav-plus {
-  font-size: clamp(26px, 2.2vw, 32px);
-  font-weight: 300;
-  line-height: 1;
-}
-
-/* Collapsed: a white "+" on the navy rail. Hover / press / open rail: the white
-   24px pill from the design, with navy "+" and label. */
+/* A white "+" and label on the navy rail, unfilled. Hover / press: the white
+   box fades in with navy "+" and label. */
 .lnav .lnav-add {
+  /* The logo fills its slot but the Minimize and "+" glyphs are centred in
+     theirs, so between those two the slots' empty margins add up. Pulling
+     this row up by one margin makes logo → Minimize and Minimize → "+" the
+     same visible gap. */
+  margin-top: calc((var(--ui-icon) - var(--lnav-glyph)) / -2);
   color: #fff;
   background: transparent;
   font-weight: 500;
@@ -323,14 +335,9 @@ body {
 
 .lnav .lnav-add:hover,
 .lnav .lnav-add:focus-visible,
-.lnav .lnav-add:active,
-.lnav[data-open="true"] .lnav-add {
+.lnav .lnav-add:active {
   color: var(--shell-navy);
   background: #fff;
-}
-
-.lnav[data-open="true"] .lnav-add:hover {
-  background: #eff1ff;
 }
 
 .lnav .lnav-add:active {
@@ -527,16 +534,13 @@ body {
    Right dock + brand panel
    ========================================================================== */
 
+/* Zero-width anchor at the workspace's right edge: the panel floats over the
+   workspace from here instead of taking room beside it. */
 .shell-right {
   position: relative;
   z-index: 50;
   flex: 0 0 auto;
   width: 0;
-  transition: width var(--shell-dur) var(--shell-ease);
-}
-
-.app-shell[data-bp="desktop"][data-right="open"] .shell-right {
-  width: calc(var(--rsb-w) + var(--gap));
 }
 
 .rsb {
@@ -565,6 +569,19 @@ body {
     opacity 220ms ease 60ms,
     transform var(--shell-dur) var(--shell-ease),
     visibility 0s;
+}
+
+/* Desktop: a floating card inset --gap inside the workspace's right edge, over
+   the grid / canvas and the toolbar's end. The workspace keeps its full width
+   underneath. */
+.app-shell[data-bp="desktop"] .rsb {
+  top: var(--gap);
+  bottom: var(--gap);
+  left: auto;
+  right: var(--gap);
+  box-shadow:
+    0 28px 64px -24px rgba(12, 23, 79, 0.6),
+    0 10px 28px rgba(12, 23, 79, 0.2);
 }
 
 /* Tablet + mobile: right drawer over the workspace. */
@@ -625,14 +642,6 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   color: #fff;
-}
-
-/* Desktop: the panel's navy runs into the shell's, so the visible gap is
-   --gap + padding on the left (from the workspace) but padding + the shell's
-   own padding on the right (to the window edge). Trim the right padding so the
-   cards sit the same distance from both. */
-.app-shell[data-bp="desktop"] .rsb-scroll {
-  padding-right: max(0px, calc(var(--gap) + var(--rsb-pad-x) - var(--shell-pad)));
 }
 
 .rsb .rsb-head {
@@ -754,7 +763,13 @@ body {
   font-weight: 500;
 }
 
-/* Inputs */
+/* Inputs. Every field and button in the panel is one height, --bp-field-h:
+   text inputs, the belief box, dropdowns, Research notes, Save/Delete, Copy
+   Prompt, Export and Generate. */
+.rsb {
+  --bp-field-h: clamp(48px, 3.8vw, 54px);
+}
+
 .rsb .bp-input,
 .rsb .bp-textarea {
   display: block;
@@ -770,15 +785,17 @@ body {
 }
 
 .rsb .bp-input {
-  height: clamp(48px, 3.8vw, 54px);
+  height: var(--bp-field-h);
   min-height: 0;
   padding: 0 18px;
 }
 
+/* Same height as the inputs, its first line where theirs is; longer text
+   scrolls inside it. */
 .rsb .bp-textarea {
-  height: auto;
-  min-height: clamp(58px, 4.6vw, 66px);
-  padding: 13px 18px;
+  height: var(--bp-field-h);
+  min-height: 0;
+  padding: calc((var(--bp-field-h) - 1.4em) / 2 - 1px) 18px;
   line-height: 1.4;
   resize: none;
 }
@@ -834,7 +851,7 @@ body {
 .rsb .bp-dd-trigger,
 .rsb .bp-row2 .bp-dd-trigger {
   width: 100%;
-  height: clamp(48px, 3.8vw, 54px);
+  height: var(--bp-field-h);
   min-height: 0;
   display: flex;
   align-items: center;
@@ -898,14 +915,14 @@ body {
 
 .rsb .bp-del,
 .rsb .bp-save {
-  height: clamp(50px, 4vw, 56px);
+  height: var(--bp-field-h);
   border: 0;
   border-radius: var(--r);
   cursor: pointer;
 }
 
 .rsb .bp-del {
-  width: clamp(50px, 4vw, 56px);
+  width: var(--bp-field-h);
   flex: 0 0 auto;
   display: grid;
   place-items: center;
@@ -995,7 +1012,7 @@ body {
 
 .rsb .bp-research-field {
   width: 100%;
-  height: clamp(48px, 3.8vw, 54px);
+  height: var(--bp-field-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1040,7 +1057,7 @@ body {
 .rsb .bp-copy {
   width: auto;
   min-width: 0;
-  height: clamp(50px, 4vw, 56px);
+  height: var(--bp-field-h);
   min-height: 0;
   flex: none;
   display: inline-flex;
@@ -1064,6 +1081,43 @@ body {
 
 .rsb .bp-copy:hover {
   background: var(--hover-solid);
+}
+
+/* Export: [format dropdown][Export], one row the dropdowns' height. */
+.rsb .bp-export-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rsb .bp-export-row .bp-dd {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Last thing in the panel, so the menu opens upward into the panel. */
+.rsb .bp-export-row .bp-dd-menu {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.rsb .bp-export-btn {
+  height: var(--bp-field-h);
+}
+
+.rsb .bp-export-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.rsb .bp-export-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.rsb .bp-export-btn:disabled:hover {
+  background: var(--shell-navy);
 }
 
 /* Generate Free Hook card */
@@ -1117,7 +1171,7 @@ body {
 
 .rsb .bp-card-hook .bp-gen-btn {
   width: 100%;
-  height: clamp(54px, 4.6vw, 66px);
+  height: var(--bp-field-h);
   min-height: 0;
   margin-top: clamp(14px, 1.4vw, 20px);
   color: var(--shell-ink);
@@ -1220,12 +1274,14 @@ body {
      toolbar padding away from the workspace edge. */
   height: var(--tb-h);
   margin-block: 0;
-  gap: clamp(12px, 1.4vw, 10px);
-  /* padding: 0 clamp(16px, 1.6vw, 24px); */
-  padding: 10px clamp(12px, 1.2vw, 14px) 10px clamp(12px, 1.2vw, 14px);
-  font-size: clamp(14px, 1.25vw, 16px);
-  white-space: nowrap;
-  max-width: 16rem;
+  /* Icon-only white square: the 2x2 dots centred, like the model picker's
+     white face and resting shadow. */
+  width: var(--tb-h);
+  flex: none;
+  justify-content: center;
+  padding: 0;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(10, 20, 80, 0.06), 0 4px 14px rgba(10, 20, 80, 0.06);
   overflow: hidden;
   transition:
     background-color 180ms ease,
@@ -1242,8 +1298,9 @@ body {
   }
 }
 
+/* Menu open: the rail's navy, like the active view tab beside it. */
 .ws-topbar .toolbar-add-node[aria-expanded="true"] {
-  background: #182765;
+  background: var(--shell-navy);
 }
 
 .ws-topbar .toolbar-add-node:disabled {
@@ -1337,6 +1394,20 @@ body {
   display: none;
 }
 
+/* Add Node / Add Grid: every label the button can show is stacked in one cell
+   and only the current one is visible, so switching views keeps its width. */
+.toolbar-add-label .tb-label-full {
+  display: inline-grid;
+}
+
+.tb-label-full > span {
+  grid-area: 1 / 1;
+}
+
+.tb-label-full > span[aria-hidden] {
+  visibility: hidden;
+}
+
 .toolbar-spinner {
   width: 16px;
   height: 16px;
@@ -1370,23 +1441,53 @@ body {
   background: #182765;
 }
 
-/* Panel toggle: a standalone navy rounded box at the end of the toolbar. */
+/* Panel toggle: a standalone rounded box at the end of the toolbar. */
 .ws-topbar .toolbar-panel-notch {
   flex: none;
   width: var(--tb-h);
   height: var(--tb-h);
-  transition: width var(--shell-dur) var(--shell-ease), margin var(--shell-dur) var(--shell-ease), opacity 180ms ease;
+  transition: opacity 180ms ease;
 }
 
 .ws-topbar .toolbar-panel-notch .toolbar-panel-btn {
   width: 100%;
 }
 
-/* The panel toggle folds away while the brand panel is docked (it has its own close). */
+/* Same share of the button as Node Studio's "+" (.sn-add svg), so the bars
+   come out the same length and weight. */
+.ws-topbar .toolbar-panel-btn svg {
+  width: 46%;
+  height: 46%;
+}
+
+/* White, like the model picker and Add beside it: navy glyph, the picker's
+   soft shadow, and the same small grow on hover instead of a tint. These
+   selectors outrank the navy .toolbar-icon-btn rules (here, enhancements.css)
+   and the #root shadow in polish/grid.css. */
+.ws-topbar .toolbar-panel-notch .toolbar-panel-btn,
+.ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover,
+.ws-topbar .toolbar-panel-notch .toolbar-panel-btn.is-active {
+  color: var(--shell-navy);
+  background: #fff;
+}
+
+#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn {
+  transition: var(--hover-transition), transform 120ms ease, scale var(--shell-dur) var(--shell-ease);
+  box-shadow: 0 1px 2px rgb(12 23 79 / .06), 0 4px 14px -4px rgb(12 23 79 / .12) !important;
+}
+
+#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover {
+  scale: var(--hover-grow);
+  box-shadow: 0 1px 2px rgb(12 23 79 / .08), 0 8px 20px -6px rgb(12 23 79 / .18) !important;
+}
+
+#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover:active {
+  scale: var(--pl-press-scale);
+}
+
+/* While the floating brand panel is open (it has its own close) the toggle
+   fades out but keeps its slot, so export and the model picker stay put. */
 .ws-topbar .toolbar-panel-notch.is-hidden {
-  width: 0;
-  margin-left: calc(var(--notch-gap) * -1);
-  margin-right: 0;
   opacity: 0;
   pointer-events: none;
 }
@@ -1489,25 +1590,7 @@ body {
 }
 
 @container ws (max-width: 520px) {
-  .ws-topbar .toolbar-add-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
-
-  /* Phones: Add Node is an icon-only navy square with --r corners (18px on
-     phones), the 2x2 dots centred in it (the dot grid is ~55% of the button). */
-  .ws-topbar .toolbar-add-node {
-    width: var(--tb-h);
-    flex: none;
-    justify-content: center;
-    padding: 0;
-    border-radius: var(--r);
-  }
-
+  /* Phones: smaller dots, so the grid stays ~55% of the shorter button. */
   .ws-topbar .toolbar-add-spark {
     grid-template-columns: repeat(2, 11px);
     gap: 3px;
@@ -1607,57 +1690,86 @@ body {
     visibility 0s;
 }
 
-/* View switch — the first control in the toolbar, before Add Node. The pill
-   is exactly toolbar height; its tabs sit inside the 4px padding. */
+/* View switch — the first control in the toolbar, before Add Node:
+   [current view's name][Grid tab][Node tab] in one white box, exactly toolbar
+   height. Each tab is a square inset --ws-pad, and the thumb's corners are the
+   box's minus that inset (radius.css), so the active (navy) tab reads as a
+   smaller rounded square inside the box. */
 .ws-switch {
+  --ws-pad: 4px;
+  --ws-tab: calc(var(--tb-h) - 2 * var(--ws-pad));
   position: relative;
   flex: none;
   box-sizing: border-box;
   height: var(--tb-h);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding: 4px;
+  display: flex;
+  align-items: center;
+  padding: var(--ws-pad);
   background: #fff;
   border-radius: var(--r);
+}
+
+/* "Grid" / "Node", stacked in one cell (only the current one shows) so the
+   box keeps one width when the view changes. Add Node's type size. */
+.ws-switch-name {
+  display: inline-grid;
+  padding: 0 clamp(6px, 0.6vw, 8px) 0 clamp(8px, 0.8vw, 10px);
+  color: var(--shell-navy);
+  font-size: clamp(14px, 1.25vw, 16px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.ws-switch-name > span {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.ws-switch-name > span[data-on] {
+  opacity: 1;
+}
+
+.ws-switch-tabs {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, var(--ws-tab));
   isolation: isolate;
 }
 
 .ws-switch-thumb {
   position: absolute;
   z-index: -1;
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc((100% - 8px) / 2);
-  background: var(--shell-indigo);
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--ws-tab);
+  background: var(--shell-navy);
   border-radius: var(--r);
   transform: translateX(calc(var(--i) * 100%));
   transition: transform 280ms var(--shell-ease);
 }
 
 .ws-switch-btn {
+  width: var(--ws-tab);
   height: 100%;
   min-height: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(8px, 1vw, 18px);
-  padding: 0 clamp(14px, 1.5vw, 22px);
+  display: grid;
+  place-items: center;
+  padding: 0;
   color: var(--shell-indigo);
   background: transparent;
   border: 0;
   border-radius: var(--r);
-  font: inherit;
-  font-size: clamp(13px, 1.15vw, 17px);
-  font-weight: 500;
-  white-space: nowrap;
   cursor: pointer;
   transition: color 200ms ease;
 }
 
 .ws-switch-btn svg {
-  width: clamp(18px, 1.6vw, 24px);
-  height: clamp(18px, 1.6vw, 24px);
+  width: 50%;
+  height: 50%;
   flex: none;
 }
 
@@ -1670,46 +1782,21 @@ body {
   outline-offset: 1px;
 }
 
-/* The toolbar fills up as the workspace narrows: first drop the icons... */
-@container ws (max-width: 1100px) {
-  .ws-switch-btn svg {
-    display: none;
-  }
-}
-
-/* ...then the names (each tab keeps its name as a label and tooltip)... */
-@container ws (max-width: 860px) {
-  .ws-switch-btn {
-    width: calc(var(--tb-h) - 8px);
-    padding: 0;
-  }
-
-  .ws-switch-btn > span {
-    display: none;
-  }
-
-  .ws-switch-btn svg {
-    display: block;
-    width: 55%;
-    height: 55%;
-  }
-}
-
-/* ...and on phones keep only the button for the other view, so one tap
+/* Phones: drop the name and keep only the tab for the other view, so one tap
    switches; the thumb has nothing to slide between. */
 @container ws (max-width: 520px) {
   .ws-switch {
-    grid-template-columns: 1fr;
-    padding: 0;
+    --ws-pad: 0px;
   }
 
+  .ws-switch-name,
   .ws-switch-thumb,
   .ws-switch-btn.on {
     display: none;
   }
 
-  .ws-switch-btn {
-    width: var(--tb-h);
+  .ws-switch-tabs {
+    grid-template-columns: var(--ws-tab);
   }
 }
 
@@ -1725,19 +1812,33 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* The bottom padding clears the message tray (its height is --tray-h, set by
-     MainWorkspace) so the last row of cards is never hidden under it. */
-  padding: 0 clamp(12px, 1.6vw, 24px) calc(var(--tray-h, 0px) + clamp(10px, 1.4vw, 22px) + clamp(12px, 1.6vw, 24px));
+  /* No room kept for the message tray: the cards run down behind it and end
+     8px below it (--tray-bottom, composer.css), so it always sits merged
+     over them, scrolled or not. */
+  padding: 0 clamp(12px, 1.6vw, 24px) max(6px, calc(var(--tray-bottom, 22px) - 8px));
   background-image: radial-gradient(#fff 0.75px, transparent 0.9px);
   background-size: 18px 18px;
   background-attachment: local;
+  transition: padding-right var(--shell-dur) var(--shell-ease);
 }
 
+/* Desktop, brand panel open: the panel floats over the workspace's right side,
+   so the grid keeps that strip clear and its cards narrow to fit beside it
+   (same column count; QuickGrid.jsx re-measures on the resize). */
+.app-shell[data-bp="desktop"][data-right="open"] .qg {
+  padding-right: calc(var(--rsb-w) + var(--gap) + var(--ws-gutter));
+}
+
+/* --qg-cols is how many cards fit across; QuickGrid.jsx reads it, packs the
+   cards into rows of that many in order, and gives each card a span of the 12
+   tracks so every row fills the full width. Closing a card never leaves a
+   hole: the cards left in its row share the space (12 divides by 1–4). */
 .qg-grid {
+  --qg-cols: 1;
   position: relative;
   min-height: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   /* --row-fit (QuickGrid.jsx) is the row height at which the default cards
      fill the screen: rows never go below it, so extra cards scroll below
      instead of squeezing the rest; with fewer cards, 1fr still fills it. */
@@ -1747,33 +1848,15 @@ body {
 }
 
 @container ws (min-width: 640px) {
-  .qg-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ncard.is-full {
-    grid-column: 1 / -1;
-  }
+  .qg-grid { --qg-cols: 2; }
 }
 
 @container ws (min-width: 1200px) {
-  .qg-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .ncard.is-full {
-    grid-column: span 2;
-  }
+  .qg-grid { --qg-cols: 3; }
 }
 
 @container ws (min-width: 1800px) {
-  .qg-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .ncard.is-full {
-    grid-column: 1 / -1;
-  }
+  .qg-grid { --qg-cols: 4; }
 }
 
 /* Mobile: a plain scrolling column (the base padding clears the message tray). */
@@ -1784,9 +1867,22 @@ body {
   }
 }
 
+/* No cards: the empty grid steps aside (so nothing scrolls) and the card sits
+   centred in the open space: below the toolbar, beside the panels and above
+   the message box (--tray-h, MainWorkspace.jsx), not behind it. */
+.qg.is-empty {
+  display: grid;
+  place-items: center;
+  padding-bottom: calc(var(--tray-bottom, 22px) + var(--tray-h, 0px));
+}
+
+.qg.is-empty .qg-grid {
+  display: none;
+}
+
 .qg-empty {
-  max-width: 420px;
-  margin: 12vh auto 24px;
+  width: min(420px, 100%);
+  margin: 0;
   padding: 28px 24px;
   color: var(--shell-ink);
   text-align: center;
@@ -1802,15 +1898,22 @@ body {
   letter-spacing: -0.02em;
 }
 
+/* Two even lines, set like the tour's descriptions (tight -0.02em tracking). */
 .qg-empty p {
-  margin: 0 0 18px;
-  color: #70748d;
+  max-width: 300px;
+  margin: 0 auto 18px;
+  color: #5d6280;
   font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
+/* Same shape as the popups' buttons: 48px tall with the shared button corner
+   (--btn-r), a rounded square rather than a pill. */
 .qg-empty button {
-  height: 46px;
-  padding: 0 20px;
+  height: 48px;
+  padding: 0 24px;
   color: #fff;
   background: var(--shell-navy);
   border: 0;
@@ -2053,8 +2156,73 @@ body {
   margin: 0;
 }
 
+/* Copy, then the Copy button: at the end of the copy, pushed to the box's
+   bottom-right corner when the copy is short. */
 .ncard-body.is-generated {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   color: var(--shell-ink);
+}
+
+/* The Copy button is an .ncard-action like the header's ×: same height,
+   corner and focus ring, but wide enough for icon + "Copy", and navy. It sits
+   --ncard-copy-inset from the copy box's bottom-right corner (the negative
+   margins cancel the box's padding) and stays there while long copy scrolls.
+   Sticky offsets are measured inside the scroller's padding, so `bottom`
+   subtracts it too: the gap below matches the gap on the right. No hover
+   effect; pressed it stays navy (no light-blue flash); copied, the icon is a
+   green tick. The .ncard-body prefix outranks the shared
+   .ncard-action rules (here, enhancements.css, polish/grid.css). */
+.ncard-body .ncard-copy-btn {
+  --ncard-copy-inset: 10px;
+  position: sticky;
+  bottom: calc(var(--ncard-copy-inset) - var(--ncard-pad-y, 26px));
+  z-index: 1;
+  flex: none;
+  align-self: flex-end;
+  width: auto;
+  margin: auto calc(var(--ncard-copy-inset) - var(--ncard-pad-x, 24px)) calc(var(--ncard-copy-inset) - var(--ncard-pad-y, 26px)) 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 10px;
+  color: #fff;
+  background: var(--shell-navy);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.ncard-body .ncard-copy-btn svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* No hover effect at all: same navy, white text, full opacity, copied or not.
+   #root outranks the shared icon-button hover tint (enhancements.css), which
+   loads later and otherwise turns the navy pale. */
+#root .ncard-body .ncard-action.ncard-copy-btn:hover:not(:disabled),
+#root .ncard-body .ncard-action.ncard-copy-btn:active:not(:disabled) {
+  color: #fff;
+  background: var(--shell-navy);
+  opacity: 1;
+  filter: none;
+}
+
+.ncard-body .ncard-copy-btn.is-copied {
+  color: #fff;
+  background: var(--shell-navy);
+}
+
+.ncard-body .ncard-copy-btn.is-copied svg {
+  color: var(--ux-ok);
+}
+
+#root .ncard-body .ncard-copy-btn.is-copied {
+  box-shadow: none !important;
 }
 
 .ncard-copy {
@@ -2581,6 +2749,23 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* Node Studio: every field is one height (--sn-field-h, the dropdowns' too),
+   with a single line of text or placeholder centred in it. A longer entry grows
+   the box downward. */
+.ws-view-nodes .sn-field {
+  --sn-field-h: clamp(42px, 3.4vw, 50px);
+}
+
+.ws-view-nodes .sn-field input {
+  height: var(--sn-field-h);
+  min-height: 0;
+}
+
+.ws-view-nodes .sn-field textarea {
+  min-height: var(--sn-field-h);
+  padding: calc((var(--sn-field-h) - 1.4em) / 2) 16px;
+}
+
 .sn-field input::placeholder,
 .sn-field textarea::placeholder {
   color: #a7aac6;
@@ -2590,6 +2775,42 @@ body {
 .sn-field textarea:focus,
 .sn-field select:focus {
   outline: 2px solid #c9d3ff;
+}
+
+/* The app's dropdown (Select.jsx) in a node: sized and styled like the
+   node's other fields; the open one sits above the nodes below it. */
+.sn-field .bp-dd-trigger {
+  width: 100%;
+  height: auto;
+  min-height: clamp(42px, 3.4vw, 50px);
+  gap: 10px;
+  padding: 0 14px 0 16px;
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid transparent;
+  border-radius: calc(49px * var(--ui-ratio));
+  font-size: clamp(12px, 0.9vw, 13px);
+  font-weight: 500;
+}
+
+.sn-field .bp-dd-chev {
+  color: var(--shell-ink);
+}
+
+.sn-field .bp-dd-menu {
+  border-radius: calc(49px * var(--ui-ratio));
+}
+
+.sn-field .bp-dd-opt {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: calc(40px * var(--ui-ratio));
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cn:has(.bp-dd.open) {
+  z-index: 60 !important;
 }
 
 .sn-row2 {

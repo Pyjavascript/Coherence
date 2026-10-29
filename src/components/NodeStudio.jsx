@@ -1152,7 +1152,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
               onAddChild={() => handleAddChild(n.id, n.category)}
             >
               {topInfo && (
-                <header className="sn-col-head" style={{ "--cat": NODE_CATS[n.category].color, position: 'absolute', top: -COL_HEAD_OFFSET, left: 0, right: 0, width: NODE_W, cursor: 'grab' }}>
+                <header className="sn-col-head" style={{ "--cat": NODE_CATS[n.category].color, position: 'absolute', top: -COL_HEAD_OFFSET, left: 0, right: 0, cursor: 'grab' }}>
                   <span className="sn-col-dot" aria-hidden="true" />
                   <h2>{NODE_CATS[n.category].label}</h2>
 

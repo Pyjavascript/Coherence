@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
 const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
+// On a phone, the share of the screen's width the first card opens at.
+const PHONE_CARD_SHARE = 0.72;
 
 // Pan / zoom surface for Node Studio.
 export default function CanvasViewport({ children }) {
@@ -10,6 +12,17 @@ export default function CanvasViewport({ children }) {
   const dragRef = useRef(null);
   const pinchRef = useRef(null);
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
+
+  // The first card's x and width in canvas units (the leftmost card).
+  const firstCard = useCallback(() => {
+    const world = viewportRef.current?.querySelector(".canvas-world");
+    const cards = world ? [...world.querySelectorAll(".cn")] : [];
+    if (!world || !cards.length || !world.offsetWidth) return { x: 40, w: 400 };
+    const w = world.getBoundingClientRect();
+    const scale = w.width / world.offsetWidth || 1;
+    const first = cards.reduce((a, c) => (c.getBoundingClientRect().left < a.getBoundingClientRect().left ? c : a));
+    return { x: (first.getBoundingClientRect().left - w.left) / scale, w: first.offsetWidth };
+  }, []);
 
   // The canvas runs up under the transparent toolbar, so the home view moves
   // the content down until its top (the column titles) sits 16px below the
@@ -47,10 +60,13 @@ export default function CanvasViewport({ children }) {
           const y = homeY(1);
           return current.zoom === 1 && current.x === 0 && current.y === y ? current : { x: 0, y, zoom: 1 };
         }
-        // First column: 40px inset + a 400px node (NODE_W) + a little air.
-        const zoom = clampZoom((el.clientWidth - 24) / 460);
+        // The first card fills ~72% of the screen, centred, with even air on
+        // both sides. Its width and x come from the page (cards are narrower
+        // on phones, layout.css).
+        const card = firstCard();
+        const zoom = clampZoom((el.clientWidth * PHONE_CARD_SHARE) / card.w);
         autoZoom.current = zoom;
-        return { x: 8, y: homeY(zoom), zoom };
+        return { x: Math.round((el.clientWidth - card.w * zoom) / 2 - card.x * zoom), y: homeY(zoom), zoom };
       });
     };
     fit();
@@ -61,7 +77,7 @@ export default function CanvasViewport({ children }) {
       observer.disconnect();
       mq.removeEventListener("change", fit);
     };
-  }, [homeY]);
+  }, [homeY, firstCard]);
   const [isPanning, setIsPanning] = useState(false);
   const viewRef = useRef(view);
   viewRef.current = view;

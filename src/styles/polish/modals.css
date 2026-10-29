@@ -193,6 +193,10 @@ html body .overlay .confirm-note { font-size: var(--md-body); font-weight: 600; 
 html body .overlay .tour-copy > .tour-sample { font-size: var(--md-body); }
 /* The tour's step descriptions read at 14px (two lines, enhancements.css). */
 html body .overlay .tour-copy > p:not(.tour-sample) { font-size: 14px; line-height: 1.45; }
+/* Phones: a touch smaller, so every step's description stays on two lines. */
+@media (max-width: 480px) {
+  html body .overlay .tour-copy > p:not(.tour-sample) { font-size: 13px; }
+}
 
 /* Every popup's description is set like the tour's: 14px, tight tracking, in a
    narrow centred block whose lines are balanced. */
@@ -405,21 +409,29 @@ html body .overlay .history-actions button { height: 34px; font-size: var(--md-b
 html body .overlay .history-pill { font-size: var(--md-body); font-weight: 600; }
 
 /* Tour: art full-bleed, copy + actions on the shared padding */
-/* Tour: one fixed size on every step (the shared 460 x 470 base), so the card
-   never grows, shrinks or shifts. The copy, dots and buttons keep their
-   height; the illustration fills the rest. */
+/* Tour: one size on every step, so the card never grows, shrinks or shifts.
+   The illustration area is a fixed height, just its tallest scene (178px)
+   plus 24px of air above and below, with each scene centred in it; the copy
+   (every step stacked in one cell), dots and buttons keep their height. So the
+   card is only as tall as it needs to be, with a short gap to the heading. */
 html body .overlay > .tour {
-  height: min(var(--md-h), var(--md-max-h));
+  --tour-art-h: 226px;
+  height: auto;
   min-height: 0;
+  max-height: var(--md-max-h);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-html body .overlay .tour-art { flex: 1 1 auto; min-height: 0; height: auto; }
+@media (max-width: 480px) {
+  /* Scenes are drawn at 88% on phones (enhancements.css). */
+  html body .overlay > .tour { --tour-art-h: 204px; }
+}
+html body .overlay .tour-art { flex: none; min-height: 0; height: var(--tour-art-h); }
 html body .overlay .tour-body {
   flex: none;
   align-content: center;
-  padding: var(--md-pad) var(--md-pad) 0;
+  padding: 10px var(--md-pad) 0;
 }
 html body .overlay .tour-dots { flex: none; padding: 14px 0 16px; }
 html body .overlay .tour-actions { flex: none; gap: 10px; padding: 0 var(--md-pad) var(--md-pad); }

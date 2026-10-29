@@ -163,22 +163,22 @@ const ArtExport = () => (
 export const TOUR_STEPS = [
   {
     title: "Welcome to Coherence",
-    body: "Set up your brand once in the right panel. Every line Coherence writes follows its name, belief and tone.",
+    body: "Set up your brand once. Every line follows its name, belief and tone.",
     Art: ArtBrand,
   },
   {
     title: "One message, every medium",
-    body: "Type your message below and press Generate. The Quick Grid fills with copy for every medium.",
+    body: "Type your message and press Generate to write for every medium.",
     Art: ArtGenerate,
   },
   {
     title: "Shape it in Node Studio",
-    body: "Build pages piece by piece: link hero, CTA and email nodes on a canvas you can pan and zoom.",
+    body: "Link cards into whole pages on a canvas you can freely pan and zoom.",
     Art: ArtNodes,
   },
   {
     title: "Ready to Take It Further?",
-    body: "Export your brand settings or send them straight to Figma.",
+    body: "Export your copy with its brand settings, or send it straight to Figma.",
     Art: ArtExport,
   },
 ];
@@ -240,12 +240,7 @@ export default function TourModal({ onClose, onSample }) {
               <div key={s.title} className="tour-copy" data-active={active} aria-hidden={!active} inert={active ? undefined : ""}>
                 <h2 id={active ? titleId : undefined}>{s.title}</h2>
                 <p id={active ? bodyId : undefined}>{s.body}</p>
-                {i === TOUR_STEPS.length - 1 && onSample && (
-                  <p className="tour-sample">
-                    Just exploring?{" "}
-                    <button type="button" onClick={() => { onSample(); onClose(); }}>Try a sample brand</button>
-                  </p>
-                )}
+               
               </div>
             );
           })}

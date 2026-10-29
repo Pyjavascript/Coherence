@@ -257,6 +257,15 @@ body {
   font-weight: 500;
 }
 
+/* The product name is set in NeueBit, a pixel face that draws much smaller
+   than the labels' font at the same size: 1.5x the label size makes it read
+   as the same size (24px beside the 16px labels on desktop). */
+.app-shell[data-bp="mobile"] .lnav .lnav-title {
+  font-size: clamp(22.5px, 1.8vw, 27px);
+  font-weight: 700;
+  line-height: 0.9;
+}
+
 /* No clip or fill here: logo.svg draws its own white rounded tile, and it
    scales with the icon size so the corner stays in proportion. (A 24px CSS
    radius on this ~49px box is half its width, which turns it into a circle.) */
@@ -3045,6 +3054,15 @@ body {
   cursor: grab;
   touch-action: none;
   will-change: transform;
+}
+
+/* Phones: narrower cards, so one sits centred with even air on both sides
+   (CanvasViewport frames the first card at ~72% of the screen). Lines, ports
+   and stacking follow the measured width. */
+@media (max-width: 767.98px) {
+  .ws-view-nodes .cn {
+    width: 320px;
+  }
 }
 
 .ws-view-nodes .cn.dragging {

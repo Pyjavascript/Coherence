@@ -1,5 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 
+// The settings button's icon: a pencil, for "edit this card's settings".
+const PencilIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M14.5 5.5l4 4M4.5 19.5l1-4.5L16 4.5a2.1 2.1 0 0 1 3 0l.5.5a2.1 2.1 0 0 1 0 3L9 18.5z" />
+  </svg>
+);
+
 const Chevron = ({ className, d = "m5 9 7 7 7-7" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d={d} />
@@ -160,7 +167,7 @@ export default function NodeSettingsMenu({ label, fields }) {
         aria-expanded={open}
         onClick={() => (open ? close() : setOpen(true))}
       >
-        <Chevron />
+        <PencilIcon />
       </button>
       {open && (
         <div

@@ -13,7 +13,7 @@
    end on one line. The Quick Grid cards end a little below it (layout.css
    .qg), so the tray sits merged over them. */
 .ws-stage {
-  --tray-bottom: clamp(10px, 1.4vw, 22px);
+  --tray-bottom: calc(var(--ws-gutter) + 8px); /* 8px above the cards' bottom edge */
 }
 
 @container ws (min-width: 761px) {
@@ -41,7 +41,8 @@
   justify-content: center;
   transform: translateX(-50%);
   pointer-events: none;
-  transition: left var(--shell-dur) var(--shell-ease);
+  /* Re-centres in step with the brand panel, like the grid (layout.css .qg). */
+  transition: left var(--pl-d-3) var(--pl-ease-in);
 }
 
 .ws-tray > * {
@@ -52,6 +53,7 @@
    of it, in Grid and Node Studio alike, so the tray stays put on switching. */
 .app-shell[data-bp="desktop"][data-right="open"] .ws-tray {
   --tray-room: calc(100% - var(--rsb-w) - var(--gap));
+  transition: left var(--pl-d-4) var(--pl-ease-out);
 }
 
 /* Narrow: the tray spans the stage, sitting lower, and the corner controls
@@ -196,9 +198,9 @@
 }
 
 /* .mc prefix beats the app-wide textarea / textarea:focus rules (index.css).
-   Manrope draws its letters ~1.5px below the middle of the line, so the
-   bottom padding is 3px more than the top: the text sits on the arrow
-   button's centre line instead of just under it. */
+   Measured on screen, the line box centred left the letters (capitals to
+   baseline) about 2.5px high, so the top padding is 2px more than the bottom:
+   the text reads as centred in the box, level with the arrow button. */
 .mc .mc-input,
 .mc .mc-input:focus {
   box-sizing: border-box;
@@ -206,7 +208,7 @@
   min-width: 0;
   min-height: 0;
   max-height: 140px;
-  padding: 0 6px 3px 0;
+  padding: 2px 6px 0 0;
   overflow-y: auto;
   color: var(--shell-ink);
   background: transparent;

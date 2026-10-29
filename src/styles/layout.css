@@ -46,13 +46,13 @@
   --lnav-open: calc(var(--ui-icon) + var(--lnav-row-gap) + var(--lnav-label-w) + var(--shell-pad));
   --rsb-w: clamp(320px, 28vw, 420px);
   --tb-h: clamp(44px, 4vw, 58px);
-  --notch-gap: clamp(8px, 0.9vw, 14px);
-  --tb-pad-top: var(--notch-gap);
   --tb-pad-bottom: clamp(10px, 1.1vw, 16px);
-  /* Side gutter of the workspace: the toolbar and the Quick Grid both inset by
-     this, so the toolbar's end buttons line up with the cards' edges. cqw
-     resolves against the ws container where the padding is used. */
+  /* The workspace's inset on every side: the toolbar sits this far from the
+     top, the toolbar and Quick Grid this far from the sides, and the cards end
+     this far from the bottom. cqw resolves against the ws container where the
+     padding is used. */
   --ws-gutter: clamp(12px, 1.8cqw, 24px);
+  --tb-pad-top: var(--ws-gutter);
   --tb-pad-x: var(--ws-gutter);
   /* Full toolbar height: Node Studio's canvas extends up under it by this much. */
   --tb-total: calc(var(--tb-pad-top) + var(--tb-h) + var(--tb-pad-bottom));
@@ -1233,6 +1233,36 @@ body {
     linear-gradient(160deg, #f6f7ff 0%, #e7ebff 45%, #b8c7ff 100%);
 }
 
+/* A slow drift of soft light over the gradient, so the background feels alive
+   without pulling focus: two oversized glows wander and swap places over ~40s.
+   It sits behind everything in the workspace (z-index -1 inside its stacking
+   context) and never takes clicks. Still for reduced motion. */
+.workspace::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(32% 38% at 28% 30%, rgba(255, 255, 255, 0.55), transparent 70%),
+    radial-gradient(36% 42% at 74% 62%, rgba(110, 138, 255, 0.32), transparent 70%),
+    radial-gradient(28% 34% at 50% 85%, rgba(156, 132, 255, 0.18), transparent 70%);
+  animation: ws-drift 40s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes ws-drift {
+  0% { transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1); }
+  50% { transform: translate3d(5%, 3%, 0) rotate(8deg) scale(1.06); }
+  100% { transform: translate3d(-3%, 6%, 0) rotate(-6deg) scale(1.02); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace::before {
+    animation: none;
+  }
+}
+
 .ws-topbar {
   background: transparent;
   position: relative;
@@ -1813,20 +1843,26 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   /* No room kept for the message tray: the cards run down behind it and end
-     8px below it (--tray-bottom, composer.css), so it always sits merged
-     over them, scrolled or not. */
-  padding: 0 clamp(12px, 1.6vw, 24px) max(6px, calc(var(--tray-bottom, 22px) - 8px));
-  background-image: radial-gradient(#fff 0.75px, transparent 0.9px);
+     --ws-gutter from the bottom, the same inset as the other sides; the tray
+     sits 8px above that (--tray-bottom, composer.css), merged over them. */
+  padding: 0 clamp(12px, 1.6vw, 24px) var(--ws-gutter);
+  background-image: radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px);
   background-size: 18px 18px;
   background-attachment: local;
-  transition: padding-right var(--shell-dur) var(--shell-ease);
+  /* Moves in step with the brand panel (polish/shell.css): closing, the panel
+     slides out in --pl-d-3 with --pl-ease-in, so the cards widen at that same
+     pace and only fill the room as the panel leaves it. */
+  transition: padding-right var(--pl-d-3) var(--pl-ease-in);
 }
 
 /* Desktop, brand panel open: the panel floats over the workspace's right side,
    so the grid keeps that strip clear and its cards narrow to fit beside it
-   (same column count; QuickGrid.jsx re-measures on the resize). */
+   (same column count; QuickGrid.jsx re-measures on the resize). Opening, the
+   panel slides in over --pl-d-4 with --pl-ease-out, and the cards make room
+   on the same curve. */
 .app-shell[data-bp="desktop"][data-right="open"] .qg {
   padding-right: calc(var(--rsb-w) + var(--gap) + var(--ws-gutter));
+  transition: padding-right var(--pl-d-4) var(--pl-ease-out);
 }
 
 /* --qg-cols is how many cards fit across; QuickGrid.jsx reads it, packs the
@@ -2341,7 +2377,7 @@ body {
   height: auto;
   border-radius: var(--r);
   background-color: transparent;
-  background-image: radial-gradient(#fff 0.75px, transparent 0.9px);
+  background-image: radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px);
   background-size: var(--canvas-dot-size) var(--canvas-dot-size);
   background-position: var(--canvas-dot-x) var(--canvas-dot-y);
 }
@@ -2563,9 +2599,12 @@ body {
   border-radius: var(--r);
 }
 
+/* The pixel mark fills its whole box, so it's sized to look as big as the "+"
+   under the cards: that cross is drawn 20px across, rounded ends included
+   (.sn-add: 46% of 56px, bars 15 + 2.4 of 22 units). */
 .sn-icon svg {
-  width: 56%;
-  height: 56%;
+  width: 20px;
+  height: 20px;
 }
 
 .ws-view-nodes .sn-title {

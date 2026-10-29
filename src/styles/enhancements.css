@@ -688,10 +688,6 @@
   background: var(--shell-tint-2);
 }
 
-.ncard-sheet-trigger.is-open svg {
-  transform: rotate(180deg);
-}
-
 .ncard-sheet-trigger:focus-visible {
   outline: 2px solid #8fa0ff;
   outline-offset: 2px;

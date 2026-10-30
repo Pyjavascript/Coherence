@@ -180,6 +180,13 @@ const PanelIcon = () => (
   </svg>
 );
 
+// Add: a plain "+" inside the view switch's bar.
+const PlusIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
 // Workspace toolbar: the Grid | Node switch and Add Node (options depend on the
 // active view) on the left; the model selector and the panel toggle on the
 // right. Generate lives in the message box at the bottom, Export at the bottom
@@ -253,9 +260,7 @@ export default function Header({
           title={canAdd ? undefined : addDisabledTitle}
           onClick={() => setAddMenuOpen((open) => !open)}
         >
-          <span className="toolbar-add-spark" aria-hidden="true">
-            <i>+</i><i>+</i><i>+</i><i>+</i>
-          </span>
+          <PlusIcon />
         </button>
         {addMenuOpen && canAdd && (
           <div className="toolbar-node-menu" role="menu" aria-label={addLabel}>

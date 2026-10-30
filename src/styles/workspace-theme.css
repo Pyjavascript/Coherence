@@ -1,0 +1,542 @@
+/* ==========================================================================
+   Workspace theme — loaded last (main.jsx), so it overrides the sheets above.
+
+   1. Top bars: two white bars instead of separate floating buttons.
+      Left:  [current view's name][Grid][Node][+]   (active tab = blue outline)
+      Right: [model logo ⌄] | [menu]
+   2. Node Studio: a warm, subtle-gray dotted canvas and pastel node cards
+      (lavender, rose, mint, butter, aqua), one per medium.
+   ========================================================================== */
+
+/* ---------- Bar tokens ----------------------------------------------------- */
+/* Each bar is the toolbar's own height (--tb-h, layout.css), the same size the
+   separate buttons were, with its items inset --bar-pad. */
+.workspace {
+  --bar-pad: 4px;
+  --bar-in: calc(var(--tb-h) - 2 * var(--bar-pad));
+  /* Corners from the bar's height (~0.3 for a bar this size); inset items take
+     the outer radius minus the inset. */
+  --bar-r: calc(var(--tb-h) * 0.3);
+  --bar-in-r: calc(var(--bar-r) - var(--bar-pad));
+  --bar-ink: #1c1c22;
+  --bar-icon: #3a3a44;
+  --bar-line: #ececef;
+  --bar-hover: #f3f3f5;
+}
+
+/* ---------- The two bars --------------------------------------------------- */
+.ws-topbar {
+  align-items: flex-start;
+}
+
+.ws-topbar-start,
+.ws-topbar-end {
+  height: var(--tb-h);
+  box-sizing: border-box;
+  gap: 2px;
+  padding: var(--bar-pad);
+  background: #fff;
+  border: 1px solid var(--bar-line);
+  border-radius: var(--bar-r);
+}
+
+#root .ws-topbar-start,
+#root .ws-topbar-end {
+  box-shadow: 0 1px 2px rgb(20 20 30 / .04), 0 4px 14px -6px rgb(20 20 30 / .10) !important;
+}
+
+/* The border sits inside the bar's height, so inner items shrink by it. */
+.ws-topbar-start > *,
+.ws-topbar-end > * {
+  --bar-in: calc(var(--tb-h) - 2 * var(--bar-pad) - 2px);
+}
+
+/* Everything inside a bar is flat: the bar carries the white and the shadow. */
+#root .ws-topbar .ws-switch,
+#root .ws-topbar .toolbar-add-node,
+#root .ws-topbar .model-selector-trigger,
+#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn {
+  box-shadow: none !important;
+}
+
+/* ---------- View switch ----------------------------------------------------- */
+.ws-topbar .ws-switch {
+  --ws-pad: 0px;
+  --ws-tab: var(--bar-in);
+  height: var(--bar-in);
+  padding: 0;
+  gap: 2px;
+  background: transparent;
+  border-radius: var(--bar-in-r);
+}
+
+.ws-topbar .ws-switch-name {
+  padding: 0 clamp(6px, 0.6vw, 8px) 0 clamp(8px, 0.8vw, 10px);
+  color: var(--bar-ink);
+  font-size: clamp(14px, 1.25vw, 16px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.ws-topbar .ws-switch-tabs {
+  gap: 2px;
+  grid-template-columns: repeat(2, var(--ws-tab));
+}
+
+/* Active tab: the shell's navy with a white icon. The gap between tabs is
+   added to the slide distance. */
+.ws-topbar .ws-switch-thumb {
+  width: var(--ws-tab);
+  background: var(--shell-navy);
+  border-radius: var(--bar-in-r);
+  transform: translateX(calc(var(--i) * (100% + 2px)));
+}
+
+.ws-topbar .ws-switch-btn {
+  width: var(--ws-tab);
+  color: var(--bar-icon);
+  border-radius: var(--bar-in-r);
+}
+
+.ws-topbar .ws-switch-btn svg {
+  width: 50%;
+  height: 50%;
+}
+
+.ws-topbar .ws-switch-btn.on {
+  color: #fff;
+}
+
+.ws-topbar .ws-switch-btn:not(.on):hover {
+  background: var(--bar-hover);
+}
+
+/* ---------- Add ("+") ------------------------------------------------------- */
+.ws-topbar .toolbar-add-node {
+  width: var(--bar-in);
+  height: var(--bar-in);
+  display: grid;
+  place-items: center;
+  color: var(--bar-icon);
+  background: transparent;
+  border-radius: var(--bar-in-r);
+}
+
+.ws-topbar .toolbar-add-node svg {
+  width: 50%;
+  height: 50%;
+  flex: none;
+}
+
+.ws-topbar .toolbar-add-node:hover:not(:disabled),
+.ws-topbar .toolbar-add-node:hover:not([aria-expanded="true"]) {
+  background: var(--bar-hover);
+  scale: none;
+}
+
+.ws-topbar .toolbar-add-node[aria-expanded="true"] {
+  color: #fff;
+  background: var(--shell-navy);
+}
+
+/* The add menu opens beside the bar, its options at the bar's height. */
+.ws-topbar .toolbar-node-menu {
+  left: calc(100% + 8px);
+}
+
+.ws-topbar .toolbar-node-menu button {
+  height: var(--tb-h);
+  min-width: 0;
+  padding: 0 14px;
+  border: 1px solid var(--bar-line);
+  border-radius: var(--bar-r);
+  font-size: clamp(14px, 1.25vw, 16px);
+}
+
+/* Phones: the bar's mobile nav toggle sits flat inside the bar too. */
+.ws-topbar-start > .toolbar-icon-btn {
+  width: var(--bar-in);
+  height: var(--bar-in);
+  color: var(--bar-icon);
+  background: transparent;
+  border-radius: var(--bar-in-r);
+}
+
+#root .ws-topbar-start > .toolbar-icon-btn {
+  box-shadow: none !important;
+}
+
+.ws-topbar-start > .toolbar-icon-btn:hover {
+  background: var(--bar-hover);
+}
+
+/* ---------- Model picker | menu --------------------------------------------- */
+.ws-topbar .model-selector-trigger {
+  height: var(--bar-in);
+  gap: 6px;
+  padding: 0 10px 0 4px;
+  background: transparent;
+  border-radius: var(--bar-in-r);
+}
+
+.ws-topbar .model-selector-trigger:hover,
+.ws-topbar .model-selector.is-open .model-selector-trigger {
+  background: var(--bar-hover);
+  scale: none;
+}
+
+.ws-topbar .model-selector-logo {
+  width: calc(var(--tb-h) - 16px);
+  height: calc(var(--tb-h) - 16px);
+  border-radius: 50%;
+}
+
+.ws-topbar .model-selector-logo img {
+  width: 100%;
+  height: 100%;
+}
+
+.ws-topbar .model-selector-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--bar-icon);
+}
+
+/* A short divider between the model picker and the menu button. */
+.ws-topbar .toolbar-panel-notch {
+  position: relative;
+  width: calc(var(--bar-in) + 9px);
+  height: var(--bar-in);
+  padding-left: 9px;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: opacity 180ms ease, width var(--shell-dur) var(--shell-ease), padding var(--shell-dur) var(--shell-ease);
+}
+
+.ws-topbar .toolbar-panel-notch::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 25%;
+  bottom: 25%;
+  width: 1px;
+  background: var(--bar-line);
+}
+
+/* Brand panel open (it has its own close): the menu button folds away so the
+   bar ends at the model picker instead of leaving an empty slot. */
+.ws-topbar .toolbar-panel-notch.is-hidden {
+  width: 0;
+  padding-left: 0;
+}
+
+.ws-topbar-end:has(.toolbar-panel-notch.is-hidden) {
+  gap: 0;
+}
+
+.ws-topbar .toolbar-panel-notch .toolbar-panel-btn,
+.ws-topbar .toolbar-panel-notch .toolbar-panel-btn.is-active {
+  width: var(--bar-in);
+  height: var(--bar-in);
+  color: var(--bar-icon);
+  background: transparent;
+  border-radius: var(--bar-in-r);
+}
+
+#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover {
+  background: var(--bar-hover);
+  scale: none;
+}
+
+.ws-topbar .toolbar-panel-btn svg {
+  width: 46%;
+  height: 46%;
+  stroke-width: 1.8;
+}
+
+/* Desktop: the brand panel floats over the workspace's right side, so while
+   it's open the model bar slides left to sit beside it instead of under it.
+   Same timing as the panel's slide (polish/shell.css). */
+.app-shell[data-bp="desktop"] .ws-topbar-end {
+  transition: translate var(--pl-d-3) var(--pl-ease-in);
+}
+
+.app-shell[data-bp="desktop"][data-right="open"] .ws-topbar-end {
+  translate: calc(-1 * (var(--rsb-w) + var(--gap))) 0;
+  transition: translate var(--pl-d-4) var(--pl-ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell[data-bp="desktop"] .ws-topbar-end {
+    transition: none;
+  }
+}
+
+/* ---------- Smooth side panels ---------------------------------------------- */
+/* Opening the left rail animates the workspace's width, so every frame
+   re-lays out whatever is in it. Two things made that heavy:
+   - the hidden view (Grid or Node Studio, kept mounted) was laid out and ran
+     its resize observers on every frame. Once it has faded out it is skipped
+     entirely; it comes back the moment it's shown again.
+   - the drifting glow was sized from the workspace, so its oversized layer
+     was redrawn on every frame. Sized from the viewport, it only moves. */
+.ws-view {
+  transition-behavior: allow-discrete;
+}
+
+.ws-view[data-active="false"] {
+  content-visibility: hidden;
+  transition:
+    opacity 240ms ease,
+    transform 300ms var(--shell-ease),
+    visibility 0s linear 300ms,
+    content-visibility 0s linear 300ms;
+}
+
+.workspace::before {
+  inset: auto;
+  top: -25vh;
+  left: -25vw;
+  width: 150vw;
+  height: 150vh;
+  contain: strict;
+}
+
+/* ---------- Workspace background (Quick Grid) ------------------------------- */
+/* The same warm gray, rose / lavender wash and dots as Node Studio's canvas
+   below, in place of the sky-blue gradient (layout.css). Grid doesn't pan, so
+   its dots stay at the canvas's 100% size. The drifting glow is a soft white
+   now, so it only lifts the gray instead of tinting it blue. */
+.workspace {
+  background-color: #f1f0ee;
+  background-image:
+    radial-gradient(rgb(60 60 70 / .17) 0.75px, transparent 0.9px),
+    radial-gradient(55% 45% at 100% 0%, rgb(247 228 240 / .65), transparent 70%),
+    radial-gradient(50% 55% at 0% 100%, rgb(230 226 248 / .55), transparent 70%),
+    linear-gradient(160deg, #f9f9f8 0%, #f1f0ee 55%, #e6e5e2 100%);
+  background-size: 18px 18px, 100% 100%, 100% 100%, 100% 100%;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+}
+
+.workspace::before {
+  background: radial-gradient(32% 38% at 28% 30%, rgb(255 255 255 / .45), transparent 70%);
+}
+
+/* ---------- Corner controls: zoom and "?" ----------------------------------- */
+.ws-view-nodes .canvas-controls,
+.tour-launch {
+  color: var(--bar-ink);
+  background: #fff;
+  border: 1px solid var(--bar-line);
+}
+
+.ws-view-nodes .canvas-controls {
+  padding: 5px;
+  border-radius: calc(40px * 0.3);
+}
+
+.ws-view-nodes .canvas-controls button {
+  border-radius: calc(40px * 0.3 - 5px);
+}
+
+.ws-view-nodes .canvas-controls .canvas-zoom-level {
+  font-weight: 500;
+}
+
+.tour-launch {
+  width: 40px;
+  height: 40px;
+  border-radius: calc(40px * 0.3);
+}
+
+#root .ws-view-nodes .canvas-controls,
+#root .tour-launch {
+  box-shadow: 0 1px 2px rgb(20 20 30 / .04), 0 4px 14px -6px rgb(20 20 30 / .10) !important;
+}
+
+/* ---------- Node Studio canvas ------------------------------------------------ */
+/* Warm subtle gray that deepens toward the bottom right, with a faint rose and
+   lavender wash like the reference board. The dots stay first so they keep
+   panning and zooming with the canvas (CanvasViewport sets their size/offset). */
+.ws-view-nodes .canvas-surface {
+  --dot-color: rgb(60 60 70 / .17);
+  background-color: #f1f0ee;
+  background-image:
+    radial-gradient(var(--dot-color) 0.75px, transparent 0.9px),
+    radial-gradient(55% 45% at 100% 0%, rgb(247 228 240 / .65), transparent 70%),
+    radial-gradient(50% 55% at 0% 100%, rgb(230 226 248 / .55), transparent 70%),
+    linear-gradient(160deg, #f9f9f8 0%, #f1f0ee 55%, #e6e5e2 100%);
+  background-size:
+    var(--canvas-dot-size) var(--canvas-dot-size),
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-position:
+    var(--canvas-dot-x) var(--canvas-dot-y),
+    0 0,
+    0 0,
+    0 0;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+}
+
+/* Links and joints: soft graphite instead of navy on the gray canvas. */
+.ws-view-nodes .nodesvg path {
+  stroke: #8d8d99;
+}
+
+.ws-view-nodes .nodesvg circle,
+.ws-view-nodes .sn-joint,
+.ws-view-nodes .sn-joint::before,
+.ws-view-nodes .sn-joint::after {
+  fill: #8d8d99;
+  background: #8d8d99;
+}
+
+.ws-view-nodes .sn-add {
+  border: 1px solid var(--bar-line);
+}
+
+/* ---------- Pastel cards: palette ---------------------------------------------- */
+/* Each medium gets its own pastel, shared by Node Studio's nodes (data-cat) and
+   Quick Grid's cards (data-type): a light top fading to a slightly deeper
+   bottom, a hairline border in the same hue, and a dark ink of that hue for
+   titles and labels. Fields and copy boxes stay white. Marketing only exists
+   on the grid; it takes Social's rose. */
+.ws-view-nodes .sn-node[data-cat="email"],
+.ncard[data-type="email"] {
+  --n-top: #f4f1ff;
+  --n-bottom: #e7e0fd;
+  --n-line: #dad0fb;
+  --n-ink: #4a37a6;
+}
+
+.ws-view-nodes .sn-node[data-cat="social"],
+.ncard[data-type="marketing"] {
+  --n-top: #fff2f7;
+  --n-bottom: #fadfea;
+  --n-line: #f2cadb;
+  --n-ink: #973066;
+}
+
+.ws-view-nodes .sn-node[data-cat="website"],
+.ncard[data-type="website"] {
+  --n-top: #effaf4;
+  --n-bottom: #d9f2e4;
+  --n-line: #c3e7d3;
+  --n-ink: #1b7451;
+}
+
+.ws-view-nodes .sn-node[data-cat="packaging"],
+.ncard[data-type="packaging"] {
+  --n-top: #fffbec;
+  --n-bottom: #fcf0c8;
+  --n-line: #f2e1a6;
+  --n-ink: #85580a;
+}
+
+.ws-view-nodes .sn-node[data-cat="advertising"],
+.ncard[data-type="advertising"] {
+  --n-top: #eefafc;
+  --n-bottom: #d6f1f5;
+  --n-line: #bce4eb;
+  --n-ink: #0d6b78;
+}
+
+/* ---------- Pastel cards: Quick Grid -------------------------------------------- */
+.ncard[data-type] {
+  color: var(--n-ink);
+  background: linear-gradient(180deg, var(--n-top) 0%, var(--n-bottom) 100%);
+  border: 1px solid var(--n-line);
+}
+
+.ncard[data-type] .ncard-pill {
+  color: var(--n-ink);
+  font-weight: 600;
+}
+
+.ncard[data-type] .ncard-pill input.ncard-title:hover,
+.ncard[data-type] .ncard-pill input.ncard-title:focus {
+  background: rgb(255 255 255 / .6);
+}
+
+.ncard[data-type] .ncard-hint {
+  color: color-mix(in srgb, var(--n-ink) 55%, #fff);
+}
+
+/* Header buttons: white chips with a hairline in the card's hue, like the
+   reference board's tags. */
+.ncard[data-type] .ncard-action,
+.ncard[data-type] .ncard-sheet-trigger {
+  color: var(--n-ink);
+  background: rgb(255 255 255 / .7);
+  border: 1px solid var(--n-line);
+}
+
+.ncard[data-type] .ncard-action:hover:not(:disabled),
+.ncard[data-type] .ncard-sheet-trigger:hover,
+.ncard[data-type] .ncard-sheet-trigger.is-open {
+  background: #fff;
+}
+
+.ncard[data-type] .ncard-action.ncard-close:hover:not(:disabled) {
+  color: #d13a3f;
+  background: #fff;
+}
+
+/* The copy box: frosted white inside the card. */
+.ncard[data-type] .ncard-body {
+  background: rgb(255 255 255 / .6);
+  border: 1px solid rgb(255 255 255 / .85);
+}
+
+.ncard[data-type] .ncard-body:not(.is-generated) {
+  color: color-mix(in srgb, var(--n-ink) 50%, #fff);
+}
+
+/* ---------- Pastel cards: Node Studio -------------------------------------------- */
+
+.ws-view-nodes .sn-node[data-cat] {
+  color: var(--n-ink);
+  background: linear-gradient(180deg, var(--n-top) 0%, var(--n-bottom) 100%);
+  border: 1px solid var(--n-line);
+}
+
+.ws-view-nodes .sn-node[data-cat] .sn-title {
+  color: var(--n-ink);
+  font-weight: 600;
+}
+
+.ws-view-nodes .sn-node[data-cat] .sn-title:hover,
+.ws-view-nodes .sn-node[data-cat] .sn-title:focus,
+.ws-view-nodes .sn-node[data-cat] .sn-mini:hover,
+.ws-view-nodes .sn-node[data-cat] .sn-toggle:hover {
+  background: rgb(255 255 255 / .6);
+}
+
+.ws-view-nodes .sn-node[data-cat] .sn-toggle,
+.ws-view-nodes .sn-node[data-cat] .sn-mini {
+  color: var(--n-ink);
+}
+
+/* Fields sit on a frosted white panel inside the card. */
+.ws-view-nodes .sn-node[data-cat] .sn-body,
+.ws-view-nodes .sn-node[data-cat] .sn-out {
+  background: rgb(255 255 255 / .55);
+  border: 1px solid rgb(255 255 255 / .8);
+}
+
+.ws-view-nodes .sn-node[data-cat] .sn-field label {
+  color: color-mix(in srgb, var(--n-ink) 70%, #fff);
+}
+
+.ws-view-nodes .sn-node[data-cat] .sn-field input,
+.ws-view-nodes .sn-node[data-cat] .sn-field textarea,
+.ws-view-nodes .sn-node[data-cat] .sn-field .bp-dd-trigger,
+.ws-view-nodes .sn-node[data-cat] .sn-round {
+  background: #fff;
+  border: 1px solid var(--n-line);
+}
+
+.ws-view-nodes .sn-node[data-cat] .sn-round {
+  color: var(--n-ink);
+}

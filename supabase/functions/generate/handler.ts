@@ -1,7 +1,7 @@
 // The generate Edge Function's source. Deploy the bundled index.ts next to
 // it, built with `npm run build:function` (see scripts/build-function.mjs).
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { buildGeneration, modelFor, RequestError } from "../_shared/generation.js";
+import { buildGeneration, buildLengthFixPrompt, modelFor, RequestError } from "../_shared/generation.js";
 import { findBanned } from "../_shared/banned.js";
 
 const MAX_GENERATIONS = 40; // keep in sync with LIMITS.generations in src/lib/clientId.js
@@ -211,7 +211,10 @@ Deno.serve(async (req) => {
 
   // The prompt is built here from brand fields and settings; a prompt sent by
   // the client is never used.
-  let generation: { prompt: string; credits: number; ctx: any } | null = null;
+  type LengthIssue = { label: string; words: number; min: number; max: number; target: number };
+  let generation: {
+    prompt: string; credits: number; ctx: any; lengthIssues?: (data: unknown) => LengthIssue[];
+  } | null = null;
   if (type !== "ping" && !isData) {
     try {
       generation = buildGeneration(type, body);
@@ -291,7 +294,7 @@ Deno.serve(async (req) => {
   if (isData) return handleData(admin, userId, type, body);
   // ==========================================
 
-  const { prompt, credits, ctx } = generation!;
+  const { prompt, credits, ctx, lengthIssues } = generation!;
 
   // Reserve the credits first (one usage_events row each, written under a
   // per-user lock, so parallel requests can't overshoot the daily limit).
@@ -391,6 +394,32 @@ Deno.serve(async (req) => {
   let data = parse(content);
   if (!data) return failAndRefund("The AI returned malformed JSON. Try again.", "malformed");
 
+  // Models tend to write short, so copy that misses its user-set word count
+  // gets up to two rewrites (no extra credit). A rewrite is kept only if it has
+  // the same shape and lands closer to the targets overall; otherwise the best
+  // answer so far stands.
+  if (lengthIssues) {
+    const miss = (issues: LengthIssue[]) =>
+      issues.reduce((sum, i) => sum + (i.words < i.min ? i.min - i.words : i.words - i.max), 0);
+    const sameShape = (next: Record<string, unknown>) =>
+      Object.entries(data!).every(([key, value]) =>
+        !Array.isArray(value) || (Array.isArray(next[key]) && (next[key] as unknown[]).length === value.length));
+    let issues = lengthIssues(data);
+    for (let round = 0; issues.length && round < 2; round++) {
+      const retry = await complete([
+        ...messages,
+        { role: "assistant", content: JSON.stringify(data) },
+        { role: "user", content: buildLengthFixPrompt(issues) },
+      ]);
+      const rewritten = typeof retry === "string" ? parse(retry) : null;
+      if (!rewritten || !sameShape(rewritten)) break;
+      const next = lengthIssues(rewritten);
+      if (miss(next) >= miss(issues)) break;
+      data = rewritten;
+      issues = next;
+    }
+  }
+
   // Copy that uses a banned word or claim gets one rewrite (no extra credit).
   // If the rewrite fails or is no better, the first answer stands and the app
   // flags the words it still contains.
@@ -398,7 +427,7 @@ Deno.serve(async (req) => {
   if (banned.length) {
     const retry = await complete([
       ...messages,
-      { role: "assistant", content },
+      { role: "assistant", content: JSON.stringify(data) },
       {
         role: "user",
         content: `Your answer uses these banned words or claims: ${banned.join(", ")}. Rewrite every piece that uses one so it no longer does, in any form. Keep everything else the same and return the same JSON shape.`,

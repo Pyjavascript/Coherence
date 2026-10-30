@@ -14,6 +14,8 @@ import "./styles/polish/radius.css";
 import "./styles/polish/links.css";
 // Message / platform tray above the view switch.
 import "./styles/composer.css";
+// Top bars, the workspace's gray background and the pastel cards.
+import "./styles/workspace-theme.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

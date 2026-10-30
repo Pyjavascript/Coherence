@@ -34,6 +34,13 @@ export function itemToText(item) {
 
 export const countWords = (text) => String(text || "").trim().split(/\s+/).filter(Boolean).length;
 
+// The range a user-set word count may land in: within 10% (at least 2 words
+// either way, so short lines aren't held to an exact count).
+export function wordRange(target) {
+  const slack = Math.max(2, Math.round(target * 0.1));
+  return { min: Math.max(1, target - slack), max: target + slack };
+}
+
 // Fewest / most words a user can set as a node's total length.
 export const minWordsFor = (limits) => Object.keys(limits || {}).length || 1;
 export const MAX_WORDS = 200;

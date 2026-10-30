@@ -8,7 +8,7 @@ import {
   GEN_PLATFORMS,
   platformsFor,
 } from "./constants.js";
-import { cardLimits } from "./copyItems.js";
+import { cardLimits, wordRange } from "./copyItems.js";
 
 // ctx = { brand, notes, stylePack }
 const t = (s) => (s || "").trim();
@@ -96,7 +96,10 @@ function lengthSpec(medium, s = {}) {
     const pointers = comp === "pointers" ? ` (exactly ${s.pointerCount || 3} pointers)` : "";
     spec = `a "${WEBSITE_COMPONENTS[comp].label}" website component${pointers}: ${GRID_WEBSITE_COMPONENTS[comp].guide}; ${spec}`;
   }
-  if (s.words) spec += ` (user-set length: about ${s.words} words in total, stay within 15%; this overrides any default length)`;
+  if (s.words) {
+    const { min, max } = wordRange(s.words);
+    spec += ` (user-set length, strict: ${min}-${max} words in total across its fields, aim for exactly ${s.words}; this overrides any default length)`;
+  }
   return spec;
 }
 
@@ -182,9 +185,11 @@ Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience
   if (c.must) p += `\nTry to naturally include: ${c.must}`;
   p += localeBlock(c);
   p += researchBlock(ctx.notes);
+  const words = node.words || 60;
+  const range = wordRange(words);
   p += `\n\nThis node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
-Target length: about ${node.words || 60} words for the body copy (soft target, stay within 20%).`;
+Length (set by the user, strict): the body must be ${range.min}-${range.max} words, aim for exactly ${words}. The headline is not counted. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.`;
   const rules = platformRules(node.platform
     ? GEN_PLATFORMS.filter((pl) => pl.label === node.platform)
     : platformsFor(platforms, "nodes", node.category));
@@ -232,9 +237,17 @@ Target length: about ${node.words || 60} words for the body copy (soft target, s
     p += `\nThis is a "Feature pointers" component: produce exactly ${pc} distinct benefit-led pointers, each a short title (3-6 words) plus a one-sentence detail.`;
     p += `\n\nReturn ONLY valid JSON, no markdown fences: {"variants":[{"pointers":[{"title":"...","detail":"..."} /* exactly ${pc} of these */]}]} with exactly ${vCount} variant(s) in the array, each a distinct set of ${pc} pointers. Never use quotation marks inside the text. Never explain your choices.`;
   } else {
-    p += `\n\nReturn ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line. body is the main copy at the target word count. Never use quotation marks inside the text. Never explain your choices.`;
+    p += `\n\nReturn ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line. body is the main copy, ${range.min}-${range.max} words. Never use quotation marks inside the text. Never explain your choices.`;
   }
   return p;
+}
+
+// Follow-up turn when pieces miss their user-set word count.
+// issues = [{ label, words, min, max, target }] (see lengthIssues in generation.js).
+export function buildLengthFixPrompt(issues) {
+  return `Some pieces miss the word count the user set, and word counts are strict here:
+${issues.map((i) => `- ${i.label}: ${i.words} words now; it must be ${i.min}-${i.max} words (aim for ${i.target}).`).join("\n")}
+Rewrite only those pieces so each lands in its range. To lengthen, develop the same idea with concrete detail, benefits, proof or a clearer call to action, never filler or repetition. To shorten, cut the weakest phrases. Count the words before answering. Keep every other piece exactly as it is, keep each piece's angle and voice, and return the complete JSON in the same shape.`;
 }
 
 // last = { type:'node', label, variant } | { type:'quick', medium } | null

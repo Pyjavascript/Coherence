@@ -6,10 +6,11 @@ import {
   AI_MODELS, DEFAULT_TIER, DEFAULT_BRAND, STYLE_PACKS, NODE_CATS, PLATFORMS,
   WEBSITE_COMPONENTS, GRID_WEBSITE_COMPONENTS, GEN_PLATFORMS, GEN_PLATFORMS_BY_KEY,
 } from "./constants.js";
-import { MAX_WORDS } from "./copyItems.js";
+import { MAX_WORDS, countWords, wordRange } from "./copyItems.js";
 import {
   GRID_MEDIA, buildQuickGridPrompt, buildNodePrompt, buildHookPrompt, buildCoherencePrompt,
 } from "./prompts.js";
+export { buildLengthFixPrompt } from "./prompts.js";
 
 export class RequestError extends Error {}
 
@@ -122,8 +123,40 @@ const needsMessage = (ctx) => {
   if (!ctx.brand.message.trim()) throw new RequestError("Add a message to adapt first.");
 };
 
-// Returns { prompt, credits, ctx } for a generation type, or throws RequestError.
-// credits = what the call costs: one per Quick Grid card, one for anything else.
+// Pieces of an answer that miss their user-set word count:
+// [{ label, words, min, max, target }]. targets = [{ label, text, target }].
+function offTarget(targets) {
+  return targets.flatMap(({ label, text, target }) => {
+    const words = countWords(text);
+    const { min, max } = wordRange(target);
+    return words < min || words > max ? [{ label, words, min, max, target }] : [];
+  });
+}
+
+// Node Studio: each variant's body against the node's word count (pointer
+// components have no word count).
+const nodeLengthIssues = (node) => (data) =>
+  offTarget(list(obj(data).variants, MAX_NODE_VARIANTS)
+    .map((v, i) => ({ label: `variant ${i + 1} body`, text: obj(v).body, target: node.words }))
+    .filter((t) => typeof t.text === "string"));
+
+// Quick Grid: every item of a card with a user-set word count, all its text
+// fields together (the count is a total across them).
+const allText = (item) =>
+  typeof item === "string" ? item : Object.values(obj(item)).filter((v) => typeof v === "string").join(" ");
+const gridLengthIssues = (cards) => (data) =>
+  offTarget(cards
+    .filter((c) => c.settings.words)
+    .flatMap((c) => list(obj(data)[c.key], MAX_GRID_VARIANTS).map((item, i) => ({
+      label: `${c.key} item ${i + 1} (all its text fields together)`,
+      text: allText(item),
+      target: c.settings.words,
+    }))));
+
+// Returns { prompt, credits, ctx, lengthIssues? } for a generation type, or
+// throws RequestError. credits = what the call costs: one per Quick Grid card,
+// one for anything else. lengthIssues(data) lists the pieces of an answer that
+// miss a user-set word count, so the server can ask for a rewrite.
 export function buildGeneration(type, body = {}) {
   const ctx = cleanCtx(body);
   const platforms = cleanPlatforms(body.platforms);
@@ -132,14 +165,18 @@ export function buildGeneration(type, body = {}) {
       needsMessage(ctx);
       const cards = cleanCards(body.cards);
       const n = int(body.variantCount, 1, MAX_GRID_VARIANTS, 1);
-      return { ctx, credits: cards.length, prompt: buildQuickGridPrompt(ctx, n, cards, platforms) };
+      return {
+        ctx, credits: cards.length, prompt: buildQuickGridPrompt(ctx, n, cards, platforms), lengthIssues: gridLengthIssues(cards),
+      };
     }
     case "regenerate": {
       needsMessage(ctx);
       if (!GRID_MEDIA.includes(body.medium)) throw new RequestError("Unknown medium.");
       const card = { key: body.medium, medium: body.medium, settings: cleanGridSettings(body.settings, body.medium) };
       const n = int(body.variantCount, 1, MAX_GRID_VARIANTS, 1);
-      return { ctx, credits: 1, prompt: buildQuickGridPrompt(ctx, n, [card], platforms) };
+      return {
+        ctx, credits: 1, prompt: buildQuickGridPrompt(ctx, n, [card], platforms), lengthIssues: gridLengthIssues([card]),
+      };
     }
     case "node": {
       const node = cleanNode(body.node);
@@ -147,7 +184,10 @@ export function buildGeneration(type, body = {}) {
         .filter((l) => obj(l).variant)
         .map((l) => ({ label: str(l.label, 120), variant: cleanVariant(l.variant) }));
       const n = int(body.variantCount, 1, MAX_NODE_VARIANTS, 1);
-      return { ctx, credits: 1, prompt: buildNodePrompt(ctx, node, n, linked, cleanSource(body.source), platforms) };
+      return {
+        ctx, credits: 1, prompt: buildNodePrompt(ctx, node, n, linked, cleanSource(body.source), platforms),
+        lengthIssues: nodeLengthIssues(node),
+      };
     }
     case "hook":
       return { ctx, credits: 1, prompt: buildHookPrompt(ctx, str(body.requirement, 2000)) };

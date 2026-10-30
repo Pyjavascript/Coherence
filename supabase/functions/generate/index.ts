@@ -261,6 +261,11 @@ var SAMPLE_BRAND = {
 };
 
 // supabase/functions/_shared/copyItems.js
+var countWords = (text) => String(text || "").trim().split(/\s+/).filter(Boolean).length;
+function wordRange(target) {
+  const slack = Math.max(2, Math.round(target * 0.1));
+  return { min: Math.max(1, target - slack), max: target + slack };
+}
 var MAX_WORDS = 200;
 var defaultWords = (limits) => Object.values(limits || {}).reduce((sum, l) => sum + l.words, 0);
 function limitsFor(limits, total) {
@@ -359,7 +364,10 @@ function lengthSpec(medium, s = {}) {
     const pointers = comp === "pointers" ? ` (exactly ${s.pointerCount || 3} pointers)` : "";
     spec = `a "${WEBSITE_COMPONENTS[comp].label}" website component${pointers}: ${GRID_WEBSITE_COMPONENTS[comp].guide}; ${spec}`;
   }
-  if (s.words) spec += ` (user-set length: about ${s.words} words in total, stay within 15%; this overrides any default length)`;
+  if (s.words) {
+    const { min, max } = wordRange(s.words);
+    spec += ` (user-set length, strict: ${min}-${max} words in total across its fields, aim for exactly ${s.words}; this overrides any default length)`;
+  }
   return spec;
 }
 function cardBrief(s = {}) {
@@ -427,11 +435,13 @@ Never use these words/claims: ${c.banned}`;
 Try to naturally include: ${c.must}`;
   p += localeBlock(c);
   p += researchBlock(ctx.notes);
+  const words = node.words || 60;
+  const range = wordRange(words);
   p += `
 
 This node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
-Target length: about ${node.words || 60} words for the body copy (soft target, stay within 20%).`;
+Length (set by the user, strict): the body must be ${range.min}-${range.max} words, aim for exactly ${words}. The headline is not counted. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.`;
   const rules = platformRules(node.platform ? GEN_PLATFORMS.filter((pl) => pl.label === node.platform) : platformsFor(platforms, "nodes", node.category));
   if (rules) p += `
 Platform \u2014 write it natively for this: ${rules}`;
@@ -478,9 +488,14 @@ Return ONLY valid JSON, no markdown fences: {"variants":[{"pointers":[{"title":"
   } else {
     p += `
 
-Return ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line. body is the main copy at the target word count. Never use quotation marks inside the text. Never explain your choices.`;
+Return ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line. body is the main copy, ${range.min}-${range.max} words. Never use quotation marks inside the text. Never explain your choices.`;
   }
   return p;
+}
+function buildLengthFixPrompt(issues) {
+  return `Some pieces miss the word count the user set, and word counts are strict here:
+${issues.map((i) => `- ${i.label}: ${i.words} words now; it must be ${i.min}-${i.max} words (aim for ${i.target}).`).join("\n")}
+Rewrite only those pieces so each lands in its range. To lengthen, develop the same idea with concrete detail, benefits, proof or a clearer call to action, never filler or repetition. To shorten, cut the weakest phrases. Count the words before answering. Keep every other piece exactly as it is, keep each piece's angle and voice, and return the complete JSON in the same shape.`;
 }
 function describeLastGenerated(last, quickCards) {
   if (last && last.type === "node" && last.variant) {
@@ -649,6 +664,20 @@ var cleanPlatforms = (input) => [...new Set(list(input, GEN_PLATFORMS.length).fi
 var needsMessage = (ctx) => {
   if (!ctx.brand.message.trim()) throw new RequestError("Add a message to adapt first.");
 };
+function offTarget(targets) {
+  return targets.flatMap(({ label, text, target }) => {
+    const words = countWords(text);
+    const { min, max } = wordRange(target);
+    return words < min || words > max ? [{ label, words, min, max, target }] : [];
+  });
+}
+var nodeLengthIssues = (node) => (data) => offTarget(list(obj(data).variants, MAX_NODE_VARIANTS).map((v, i) => ({ label: `variant ${i + 1} body`, text: obj(v).body, target: node.words })).filter((t2) => typeof t2.text === "string"));
+var allText = (item) => typeof item === "string" ? item : Object.values(obj(item)).filter((v) => typeof v === "string").join(" ");
+var gridLengthIssues = (cards) => (data) => offTarget(cards.filter((c) => c.settings.words).flatMap((c) => list(obj(data)[c.key], MAX_GRID_VARIANTS).map((item, i) => ({
+  label: `${c.key} item ${i + 1} (all its text fields together)`,
+  text: allText(item),
+  target: c.settings.words
+}))));
 function buildGeneration(type, body = {}) {
   const ctx = cleanCtx(body);
   const platforms = cleanPlatforms(body.platforms);
@@ -657,20 +686,35 @@ function buildGeneration(type, body = {}) {
       needsMessage(ctx);
       const cards = cleanCards(body.cards);
       const n = int(body.variantCount, 1, MAX_GRID_VARIANTS, 1);
-      return { ctx, credits: cards.length, prompt: buildQuickGridPrompt(ctx, n, cards, platforms) };
+      return {
+        ctx,
+        credits: cards.length,
+        prompt: buildQuickGridPrompt(ctx, n, cards, platforms),
+        lengthIssues: gridLengthIssues(cards)
+      };
     }
     case "regenerate": {
       needsMessage(ctx);
       if (!GRID_MEDIA.includes(body.medium)) throw new RequestError("Unknown medium.");
       const card = { key: body.medium, medium: body.medium, settings: cleanGridSettings(body.settings, body.medium) };
       const n = int(body.variantCount, 1, MAX_GRID_VARIANTS, 1);
-      return { ctx, credits: 1, prompt: buildQuickGridPrompt(ctx, n, [card], platforms) };
+      return {
+        ctx,
+        credits: 1,
+        prompt: buildQuickGridPrompt(ctx, n, [card], platforms),
+        lengthIssues: gridLengthIssues([card])
+      };
     }
     case "node": {
       const node = cleanNode(body.node);
       const linked = list(body.linkedNodes, 6).filter((l) => obj(l).variant).map((l) => ({ label: str(l.label, 120), variant: cleanVariant(l.variant) }));
       const n = int(body.variantCount, 1, MAX_NODE_VARIANTS, 1);
-      return { ctx, credits: 1, prompt: buildNodePrompt(ctx, node, n, linked, cleanSource(body.source), platforms) };
+      return {
+        ctx,
+        credits: 1,
+        prompt: buildNodePrompt(ctx, node, n, linked, cleanSource(body.source), platforms),
+        lengthIssues: nodeLengthIssues(node)
+      };
     }
     case "hook":
       return { ctx, credits: 1, prompt: buildHookPrompt(ctx, str(body.requirement, 2e3)) };
@@ -956,7 +1000,7 @@ Deno.serve(async (req) => {
     });
   }
   if (isData) return handleData(admin, userId, type, body);
-  const { prompt, credits, ctx } = generation;
+  const { prompt, credits, ctx, lengthIssues } = generation;
   const { data: reserved, error: reserveError } = await admin.rpc("reserve_credits", {
     p_user: userId,
     p_kind: type,
@@ -1041,11 +1085,29 @@ Deno.serve(async (req) => {
   };
   let data = parse(content);
   if (!data) return failAndRefund("The AI returned malformed JSON. Try again.", "malformed");
+  if (lengthIssues) {
+    const miss = (issues2) => issues2.reduce((sum, i) => sum + (i.words < i.min ? i.min - i.words : i.words - i.max), 0);
+    const sameShape = (next) => Object.entries(data).every(([key, value]) => !Array.isArray(value) || Array.isArray(next[key]) && next[key].length === value.length);
+    let issues = lengthIssues(data);
+    for (let round = 0; issues.length && round < 2; round++) {
+      const retry = await complete([
+        ...messages,
+        { role: "assistant", content: JSON.stringify(data) },
+        { role: "user", content: buildLengthFixPrompt(issues) }
+      ]);
+      const rewritten = typeof retry === "string" ? parse(retry) : null;
+      if (!rewritten || !sameShape(rewritten)) break;
+      const next = lengthIssues(rewritten);
+      if (miss(next) >= miss(issues)) break;
+      data = rewritten;
+      issues = next;
+    }
+  }
   const banned = findBanned(data, ctx.brand.banned);
   if (banned.length) {
     const retry = await complete([
       ...messages,
-      { role: "assistant", content },
+      { role: "assistant", content: JSON.stringify(data) },
       {
         role: "user",
         content: `Your answer uses these banned words or claims: ${banned.join(", ")}. Rewrite every piece that uses one so it no longer does, in any form. Keep everything else the same and return the same JSON shape.`

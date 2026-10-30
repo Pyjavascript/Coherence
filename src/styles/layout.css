@@ -848,9 +848,11 @@ body {
   cursor: pointer;
 }
 
+/* Larger than the card pencil (46%) since a frame reads smaller than a
+   diagonal; its 1.75 stroke draws the same ~1.5px line on screen. */
 .rsb .bp-name-input .bp-addimg svg {
-  width: 42%;
-  height: 42%;
+  width: 60%;
+  height: 60%;
 }
 
 .rsb .bp-name-input .bp-addimg:hover {

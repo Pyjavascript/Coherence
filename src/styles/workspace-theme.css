@@ -1,58 +1,29 @@
 /* ==========================================================================
    Workspace theme — loaded last (main.jsx), so it overrides the sheets above.
 
-   1. Top bar, right: [model logo ⌄] | [menu] in one white bar. The left
-      group (view switch, Add) keeps its separate boxes from layout.css.
+   1. Top bar, right: [model logo ⌄] and [menu] as two separate white boxes,
+      like the view switch and Add tile on the left (layout.css).
    2. Smoother side-panel animation and the corner controls (zoom, "?").
    Colours (frame, panels, grid, Node Studio) are layout.css's own.
    ========================================================================== */
 
-/* ---------- Bar tokens ----------------------------------------------------- */
-/* Each bar is the toolbar's own height (--tb-h, layout.css), the same size the
-   separate buttons were, with its items inset --bar-pad. */
+/* ---------- Box tokens ----------------------------------------------------- */
+/* Each box is the toolbar's own height (--tb-h, layout.css). */
 .workspace {
-  --bar-pad: 4px;
-  --bar-in: calc(var(--tb-h) - 2 * var(--bar-pad));
-  /* Corners from the bar's height (~0.3 for a bar this size); inset items take
-     the outer radius minus the inset. */
+  /* Corners from the box's height (~0.3 for a box this size). */
   --bar-r: calc(var(--tb-h) * 0.3);
-  --bar-in-r: calc(var(--bar-r) - var(--bar-pad));
   --bar-ink: #1c1c22;
   --bar-icon: #3a3a44;
   --bar-line: #ececef;
   --bar-hover: #f3f3f5;
 }
 
-/* ---------- The right bar ---------------------------------------------------- */
-/* Only the right group is one bar. The left group keeps its separate boxes:
-   the view switch, then the Add tile (layout.css). */
+/* ---------- The right group ------------------------------------------------- */
+/* Two boxes, spaced --tb-gap apart (layout.css); the group itself has no
+   background, border or shadow. Each box takes the shared toolbar shadow from
+   polish/grid.css. */
 .ws-topbar {
   align-items: flex-start;
-}
-
-.ws-topbar-end {
-  height: var(--tb-h);
-  box-sizing: border-box;
-  gap: 2px;
-  padding: var(--bar-pad);
-  background: #fff;
-  border: 1px solid var(--bar-line);
-  border-radius: var(--bar-r);
-}
-
-#root .ws-topbar-end {
-  box-shadow: 0 1px 2px rgb(20 20 30 / .04), 0 4px 14px -6px rgb(20 20 30 / .10) !important;
-}
-
-/* The border sits inside the bar's height, so inner items shrink by it. */
-.ws-topbar-end > * {
-  --bar-in: calc(var(--tb-h) - 2 * var(--bar-pad) - 2px);
-}
-
-/* Everything inside the bar is flat: the bar carries the white and the shadow. */
-#root .ws-topbar .model-selector-trigger,
-#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn {
-  box-shadow: none !important;
 }
 
 /* ---------- Add menu ---------------------------------------------------------- */
@@ -70,19 +41,27 @@
   font-size: clamp(14px, 1.25vw, 16px);
 }
 
-/* ---------- Model picker | menu --------------------------------------------- */
+/* ---------- Model picker, menu button ---------------------------------------- */
 .ws-topbar .model-selector-trigger {
-  height: var(--bar-in);
+  height: var(--tb-h);
+  box-sizing: border-box;
   gap: 6px;
-  padding: 0 10px 0 4px;
-  background: transparent;
-  border-radius: var(--bar-in-r);
+  /* The logo sits 8px in from the box's edge (border included) on all sides. */
+  padding: 0 12px 0 7px;
+  background: #fff;
+  border: 1px solid var(--bar-line);
+  border-radius: var(--bar-r);
 }
 
 .ws-topbar .model-selector-trigger:hover,
 .ws-topbar .model-selector.is-open .model-selector-trigger {
   background: var(--bar-hover);
   scale: none;
+}
+
+/* Fixed width: the shortened descriptions fit on one line at this size. */
+.ws-topbar .model-selector-menu {
+  width: 216px;
 }
 
 .ws-topbar .model-selector-logo {
@@ -102,45 +81,39 @@
   color: var(--bar-icon);
 }
 
-/* A short divider between the model picker and the menu button. */
+/* The menu button: a square box. Its slot (the notch) carries the size, and
+   the button fills it, so folding the slot folds the box with it. */
 .ws-topbar .toolbar-panel-notch {
-  position: relative;
-  width: calc(var(--bar-in) + 9px);
-  height: var(--bar-in);
-  padding-left: 9px;
-  box-sizing: border-box;
-  overflow: hidden;
-  transition: opacity 180ms ease, width var(--shell-dur) var(--shell-ease), padding var(--shell-dur) var(--shell-ease);
+  width: var(--tb-h);
+  height: var(--tb-h);
+  transition:
+    opacity 180ms ease,
+    width var(--pl-panel-close) var(--pl-panel-ease),
+    margin-left var(--pl-panel-close) var(--pl-panel-ease);
 }
 
-.ws-topbar .toolbar-panel-notch::before {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 25%;
-  bottom: 25%;
-  width: 1px;
-  background: var(--bar-line);
-}
-
-/* Brand panel open (it has its own close): the menu button folds away so the
-   bar ends at the model picker instead of leaving an empty slot. */
+/* Brand panel open (it has its own close): the menu button folds away, gap
+   and all, on the panel's timing, so the model picker glides instead of
+   jumping. */
 .ws-topbar .toolbar-panel-notch.is-hidden {
   width: 0;
-  padding-left: 0;
-}
-
-.ws-topbar-end:has(.toolbar-panel-notch.is-hidden) {
-  gap: 0;
+  margin-left: calc(-1 * var(--tb-gap));
+  transition:
+    opacity 180ms ease,
+    width var(--pl-panel-open) var(--pl-panel-ease),
+    margin-left var(--pl-panel-open) var(--pl-panel-ease);
 }
 
 .ws-topbar .toolbar-panel-notch .toolbar-panel-btn,
 .ws-topbar .toolbar-panel-notch .toolbar-panel-btn.is-active {
-  width: var(--bar-in);
-  height: var(--bar-in);
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
   color: var(--bar-icon);
-  background: transparent;
-  border-radius: var(--bar-in-r);
+  background: #fff;
+  border: 1px solid var(--bar-line);
+  border-radius: var(--bar-r);
 }
 
 #root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover {
@@ -155,15 +128,16 @@
 }
 
 /* Desktop: the brand panel floats over the workspace's right side, so while
-   it's open the model bar slides left to sit beside it instead of under it.
-   Same timing as the panel's slide (polish/shell.css). */
+   it's open the right group slides left to sit beside it instead of under it.
+   Same tokens as the panel's slide (polish/shell.css), so the two move as
+   one and the picker never passes under the panel. */
 .app-shell[data-bp="desktop"] .ws-topbar-end {
-  transition: translate var(--pl-d-3) var(--pl-ease-in);
+  transition: translate var(--pl-panel-close) var(--pl-panel-ease);
 }
 
 .app-shell[data-bp="desktop"][data-right="open"] .ws-topbar-end {
   translate: calc(-1 * (var(--rsb-w) + var(--gap))) 0;
-  transition: translate var(--pl-d-4) var(--pl-ease-out);
+  transition: translate var(--pl-panel-open) var(--pl-panel-ease);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -6,9 +6,9 @@ export const AI_MODELS = {
   quality: "gpt-4.1",
 };
 export const MODEL_OPTIONS = [
-  { value: "fast", label: "gpt-4o-mini", description: "Faster for everyday tasks" },
-  { value: "balanced", label: "gpt-4o", description: "Best balance of speed and quality" },
-  { value: "quality", label: "gpt-4.1", description: "Best for complex tasks" },
+  { value: "fast", label: "gpt-4o-mini", description: "Everyday tasks" },
+  { value: "balanced", label: "gpt-4o", description: "Speed and quality" },
+  { value: "quality", label: "gpt-4.1", description: "Complex tasks" },
 ];
 export const DEFAULT_TIER = "balanced";
 

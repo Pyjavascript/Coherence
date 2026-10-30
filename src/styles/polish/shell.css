@@ -9,7 +9,6 @@
 
 /* ---------- shared keyframes (prefixed pl-sh-*) ---------- */
 @keyframes pl-sh-rise { from { opacity: 0; translate: 0 var(--pl-rise); } }
-@keyframes pl-sh-slide-in { from { opacity: 0; translate: calc(var(--pl-rise) * 3) 0; } }
 @keyframes pl-sh-dialog-in { from { opacity: 0; translate: 0 6px; scale: var(--pl-pop-from); } }
 @keyframes pl-sh-scrim-in {
   from { opacity: 0; -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px); }
@@ -105,50 +104,40 @@
 .shell-scrim[data-visible=true] { -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .app-shell[data-bp=mobile][data-drawer=right] .shell-scrim { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
-/* desktop: the floating panel slides in from past the window's right edge to
-   its place, right to left, and back out the same way. Purely horizontal: no
-   scale, so nothing appears to rise or jump. */
+/* The panel moves as one solid object: it never fades, so it is never
+   see-through over the workspace. It only slides, on the shared panel tokens
+   (tokens.css), and stays visible until a close has finished. */
+.rsb,
+.app-shell[data-right=open] .rsb {
+  opacity: 1;
+}
+
+/* desktop: the floating panel slides out from behind the navy frame (past the
+   window's right edge) to its place, and back the same way. Purely
+   horizontal: no scale, so nothing appears to rise or jump. */
 .app-shell[data-bp=desktop] .rsb {
   translate: calc(100% + var(--gap) + var(--shell-pad)) 0;
   transition:
-    opacity var(--pl-d-3) var(--pl-ease-in),
-    translate var(--pl-d-3) var(--pl-ease-in),
+    translate var(--pl-panel-close) var(--pl-panel-ease),
     transform var(--shell-dur) var(--shell-ease),
-    visibility 0s linear var(--pl-d-3);
+    visibility 0s linear var(--pl-panel-close);
 }
 .app-shell[data-bp=desktop][data-right=open] .rsb {
   translate: 0 0;
   transition:
-    opacity var(--pl-d-2) var(--pl-ease-out),
-    translate var(--pl-d-4) var(--pl-ease-out),
+    translate var(--pl-panel-open) var(--pl-panel-ease),
     transform var(--shell-dur) var(--shell-ease),
     visibility 0s;
 }
-/* tablet/mobile drawer keeps its translateX; only its easing is retuned */
+/* tablet/mobile drawer keeps its translateX, on the same tokens */
 .app-shell:not([data-bp=desktop]) .rsb {
   transition:
-    opacity var(--pl-d-2) var(--pl-ease-out),
-    transform var(--pl-d-4) var(--pl-ease-out),
-    visibility 0s linear var(--pl-d-4);
+    transform var(--pl-panel-close) var(--pl-panel-ease),
+    visibility 0s linear var(--pl-panel-close);
 }
 .app-shell:not([data-bp=desktop])[data-right=open] .rsb {
-  transition: opacity var(--pl-d-2) var(--pl-ease-out), transform var(--pl-d-4) var(--pl-ease-out), visibility 0s;
+  transition: transform var(--pl-panel-open) var(--pl-panel-ease), visibility 0s;
 }
-
-/* sections stagger in each time the panel opens (RightSidebar sets
-   data-pl-enter-rsb), trailing in from the right like the panel itself */
-.rsb[data-pl-enter-rsb] .rsb-scroll > * {
-  animation: pl-sh-slide-in var(--pl-d-4) var(--pl-ease-out) backwards;
-  animation-delay: calc(var(--pl-stagger) * (var(--pl-si, 0) + 1));
-}
-.rsb-scroll > :nth-child(1) { --pl-si: 0; }
-.rsb-scroll > :nth-child(2) { --pl-si: 1; }
-.rsb-scroll > :nth-child(3) { --pl-si: 2; }
-.rsb-scroll > :nth-child(4) { --pl-si: 3; }
-.rsb-scroll > :nth-child(5) { --pl-si: 4; }
-.rsb-scroll > :nth-child(6) { --pl-si: 5; }
-.rsb-scroll > :nth-child(7) { --pl-si: 6; }
-.rsb-scroll > :nth-child(n+8) { --pl-si: 7; }
 
 /* inputs: one soft focus ring, eased */
 .rsb :is(.bp-input, .bp-textarea),
@@ -335,6 +324,6 @@ html body .rsb .bp-section-chevron.open { transform: rotate(180deg); }
 /* ---------- reduced motion: no ambient loops / FLIP ---------- */
 @media (prefers-reduced-motion: reduce) {
   .tour-scene > *, .tour-links path, .tour-copy[data-active=true], .overlay, .coherence-overlay,
-  .overlay > [role], .rsb[data-pl-enter-rsb] .rsb-scroll > *,
+  .overlay > [role],
   .lnav .rail-credits-meter::before, .lnav .rail-credits-meter::after { animation: none !important; }
 }

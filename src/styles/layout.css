@@ -1258,10 +1258,11 @@ body {
   overflow: hidden;
   overflow: clip;
   border-radius: var(--r);
-  background:#f3f3f3;
-  /* The dot grid in Quick Grid and Node Studio: a soft indigo, so the dots
-     read on the light background. */
-  --dot-color: rgba(43, 47, 140, 0.22);
+  /* White at the top fading to soft blue at the bottom; the colour shows
+     until the image loads. */
+  background: #dbe5fd url("../assets/workspace/bg.png") center / cover no-repeat;
+  /* The dot grid in Quick Grid and Node Studio (not inside cards). */
+  --dot-color: #fff;
 }
 
 /* A slow drift of soft light over the gradient, so the background feels alive
@@ -1315,7 +1316,10 @@ body {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: clamp(8px, 0.9vw, 14px);
+  /* Space between the toolbar's boxes. workspace-theme.css also uses it to
+     fold the menu button away without the model picker jumping. */
+  --tb-gap: clamp(8px, 0.9vw, 14px);
+  gap: var(--tb-gap);
 }
 
 .ws-topbar .toolbar-add-node,
@@ -1616,7 +1620,8 @@ body {
   .ws-topbar-start,
   .ws-topbar-end {
     flex: 0 0 auto;
-    gap: 8px;
+    --tb-gap: 8px;
+    gap: var(--tb-gap);
   }
 
   .ws-topbar .toolbar-generate {
@@ -1699,12 +1704,6 @@ body {
     gap: 4px;
     padding: 0 8px 0 6px;
   }
-
-  /* Phones: a narrower model menu (under 260px it switches to its compact
-     rows, see index.css); Header.jsx still lines it up with Generate. */
-  .ws-topbar .model-selector-menu {
-    width: 256px;
-  }
 }
 
 @container ws (max-width: 380px) {
@@ -1752,6 +1751,8 @@ body {
    smaller rounded square inside the box. */
 .ws-switch {
   --ws-pad: 4px;
+  /* Space between the Grid and Node tabs; the thumb steps over it. */
+  --ws-gap: 4px;
   --ws-tab: calc(var(--tb-h) - 2 * var(--ws-pad));
   position: relative;
   flex: none;
@@ -1768,7 +1769,7 @@ body {
    box keeps one width when the view changes. Add Node's type size. */
 .ws-switch-name {
   display: inline-grid;
-  padding: 0 clamp(6px, 0.6vw, 8px) 0 clamp(8px, 0.8vw, 10px);
+  padding: 0 clamp(10px, 0.9vw, 12px) 0 clamp(8px, 0.8vw, 10px);
   color: var(--shell-navy);
   font-size: clamp(14px, 1.25vw, 16px);
   font-weight: 600;
@@ -1791,6 +1792,7 @@ body {
   height: 100%;
   display: grid;
   grid-template-columns: repeat(2, var(--ws-tab));
+  gap: var(--ws-gap);
   isolation: isolate;
 }
 
@@ -1803,7 +1805,7 @@ body {
   width: var(--ws-tab);
   background: var(--shell-navy);
   border-radius: var(--r);
-  transform: translateX(calc(var(--i) * 100%));
+  transform: translateX(calc(var(--i) * (100% + var(--ws-gap))));
   transition: transform 280ms var(--shell-ease);
 }
 
@@ -1842,6 +1844,7 @@ body {
 @container ws (max-width: 520px) {
   .ws-switch {
     --ws-pad: 0px;
+    --ws-gap: 0px;
   }
 
   .ws-switch-name,
@@ -1874,20 +1877,19 @@ body {
   background-image: radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px);
   background-size: 18px 18px;
   background-attachment: local;
-  /* Moves in step with the brand panel (polish/shell.css): closing, the panel
-     slides out in --pl-d-3 with --pl-ease-in, so the cards widen at that same
-     pace and only fill the room as the panel leaves it. */
-  transition: padding-right var(--pl-d-3) var(--pl-ease-in);
+  /* Moves in step with the brand panel (polish/shell.css), on the shared panel
+     tokens: closing, the cards widen at the panel's pace and only fill the
+     room as the panel leaves it. */
+  transition: padding-right var(--pl-panel-close) var(--pl-panel-ease);
 }
 
 /* Desktop, brand panel open: the panel floats over the workspace's right side,
    so the grid keeps that strip clear and its cards narrow to fit beside it
    (same column count; QuickGrid.jsx re-measures on the resize). Opening, the
-   panel slides in over --pl-d-4 with --pl-ease-out, and the cards make room
-   on the same curve. */
+   cards make room on the panel's own timing. */
 .app-shell[data-bp="desktop"][data-right="open"] .qg {
   padding-right: calc(var(--rsb-w) + var(--gap) + var(--ws-gutter));
-  transition: padding-right var(--pl-d-4) var(--pl-ease-out);
+  transition: padding-right var(--pl-panel-open) var(--pl-panel-ease);
 }
 
 /* --qg-cols is how many cards fit across; QuickGrid.jsx reads it, packs the

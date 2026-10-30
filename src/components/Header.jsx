@@ -29,6 +29,9 @@ function ModelSelector({ tier, onTier }) {
     if (!rootRef.current || !menuRef.current) return;
     const triggerRect = rootRef.current.getBoundingClientRect();
     const menuRect = menuRef.current.getBoundingClientRect();
+    // The menu's own layout width: the opening animation scales the menu, so
+    // its bounding box reads a few px narrow on the first frame.
+    const menuWidth = menuRef.current.offsetWidth;
     const surfaceRect = rootRef.current.closest(".workspace")?.getBoundingClientRect();
     // Horizontal room: the workspace (or the viewport), less an 8px margin each side.
     const minX = Math.max(8, (surfaceRect?.left ?? 0) + 8);
@@ -39,14 +42,14 @@ function ModelSelector({ tier, onTier }) {
     const endRight = rootRef.current.parentElement?.getBoundingClientRect().right;
     const spanWidth = endRight ? endRight - triggerRect.left : 0;
     const spans = spanWidth >= MODEL_MENU_MIN_WIDTH;
-    const wanted = spans ? spanWidth : menuRect.width;
+    const wanted = spans ? spanWidth : menuWidth;
     // Place it, slide left until it fits, and shrink if even that isn't enough.
     const width = Math.min(wanted, maxX - minX);
     const preferredLeft = spans || !endRight ? triggerRect.left : endRight - width;
     const left = Math.max(minX, Math.min(preferredLeft, maxX - width));
     setPlacement({
       offset: Math.round(left - triggerRect.left),
-      width: width !== menuRect.width ? Math.round(width) : null,
+      width: width !== menuWidth ? Math.round(width) : null,
       up: triggerRect.bottom + menuRect.height > window.innerHeight - 8 && triggerRect.top - menuRect.height >= 8,
     });
   }, [open]);

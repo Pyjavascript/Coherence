@@ -41,7 +41,7 @@
   transform: translateX(-50%);
   pointer-events: none;
   /* Re-centres in step with the brand panel, like the grid (layout.css .qg). */
-  transition: left var(--pl-d-3) var(--pl-ease-in);
+  transition: left var(--pl-panel-close) var(--pl-panel-ease);
 }
 
 .ws-tray > * {
@@ -52,7 +52,7 @@
    of it, in Grid and Node Studio alike, so the tray stays put on switching. */
 .app-shell[data-bp="desktop"][data-right="open"] .ws-tray {
   --tray-room: calc(100% - var(--rsb-w) - var(--gap));
-  transition: left var(--pl-d-4) var(--pl-ease-out);
+  transition: left var(--pl-panel-open) var(--pl-panel-ease);
 }
 
 /* Narrow: the tray spans the stage, sitting lower, and the corner controls

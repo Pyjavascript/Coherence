@@ -20,6 +20,13 @@
   --pl-d-loop: 2400ms; /* ambient loops (shimmer, breathe) */
   --pl-stagger: 45ms;
 
+  /* Brand panel: the panel and everything that moves with it (grid padding,
+     message tray, top-bar end group, menu-button collapse) share these, so
+     they travel as one object. */
+  --pl-panel-ease: cubic-bezier(.2, 0, 0, 1);
+  --pl-panel-open: 320ms;
+  --pl-panel-close: 240ms;
+
   /* Motion distances */
   --pl-rise: 8px;
   --pl-lift: -2px;
@@ -96,6 +103,7 @@
 @media (prefers-reduced-motion: reduce) {
   :root {
     --pl-d-1: 1ms; --pl-d-2: 1ms; --pl-d-3: 1ms; --pl-d-4: 1ms; --pl-stagger: 0ms;
+    --pl-panel-open: 1ms; --pl-panel-close: 1ms;
     --pl-rise: 0px; --pl-lift: 0px; --pl-press-scale: 1; --pl-press-scale-sm: 1; --pl-pop-from: 1;
   }
   *, *::before, *::after {

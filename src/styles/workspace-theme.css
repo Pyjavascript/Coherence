@@ -15,7 +15,7 @@
   --bar-ink: #1c1c22;
   --bar-icon: #3a3a44;
   --bar-line: #ececef;
-  --bar-hover: #f3f3f5;
+  --bar-hover: var(--shell-tint-2);
 }
 
 /* ---------- The right group ------------------------------------------------- */

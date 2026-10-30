@@ -257,7 +257,7 @@
 .rsb .bp-row2 .bp-dd-locked .bp-dd-trigger,
 .rsb .bp-style-section .bp-dd-premium .bp-dd-trigger {
   gap: 6px;
-  padding: 0 12px 0 14px;
+  padding: 0 18px 0 14px;
   font-size: 13px;
 }
 
@@ -269,8 +269,8 @@
 
 .rsb .bp-dd-locked .bp-dd-chev,
 .rsb .bp-style-section .bp-dd-chev {
-  width: 14px;
-  flex-basis: 14px;
+  width: 18px;
+  flex-basis: 18px;
 }
 
 .rsb .bp-dd-locked .bp-dd-value,
@@ -4626,4 +4626,119 @@
 .rsb .bp-save:hover:not(:disabled) {
   background: var(--hover-success-solid);
   filter: none;
+}
+
+/* ==========================================================================
+   Unified hover — every control hovers the same way: a soft tint fill plus a
+   hairline stroke (the right panel's look), 150ms, no growing or lifting.
+   The stroke is an outline pulled inside the edge, so it never shifts layout
+   and never replaces a control's own shadow or border. Solid / primary /
+   danger fills keep darkening their own colour (a tint would vanish on them);
+   they take the same duration and easing.
+   ========================================================================== */
+
+:root {
+  --hover-stroke: #c9d3ff;
+  --hover-stroke-on-dark: rgba(255, 255, 255, 0.22);
+  --hover-stroke-danger: #ffc2c8;
+}
+
+/* White buttons used to grow on hover; they now tint and take the stroke. */
+.sn-add:hover,
+.toolbar-node-menu button:hover,
+.model-selector-trigger:hover,
+.ws-topbar .toolbar-add-node:hover:not([aria-expanded="true"]) {
+  scale: none;
+  background: var(--hover-light);
+}
+
+.sn-add,
+.toolbar-node-menu button,
+.model-selector-trigger,
+.ws-topbar .model-selector-trigger,
+.ws-topbar .toolbar-add-node {
+  transition: var(--hover-transition), outline-color var(--hover-dur) ease;
+}
+
+/* Light: tint + hairline stroke. */
+.tour-secondary:hover,
+.auth-google:hover:not(:disabled),
+.hook-copy:hover,
+.confirm-cancel:hover,
+.profile-pill:hover,
+.profile-cancel:hover:not(:disabled),
+.history-filters button:not(.on):hover,
+.ncard-settings-reset:hover:not(:disabled),
+.usage-key-btn:not(.is-open):hover,
+.ncard-action:not(.is-on):not(.is-copied):hover:not(:disabled),
+.ncard-fav:not(.on):hover,
+.ncard-vtab:not(.on):hover,
+.sn-vtab:not(.on):hover,
+.sn-mini:not(.danger):hover,
+.sn-toggle:hover,
+.sn-round:not(.active):not(.is-copied):hover:not(:disabled),
+.sn-col-gen:hover,
+.history-actions button:not(.is-primary):hover:not(:disabled),
+.canvas-controls button:hover,
+.tour-launch:hover,
+.ws-switch-btn:not(.on):hover,
+.rsb .bp-card-hook .bp-gen-btn:hover,
+.rsb .bp-research-field:hover,
+.rsb .bp-upsell button:hover,
+.rsb .bp-dd:not(.open) .bp-dd-trigger:hover:not(:disabled),
+.research-select:not(.is-open) .research-select-trigger:hover,
+.ncard-select:not(.is-open) .ncard-select-trigger:hover,
+.hook-modal .modal-head button:hover,
+.research-modal .modal-head button:hover,
+.auth-modal .modal-head button:hover,
+.coherence-close:hover,
+.profile-close:hover,
+.ncard-menu button:not(.danger):hover,
+.toolbar-export-menu button:hover,
+.share-menu a:hover,
+.share-menu button:hover,
+.model-selector-option:hover,
+.research-select-option:hover,
+.ncard-select-option:hover,
+.bp-dd-opt:hover,
+.ws-view-nodes .sn-title:hover,
+.ncard-copy .is-editable:hover,
+.sn-add:hover,
+.toolbar-node-menu button:hover,
+.model-selector-trigger:hover,
+.ws-topbar .toolbar-add-node:hover:not([aria-expanded="true"]) {
+  outline: 1px solid var(--hover-stroke);
+  outline-offset: -1px;
+}
+
+/* On dark: white wash + faint white stroke. */
+.lnav-row:not(.lnav-toggle):not(.is-active):hover,
+.rsb .rsb-head button:not(:disabled):hover,
+.toast-close:hover,
+.lnav-toggle:hover .lnav-slot,
+.rsb .bp-section-toggle:hover .bp-chevron-slot,
+.lnav[data-open="false"] .lnav-add:hover {
+  outline: 1px solid var(--hover-stroke-on-dark);
+  outline-offset: -1px;
+}
+
+/* Danger: soft red tint + faint red stroke. */
+.sn-mini.danger:hover,
+.ncard-menu button.danger:hover,
+.research-note-card > button:hover,
+.profile-delete:hover:not(:disabled) {
+  outline: 1px solid var(--hover-stroke-danger);
+  outline-offset: -1px;
+}
+
+/* Never stack the hover stroke on top of a keyboard focus ring. */
+:is(button, a, input, [role="button"]):focus-visible:hover {
+  outline-offset: 2px;
+}
+
+/* Top-bar model picker and panel button: same lavender tint + stroke as the view switch. */
+#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover,
+.ws-topbar .model-selector.is-open .model-selector-trigger {
+  outline: 1px solid var(--hover-stroke);
+  outline-offset: -1px;
 }

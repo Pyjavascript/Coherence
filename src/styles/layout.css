@@ -30,13 +30,13 @@
 
   --gap: clamp(8px, 0.75vw, 12px);
   --ui-icon: clamp(45px, 3.4vw, 50px);
-  --shell-pad: 25px;
+  --shell-pad: 20px;
   --lnav-pad: clamp(12px, 1.35vw, 20px);
   /* The rail's inset on each side of its content. The shell's left padding
      (this, not --shell-pad) sits before the icons, so the rail only adds the
      same amount after them: equal space on both sides of the icon column. */
   --lnav-side: 20px;
-  --lnav-closed: calc(var(--ui-icon) + var(--lnav-side));
+  --lnav-closed: calc(var(--ui-icon) + var(--lnav-side) * 2);
   --lnav-row-gap: clamp(15px, 1.2vw, 18px);
 
   /* The open rail is exactly [icon][gap][labels][--lnav-side], so the space
@@ -45,7 +45,7 @@
      the current font size) into --lnav-label-w on <html>; this is the
      fallback until it does. */
   --lnav-label-w: calc(clamp(236px, 19vw, 290px) - var(--lnav-side) - var(--ui-icon) - var(--lnav-row-gap));
-  --lnav-open: calc(var(--ui-icon) + var(--lnav-row-gap) + var(--lnav-label-w) + var(--lnav-side));
+  --lnav-open: calc(var(--ui-icon) + var(--lnav-row-gap) + var(--lnav-label-w) + var(--lnav-side) * 2);
   --rsb-w: clamp(320px, 28vw, 420px);
   --tb-h: clamp(44px, 4vw, 58px);
   --tb-pad-bottom: clamp(10px, 1.1vw, 16px);
@@ -104,7 +104,7 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
-  padding: var(--shell-pad) var(--shell-pad) var(--shell-pad) var(--lnav-side);
+  padding: var(--shell-pad) var(--shell-pad) var(--shell-pad) 0;
   background: var(--shell-navy);
   overflow: hidden;
 }
@@ -131,14 +131,14 @@ body {
 
 .lnav {
   position: absolute;
-  top: calc(var(--gap) * -1);
-  bottom: calc(var(--gap) * -1);
+  top: calc(var(--shell-pad) * -1);
+  bottom: calc(var(--shell-pad) * -1);
   left: 0;
   width: var(--lnav-closed);
   display: flex;
   flex-direction: column;
   gap: clamp(6px, 0.7vw, 10px);
-  padding: clamp(16px, 2vw, 30px) var(--lnav-side) clamp(16px, 2vw, 30px) 0;
+  padding: var(--lnav-side);
   color: #fff;
   background: var(--shell-navy);
   transition:

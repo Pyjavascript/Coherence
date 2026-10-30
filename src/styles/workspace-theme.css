@@ -1,11 +1,10 @@
 /* ==========================================================================
    Workspace theme — loaded last (main.jsx), so it overrides the sheets above.
 
-   1. Top bars: two white bars instead of separate floating buttons.
-      Left:  [current view's name][Grid][Node][+]   (active tab = blue outline)
-      Right: [model logo ⌄] | [menu]
-   2. Node Studio: a warm, subtle-gray dotted canvas and pastel node cards
-      (lavender, rose, mint, butter, aqua), one per medium.
+   1. Top bar, right: [model logo ⌄] | [menu] in one white bar. The left
+      group (view switch, Add) keeps its separate boxes from layout.css.
+   2. Smoother side-panel animation and the corner controls (zoom, "?").
+   Colours (frame, panels, grid, Node Studio) are layout.css's own.
    ========================================================================== */
 
 /* ---------- Bar tokens ----------------------------------------------------- */
@@ -24,12 +23,13 @@
   --bar-hover: #f3f3f5;
 }
 
-/* ---------- The two bars --------------------------------------------------- */
+/* ---------- The right bar ---------------------------------------------------- */
+/* Only the right group is one bar. The left group keeps its separate boxes:
+   the view switch, then the Add tile (layout.css). */
 .ws-topbar {
   align-items: flex-start;
 }
 
-.ws-topbar-start,
 .ws-topbar-end {
   height: var(--tb-h);
   box-sizing: border-box;
@@ -40,106 +40,23 @@
   border-radius: var(--bar-r);
 }
 
-#root .ws-topbar-start,
 #root .ws-topbar-end {
   box-shadow: 0 1px 2px rgb(20 20 30 / .04), 0 4px 14px -6px rgb(20 20 30 / .10) !important;
 }
 
 /* The border sits inside the bar's height, so inner items shrink by it. */
-.ws-topbar-start > *,
 .ws-topbar-end > * {
   --bar-in: calc(var(--tb-h) - 2 * var(--bar-pad) - 2px);
 }
 
-/* Everything inside a bar is flat: the bar carries the white and the shadow. */
-#root .ws-topbar .ws-switch,
-#root .ws-topbar .toolbar-add-node,
+/* Everything inside the bar is flat: the bar carries the white and the shadow. */
 #root .ws-topbar .model-selector-trigger,
 #root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn {
   box-shadow: none !important;
 }
 
-/* ---------- View switch ----------------------------------------------------- */
-.ws-topbar .ws-switch {
-  --ws-pad: 0px;
-  --ws-tab: var(--bar-in);
-  height: var(--bar-in);
-  padding: 0;
-  gap: 2px;
-  background: transparent;
-  border-radius: var(--bar-in-r);
-}
-
-.ws-topbar .ws-switch-name {
-  padding: 0 clamp(6px, 0.6vw, 8px) 0 clamp(8px, 0.8vw, 10px);
-  color: var(--bar-ink);
-  font-size: clamp(14px, 1.25vw, 16px);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-
-.ws-topbar .ws-switch-tabs {
-  gap: 2px;
-  grid-template-columns: repeat(2, var(--ws-tab));
-}
-
-/* Active tab: the shell's navy with a white icon. The gap between tabs is
-   added to the slide distance. */
-.ws-topbar .ws-switch-thumb {
-  width: var(--ws-tab);
-  background: var(--shell-navy);
-  border-radius: var(--bar-in-r);
-  transform: translateX(calc(var(--i) * (100% + 2px)));
-}
-
-.ws-topbar .ws-switch-btn {
-  width: var(--ws-tab);
-  color: var(--bar-icon);
-  border-radius: var(--bar-in-r);
-}
-
-.ws-topbar .ws-switch-btn svg {
-  width: 50%;
-  height: 50%;
-}
-
-.ws-topbar .ws-switch-btn.on {
-  color: #fff;
-}
-
-.ws-topbar .ws-switch-btn:not(.on):hover {
-  background: var(--bar-hover);
-}
-
-/* ---------- Add ("+") ------------------------------------------------------- */
-.ws-topbar .toolbar-add-node {
-  width: var(--bar-in);
-  height: var(--bar-in);
-  display: grid;
-  place-items: center;
-  color: var(--bar-icon);
-  background: transparent;
-  border-radius: var(--bar-in-r);
-}
-
-.ws-topbar .toolbar-add-node svg {
-  width: 50%;
-  height: 50%;
-  flex: none;
-}
-
-.ws-topbar .toolbar-add-node:hover:not(:disabled),
-.ws-topbar .toolbar-add-node:hover:not([aria-expanded="true"]) {
-  background: var(--bar-hover);
-  scale: none;
-}
-
-.ws-topbar .toolbar-add-node[aria-expanded="true"] {
-  color: #fff;
-  background: var(--shell-navy);
-}
-
-/* The add menu opens beside the bar, its options at the bar's height. */
+/* ---------- Add menu ---------------------------------------------------------- */
+/* Opens beside the left group, its options at the toolbar's height. */
 .ws-topbar .toolbar-node-menu {
   left: calc(100% + 8px);
 }
@@ -151,23 +68,6 @@
   border: 1px solid var(--bar-line);
   border-radius: var(--bar-r);
   font-size: clamp(14px, 1.25vw, 16px);
-}
-
-/* Phones: the bar's mobile nav toggle sits flat inside the bar too. */
-.ws-topbar-start > .toolbar-icon-btn {
-  width: var(--bar-in);
-  height: var(--bar-in);
-  color: var(--bar-icon);
-  background: transparent;
-  border-radius: var(--bar-in-r);
-}
-
-#root .ws-topbar-start > .toolbar-icon-btn {
-  box-shadow: none !important;
-}
-
-.ws-topbar-start > .toolbar-icon-btn:hover {
-  background: var(--bar-hover);
 }
 
 /* ---------- Model picker | menu --------------------------------------------- */
@@ -302,26 +202,6 @@
   contain: strict;
 }
 
-/* ---------- Workspace background (Quick Grid) ------------------------------- */
-/* The same warm gray, rose / lavender wash and dots as Node Studio's canvas
-   below, in place of the sky-blue gradient (layout.css). Grid doesn't pan, so
-   its dots stay at the canvas's 100% size. The drifting glow is a soft white
-   now, so it only lifts the gray instead of tinting it blue. */
-.workspace {
-  background-color: #f1f0ee;
-  background-image:
-    radial-gradient(rgb(60 60 70 / .17) 0.75px, transparent 0.9px),
-    radial-gradient(55% 45% at 100% 0%, rgb(247 228 240 / .65), transparent 70%),
-    radial-gradient(50% 55% at 0% 100%, rgb(230 226 248 / .55), transparent 70%),
-    linear-gradient(160deg, #f9f9f8 0%, #f1f0ee 55%, #e6e5e2 100%);
-  background-size: 18px 18px, 100% 100%, 100% 100%, 100% 100%;
-  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
-}
-
-.workspace::before {
-  background: radial-gradient(32% 38% at 28% 30%, rgb(255 255 255 / .45), transparent 70%);
-}
-
 /* ---------- Corner controls: zoom and "?" ----------------------------------- */
 .ws-view-nodes .canvas-controls,
 .tour-launch {
@@ -352,191 +232,4 @@
 #root .ws-view-nodes .canvas-controls,
 #root .tour-launch {
   box-shadow: 0 1px 2px rgb(20 20 30 / .04), 0 4px 14px -6px rgb(20 20 30 / .10) !important;
-}
-
-/* ---------- Node Studio canvas ------------------------------------------------ */
-/* Warm subtle gray that deepens toward the bottom right, with a faint rose and
-   lavender wash like the reference board. The dots stay first so they keep
-   panning and zooming with the canvas (CanvasViewport sets their size/offset). */
-.ws-view-nodes .canvas-surface {
-  --dot-color: rgb(60 60 70 / .17);
-  background-color: #f1f0ee;
-  background-image:
-    radial-gradient(var(--dot-color) 0.75px, transparent 0.9px),
-    radial-gradient(55% 45% at 100% 0%, rgb(247 228 240 / .65), transparent 70%),
-    radial-gradient(50% 55% at 0% 100%, rgb(230 226 248 / .55), transparent 70%),
-    linear-gradient(160deg, #f9f9f8 0%, #f1f0ee 55%, #e6e5e2 100%);
-  background-size:
-    var(--canvas-dot-size) var(--canvas-dot-size),
-    100% 100%,
-    100% 100%,
-    100% 100%;
-  background-position:
-    var(--canvas-dot-x) var(--canvas-dot-y),
-    0 0,
-    0 0,
-    0 0;
-  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
-}
-
-/* Links and joints: soft graphite instead of navy on the gray canvas. */
-.ws-view-nodes .nodesvg path {
-  stroke: #8d8d99;
-}
-
-.ws-view-nodes .nodesvg circle,
-.ws-view-nodes .sn-joint,
-.ws-view-nodes .sn-joint::before,
-.ws-view-nodes .sn-joint::after {
-  fill: #8d8d99;
-  background: #8d8d99;
-}
-
-.ws-view-nodes .sn-add {
-  border: 1px solid var(--bar-line);
-}
-
-/* ---------- Pastel cards: palette ---------------------------------------------- */
-/* Each medium gets its own pastel, shared by Node Studio's nodes (data-cat) and
-   Quick Grid's cards (data-type): a light top fading to a slightly deeper
-   bottom, a hairline border in the same hue, and a dark ink of that hue for
-   titles and labels. Fields and copy boxes stay white. Marketing only exists
-   on the grid; it takes Social's rose. */
-.ws-view-nodes .sn-node[data-cat="email"],
-.ncard[data-type="email"] {
-  --n-top: #f4f1ff;
-  --n-bottom: #e7e0fd;
-  --n-line: #dad0fb;
-  --n-ink: #4a37a6;
-}
-
-.ws-view-nodes .sn-node[data-cat="social"],
-.ncard[data-type="marketing"] {
-  --n-top: #fff2f7;
-  --n-bottom: #fadfea;
-  --n-line: #f2cadb;
-  --n-ink: #973066;
-}
-
-.ws-view-nodes .sn-node[data-cat="website"],
-.ncard[data-type="website"] {
-  --n-top: #effaf4;
-  --n-bottom: #d9f2e4;
-  --n-line: #c3e7d3;
-  --n-ink: #1b7451;
-}
-
-.ws-view-nodes .sn-node[data-cat="packaging"],
-.ncard[data-type="packaging"] {
-  --n-top: #fffbec;
-  --n-bottom: #fcf0c8;
-  --n-line: #f2e1a6;
-  --n-ink: #85580a;
-}
-
-.ws-view-nodes .sn-node[data-cat="advertising"],
-.ncard[data-type="advertising"] {
-  --n-top: #eefafc;
-  --n-bottom: #d6f1f5;
-  --n-line: #bce4eb;
-  --n-ink: #0d6b78;
-}
-
-/* ---------- Pastel cards: Quick Grid -------------------------------------------- */
-.ncard[data-type] {
-  color: var(--n-ink);
-  background: linear-gradient(180deg, var(--n-top) 0%, var(--n-bottom) 100%);
-  border: 1px solid var(--n-line);
-}
-
-.ncard[data-type] .ncard-pill {
-  color: var(--n-ink);
-  font-weight: 600;
-}
-
-.ncard[data-type] .ncard-pill input.ncard-title:hover,
-.ncard[data-type] .ncard-pill input.ncard-title:focus {
-  background: rgb(255 255 255 / .6);
-}
-
-.ncard[data-type] .ncard-hint {
-  color: color-mix(in srgb, var(--n-ink) 55%, #fff);
-}
-
-/* Header buttons: white chips with a hairline in the card's hue, like the
-   reference board's tags. */
-.ncard[data-type] .ncard-action,
-.ncard[data-type] .ncard-sheet-trigger {
-  color: var(--n-ink);
-  background: rgb(255 255 255 / .7);
-  border: 1px solid var(--n-line);
-}
-
-.ncard[data-type] .ncard-action:hover:not(:disabled),
-.ncard[data-type] .ncard-sheet-trigger:hover,
-.ncard[data-type] .ncard-sheet-trigger.is-open {
-  background: #fff;
-}
-
-.ncard[data-type] .ncard-action.ncard-close:hover:not(:disabled) {
-  color: #d13a3f;
-  background: #fff;
-}
-
-/* The copy box: frosted white inside the card. */
-.ncard[data-type] .ncard-body {
-  background: rgb(255 255 255 / .6);
-  border: 1px solid rgb(255 255 255 / .85);
-}
-
-.ncard[data-type] .ncard-body:not(.is-generated) {
-  color: color-mix(in srgb, var(--n-ink) 50%, #fff);
-}
-
-/* ---------- Pastel cards: Node Studio -------------------------------------------- */
-
-.ws-view-nodes .sn-node[data-cat] {
-  color: var(--n-ink);
-  background: linear-gradient(180deg, var(--n-top) 0%, var(--n-bottom) 100%);
-  border: 1px solid var(--n-line);
-}
-
-.ws-view-nodes .sn-node[data-cat] .sn-title {
-  color: var(--n-ink);
-  font-weight: 600;
-}
-
-.ws-view-nodes .sn-node[data-cat] .sn-title:hover,
-.ws-view-nodes .sn-node[data-cat] .sn-title:focus,
-.ws-view-nodes .sn-node[data-cat] .sn-mini:hover,
-.ws-view-nodes .sn-node[data-cat] .sn-toggle:hover {
-  background: rgb(255 255 255 / .6);
-}
-
-.ws-view-nodes .sn-node[data-cat] .sn-toggle,
-.ws-view-nodes .sn-node[data-cat] .sn-mini {
-  color: var(--n-ink);
-}
-
-/* Fields sit on a frosted white panel inside the card. */
-.ws-view-nodes .sn-node[data-cat] .sn-body,
-.ws-view-nodes .sn-node[data-cat] .sn-out {
-  background: rgb(255 255 255 / .55);
-  border: 1px solid rgb(255 255 255 / .8);
-}
-
-.ws-view-nodes .sn-node[data-cat] .sn-field label {
-  color: color-mix(in srgb, var(--n-ink) 70%, #fff);
-}
-
-.ws-view-nodes .sn-node[data-cat] .sn-field input,
-.ws-view-nodes .sn-node[data-cat] .sn-field textarea,
-.ws-view-nodes .sn-node[data-cat] .sn-field .bp-dd-trigger,
-.ws-view-nodes .sn-node[data-cat] .sn-round {
-  background: #fff;
-  border: 1px solid var(--n-line);
-}
-
-.ws-view-nodes .sn-node[data-cat] .sn-round {
-  color: var(--n-ink);
 }

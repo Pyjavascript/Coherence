@@ -176,7 +176,6 @@ function StudioNode({
     <article
       className={"node sn-node" + (expanded ? " is-open" : "") + (leaving ? " is-leaving" : "")}
       data-id={node.id}
-      data-cat={node.category}
       data-pl-link-end={linkEnd || undefined}
       data-pl-drop={drop || undefined}
       style={{ "--cat": cat.color }}

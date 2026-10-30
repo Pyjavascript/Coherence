@@ -32,18 +32,20 @@
   --ui-icon: clamp(45px, 3.4vw, 50px);
   --shell-pad: 25px;
   --lnav-pad: clamp(12px, 1.35vw, 20px);
-  /* The shell's left padding sits before the icons, so the rail only adds the
-     same amount after them: equal navy on both sides of the icon column. */
-  --lnav-closed: calc(var(--ui-icon) + var(--shell-pad));
+  /* The rail's inset on each side of its content. The shell's left padding
+     (this, not --shell-pad) sits before the icons, so the rail only adds the
+     same amount after them: equal space on both sides of the icon column. */
+  --lnav-side: 20px;
+  --lnav-closed: calc(var(--ui-icon) + var(--lnav-side));
   --lnav-row-gap: clamp(15px, 1.2vw, 18px);
 
-  /* The open rail is exactly [icon][gap][labels][--shell-pad], so the navy
-     right of the labels matches the shell's --shell-pad on the left.
+  /* The open rail is exactly [icon][gap][labels][--lnav-side], so the space
+     right of the labels matches the shell's --lnav-side on the left.
      BrandSidebar.jsx measures the widest fixed label (the product name, at
      the current font size) into --lnav-label-w on <html>; this is the
      fallback until it does. */
-  --lnav-label-w: calc(clamp(236px, 19vw, 290px) - var(--shell-pad) - var(--ui-icon) - var(--lnav-row-gap));
-  --lnav-open: calc(var(--ui-icon) + var(--lnav-row-gap) + var(--lnav-label-w) + var(--shell-pad));
+  --lnav-label-w: calc(clamp(236px, 19vw, 290px) - var(--lnav-side) - var(--ui-icon) - var(--lnav-row-gap));
+  --lnav-open: calc(var(--ui-icon) + var(--lnav-row-gap) + var(--lnav-label-w) + var(--lnav-side));
   --rsb-w: clamp(320px, 28vw, 420px);
   --tb-h: clamp(44px, 4vw, 58px);
   --tb-pad-bottom: clamp(10px, 1.1vw, 16px);
@@ -102,7 +104,7 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
-  padding: var(--shell-pad);
+  padding: var(--shell-pad) var(--shell-pad) var(--shell-pad) var(--lnav-side);
   background: var(--shell-navy);
   overflow: hidden;
 }
@@ -136,7 +138,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: clamp(6px, 0.7vw, 10px);
-  padding: clamp(16px, 2vw, 30px) var(--shell-pad) clamp(16px, 2vw, 30px) 0;
+  padding: clamp(16px, 2vw, 30px) var(--lnav-side) clamp(16px, 2vw, 30px) 0;
   color: #fff;
   background: var(--shell-navy);
   transition:
@@ -1256,9 +1258,10 @@ body {
   overflow: hidden;
   overflow: clip;
   border-radius: var(--r);
-  background:
-    radial-gradient(ellipse at 94% 103%, rgba(93, 126, 255, 0.9), transparent 58%),
-    linear-gradient(160deg, #f6f7ff 0%, #e7ebff 45%, #b8c7ff 100%);
+  background:#f3f3f3;
+  /* The dot grid in Quick Grid and Node Studio: a soft indigo, so the dots
+     read on the light background. */
+  --dot-color: rgba(43, 47, 140, 0.22);
 }
 
 /* A slow drift of soft light over the gradient, so the background feels alive
@@ -1271,10 +1274,7 @@ body {
   inset: -25%;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(32% 38% at 28% 30%, rgba(255, 255, 255, 0.55), transparent 70%),
-    radial-gradient(36% 42% at 74% 62%, rgba(110, 138, 255, 0.32), transparent 70%),
-    radial-gradient(28% 34% at 50% 85%, rgba(156, 132, 255, 0.18), transparent 70%);
+ 
   animation: ws-drift 40s ease-in-out infinite alternate;
   will-change: transform;
 }

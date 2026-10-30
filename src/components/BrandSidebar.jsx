@@ -22,7 +22,7 @@ function Row({ as: Tag = "button", className = "", icon, label, order = 0, fit =
 }
 
 // The open rail is as wide as its widest fixed label ([data-fit]: the product
-// name, Minimize, Add Brand, Log in, Credits used) and no wider, so the navy
+// name, Minimize, Add Brand, Log in, Credits used) and no wider, so the space
 // after the labels matches the shell padding before the icons (layout.css
 // --lnav-open). Labels have a fixed box, so the text itself is measured.
 // Brand and profile names don't widen it; they ellipsize. Re-measured when

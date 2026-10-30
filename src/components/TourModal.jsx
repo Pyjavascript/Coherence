@@ -1,44 +1,10 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useDialogBehavior, useOverlayDismiss } from "./Modal";
 import FigmaLogo from "./FigmaLogo";
 import { MEDIA_BY_KEY, NODE_CATS } from "../lib/constants";
-import { EASE_OUT, reducedMotion, tokenMs } from "../lib/motion";
 import { shortcut } from "../lib/shortcuts";
 
-// The active dot is wider than the rest. Its size change snaps in layout, so
-// each dot plays from where it was to where it is now (FLIP).
-function useDotFlip(dotsRef, step) {
-  const geom = useRef(null);
-  const measure = () => {
-    geom.current = [...(dotsRef.current?.children || [])].map((b) => ({ x: b.offsetLeft, w: b.offsetWidth }));
-  };
-
-  useLayoutEffect(() => {
-    const dots = [...(dotsRef.current?.children || [])];
-    const old = geom.current;
-    measure();
-    if (!old || reducedMotion()) return;
-    dots.forEach((b, i) => {
-      const was = old[i];
-      const now = geom.current[i];
-      if (!was || !now.w) return;
-      const dx = (was.x + was.w / 2) - (now.x + now.w / 2);
-      const sx = was.w / now.w;
-      if (Math.abs(dx) < 0.5 && Math.abs(sx - 1) < 0.01) return;
-      b.animate(
-        [{ translate: `${dx}px 0`, scale: `${sx} 1` }, { translate: "0 0", scale: "1 1" }],
-        { duration: tokenMs("--pl-d-3", 320), easing: EASE_OUT },
-      );
-    });
-  }, [step]);
-
-  useEffect(() => {
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-}
-
-// Product tour: a centred card with an illustration, copy, step dots and
+// Product tour: a centred card with an illustration, copy and
 // Skip / Continue. Opens by itself on a browser's first visit and from the
 // "?" button in the workspace.
 //
@@ -163,22 +129,22 @@ const ArtExport = () => (
 export const TOUR_STEPS = [
   {
     title: "Welcome to Coherence",
-    body: "Set up your brand once. Every line follows its name, belief and tone.",
+    body: "Set up your brand once. Every line you write follows its name, belief and tone.",
     Art: ArtBrand,
   },
   {
     title: "One message, every medium",
-    body: "Type your message and press Generate to write for every medium.",
+    body: "Type your message once and press Generate to write for every medium at once.",
     Art: ArtGenerate,
   },
   {
     title: "Shape it in Node Studio",
-    body: "Link cards into whole pages on a canvas you can freely pan and zoom.",
+    body: "Link cards into whole pages on a canvas you can freely pan and zoom as you go.",
     Art: ArtNodes,
   },
   {
     title: "Ready to Take It Further?",
-    body: "Export your copy with its brand settings, or send it straight to Figma.",
+    body: "Export your copy with its brand settings, or send it straight to Figma in a click.",
     Art: ArtExport,
   },
 ];
@@ -189,12 +155,10 @@ export default function TourModal({ onClose, onSample }) {
   const titleId = useId();
   const bodyId = useId();
   const primaryRef = useRef(null);
-  const dotsRef = useRef(null);
   const panelRef = useDialogBehavior(onClose, primaryRef);
   const dismiss = useOverlayDismiss(onClose);
   const last = step === TOUR_STEPS.length - 1;
   const { Art } = TOUR_STEPS[step];
-  useDotFlip(dotsRef, step);
 
   const goTo = (to) => setNav((cur) => (to === cur.step ? cur : { step: to, dir: to > cur.step ? 1 : -1 }));
   const next = () => (last ? onClose() : goTo(step + 1));
@@ -227,6 +191,12 @@ export default function TourModal({ onClose, onSample }) {
         aria-describedby={bodyId}
         style={{ "--pl-dir": dir }}
       >
+        <button type="button" className="tour-close" onClick={onClose} aria-label="Close tour">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+
         <div className="tour-art" key={step} aria-hidden="true">
           <Art />
         </div>
@@ -246,26 +216,15 @@ export default function TourModal({ onClose, onSample }) {
           })}
         </div>
 
-        <div className="tour-dots" role="group" aria-label="Tour steps" ref={dotsRef}>
-          {TOUR_STEPS.map((s, i) => (
-            <button
-              key={s.title}
-              type="button"
-              className={i === step ? "is-on" : ""}
-              aria-label={`Step ${i + 1} of ${TOUR_STEPS.length}: ${s.title}`}
-              aria-current={i === step ? "step" : undefined}
-              onClick={() => goTo(i)}
-            />
-          ))}
-        </div>
-
-        <div className="tour-actions">
-          <button type="button" className="tour-secondary" onClick={step === 0 ? onClose : back}>
-            {step === 0 ? "Skip tour" : "Back"}
-          </button>
-          <button type="button" ref={primaryRef} className="tour-primary" onClick={next}>
-            {last ? "Get started" : "Continue"}
-          </button>
+        <div className="tour-foot">
+          <div className="tour-actions">
+            <button type="button" className="tour-secondary" onClick={step === 0 ? onClose : back}>
+              {step === 0 ? "Skip tour" : "Back"}
+            </button>
+            <button type="button" ref={primaryRef} className="tour-primary" onClick={next}>
+              {last ? "Get started" : "Continue"}
+            </button>
+          </div>
         </div>
       </section>
     </div>

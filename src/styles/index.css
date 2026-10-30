@@ -2125,12 +2125,12 @@ body {
   justify-content: center;
   align-items: center;
   border-radius: 24px;
-  background: #ff7b2c;
+  background: #2C93D8;
 }
 
-.toolbar-add-spark i:nth-child(2) { background: #e92eaa; }
-.toolbar-add-spark i:nth-child(3) { background: #00b881; }
-.toolbar-add-spark i:nth-child(4) { background: #3940a0; }
+.toolbar-add-spark i:nth-child(2) { background: #B04FC7; }
+.toolbar-add-spark i:nth-child(3) { background: #12A08E; }
+.toolbar-add-spark i:nth-child(4) { background: #4653FF; }
 
 .toolbar-node-menu {
   position: absolute;
@@ -5688,23 +5688,23 @@ body {
 }
 
 .canvas-surface[data-mode="quick"] .frame[data-category="packaging"] {
-  --frame-dot: #f47a2c;
+  --frame-dot: #2C93D8;
 }
 
 .canvas-surface[data-mode="quick"] .frame[data-category="marketing"] {
-  --frame-dot: #f3245c;
+  --frame-dot: #1FB6C9;
 }
 
 .canvas-surface[data-mode="quick"] .frame[data-category="advertising"] {
-  --frame-dot: #f72fbd;
+  --frame-dot: #B04FC7;
 }
 
 .canvas-surface[data-mode="quick"] .frame[data-category="website"] {
-  --frame-dot: #07b67c;
+  --frame-dot: #12A08E;
 }
 
 .canvas-surface[data-mode="quick"] .frame[data-category="email"] {
-  --frame-dot: #2b2f8c;
+  --frame-dot: #4653FF;
 }
 
 .canvas-surface[data-mode="quick"] .frame-hint {

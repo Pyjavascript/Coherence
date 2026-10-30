@@ -250,7 +250,6 @@ html body .rsb .bp-section-chevron.open { transform: rotate(180deg); }
   transition: border-color var(--pl-d-2) var(--pl-ease-out), background-color var(--pl-d-2) var(--pl-ease-out),
     box-shadow var(--pl-d-2) var(--pl-ease-out);
 }
-.usage-model:hover { border-color: var(--shell-tint-2); }
 #root .overlay .usage-model:hover { box-shadow: var(--pl-shadow-2) !important; }
 .usage-api-key { animation: usage-key-in var(--pl-d-2) var(--pl-ease-out); }
 
@@ -259,7 +258,6 @@ html body .rsb .bp-section-chevron.open { transform: rotate(180deg); }
   transition: border-color var(--pl-d-2) var(--pl-ease-out),
     background-color var(--pl-d-2) var(--pl-ease-out), box-shadow var(--pl-d-2) var(--pl-ease-out);
 }
-.history-entry:hover { border-color: var(--shell-tint-2); }
 #root .overlay .history-entry:hover { box-shadow: var(--pl-shadow-1) !important; }
 .history-filters button { transition: var(--hover-transition), scale var(--pl-d-1) var(--pl-ease-out); }
 .history-filters button:active { scale: var(--pl-press-scale); }

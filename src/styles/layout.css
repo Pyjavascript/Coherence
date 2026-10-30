@@ -823,19 +823,21 @@ body {
 }
 
 .rsb .bp-name-input {
-  --addimg-sz: calc(var(--bp-field-h) - 16px);
+  /* Same size as a card's settings pencil, centred in the field with an even inset. */
+  --addimg-sz: clamp(30px, 2.8vw, 40px);
+  --addimg-inset: calc((var(--bp-field-h) - var(--addimg-sz)) / 2);
 }
 
 .rsb .bp-name-input .bp-input {
-  padding-right: calc(var(--addimg-sz) + 18px);
+  padding-right: calc(var(--addimg-sz) + var(--addimg-inset) + 10px);
 }
 
 /* Add image: an icon in a light-blue square, like a card's settings pencil
    (.ncard-sheet-trigger), inset 8px inside the field. */
 .rsb .bp-name-input .bp-addimg {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: var(--addimg-inset);
+  right: var(--addimg-inset);
   width: var(--addimg-sz);
   max-width: none;
   height: var(--addimg-sz);
@@ -853,8 +855,8 @@ body {
 /* Larger than the card pencil (46%) since a frame reads smaller than a
    diagonal; its 1.75 stroke draws the same ~1.5px line on screen. */
 .rsb .bp-name-input .bp-addimg svg {
-  width: 60%;
-  height: 60%;
+  width: 52%;
+  height: 52%;
 }
 
 .rsb .bp-name-input .bp-addimg:hover {
@@ -1258,9 +1260,16 @@ body {
   overflow: hidden;
   overflow: clip;
   border-radius: var(--r);
-  /* White at the top fading to soft blue at the bottom; the colour shows
-     until the image loads. */
-  background: #dbe5fd url("../assets/workspace/bg.png") center / cover no-repeat;
+  /* The canvas board: near-white at the top easing down to a soft periwinkle blue. */
+  background: linear-gradient(
+    180deg,
+    #f9faff 0%,
+    #eef2ff 18%,
+    #dde7ff 42%,
+    #c9d9ff 66%,
+    #b2c9ff 85%,
+    #a0bdff 100%
+  );
   /* The dot grid in Quick Grid and Node Studio (not inside cards). */
   --dot-color: #fff;
 }

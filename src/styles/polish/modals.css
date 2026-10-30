@@ -798,3 +798,74 @@ html body .overlay :is(.profile-pill, .profile-save, .profile-cancel, .profile-d
   min-height: var(--md-btn-h);
   border-radius: var(--btn-r);
 }
+
+/* ==========================================================================
+   Tour: top illustration with a close button, left-aligned copy, and a footer
+   with the step dots on the left and compact pill buttons on the right.
+   ========================================================================== */
+html body .overlay .tour .tour-close {
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color var(--hover-dur) ease;
+}
+html body .overlay .tour .tour-close svg { width: 18px; height: 18px; }
+html body .overlay .tour .tour-close:hover { background: rgba(255, 255, 255, 0.7); }
+
+html body .overlay .tour .tour-body {
+  padding: 22px var(--md-pad) 0;
+  text-align: left;
+}
+html body .overlay .tour .tour-copy h2 { margin: 0 0 8px; font-size: clamp(20px, 2vw, 22px); }
+html body .overlay .tour .tour-copy > p:not(.tour-sample) {
+  max-width: none;
+  margin: 0;
+  /* Fills the first line, then runs on to a shorter second one. */
+  text-wrap: wrap;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+html body .overlay .tour .tour-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px var(--md-pad) var(--md-pad);
+}
+html body .overlay .tour .tour-actions {
+  display: flex;
+  gap: 10px;
+  padding: 0;
+}
+html body .overlay .tour .tour-actions button {
+  width: auto;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+html body .overlay .tour .tour-primary {
+  color: #fff;
+  background: var(--shell-navy);
+  box-shadow: none;
+}
+html body .overlay .tour .tour-primary::before { background: var(--hover-solid); }
+
+@media (max-width: 400px) {
+  html body .overlay .tour .tour-actions button { padding: 0 16px; }
+}

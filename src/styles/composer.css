@@ -10,10 +10,9 @@
    side (the tray stays centred, so both sides give it up). --tray-bottom is
    its gap from the bottom edge, the same in both views (switching never moves
    it) and shared by the "?" and Node Studio's zoom controls, so all of them
-   end on one line. The Quick Grid cards end a little below it (layout.css
-   .qg), so the tray sits merged over them. */
+   end on one line. The Quick Grid cards end above it (layout.css .qg). */
 .ws-stage {
-  --tray-bottom: calc(var(--ws-gutter) + 8px); /* 8px above the cards' bottom edge */
+  --tray-bottom: calc(var(--ws-gutter) + 8px);
 }
 
 @container ws (min-width: 761px) {

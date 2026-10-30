@@ -140,8 +140,18 @@ export default function BrandPanel({
             <label className="bp-label" htmlFor="bp-name">Brand Name</label>
             <div className="bp-inline bp-name-input">
               <input id="bp-name" className="bp-input" type="text" placeholder="e.g. Ferox Parfums" {...bind("name")} />
-              <button type="button" className="bp-addimg" onClick={() => fileInputRef.current?.click()}>
-                {brand.logo ? "Change image" : "Add image"}
+              <button
+                type="button"
+                className="bp-addimg"
+                aria-label={brand.logo ? "Change image" : "Add image"}
+                title={brand.logo ? "Change image" : "Add image"}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+                  <circle cx="9" cy="10" r="1.75" />
+                  <path d="m20.5 15.5-4.6-4.6a1.5 1.5 0 0 0-2.1 0L5 19.5" />
+                </svg>
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" className="bp-file-input" onChange={handleImageUpload} />
             </div>

@@ -33,6 +33,9 @@
   --pl-shadow-2: 0 0 0 1px rgb(12 23 79 / .05), 0 2px 4px rgb(12 23 79 / .05), 0 8px 20px -4px rgb(12 23 79 / .10);
   --pl-shadow-3: 0 0 0 1px rgb(12 23 79 / .05), 0 4px 8px rgb(12 23 79 / .06), 0 18px 40px -8px rgb(12 23 79 / .18);
   --pl-shadow-4: 0 0 0 1px rgb(12 23 79 / .06), 0 8px 16px rgb(12 23 79 / .08), 0 32px 64px -12px rgb(12 23 79 / .30);
+  /* White top-bar controls (view switch, Add, model picker, panel toggle) */
+  --pl-shadow-tb: 0 1px 2px rgb(12 23 79 / .06), 0 4px 14px -4px rgb(12 23 79 / .12);
+  --pl-shadow-tb-hover: 0 1px 2px rgb(12 23 79 / .08), 0 8px 20px -6px rgb(12 23 79 / .18);
   --pl-glow-accent: 0 0 0 3px rgb(23 60 245 / .14), 0 6px 18px -6px rgb(23 60 245 / .45);
   --pl-focus-ring: 0 0 0 3px var(--focus-ring, #c9d2ff);
   --pl-inset-hi: inset 0 1px 0 rgb(255 255 255 / .55); /* top highlight on solid buttons */

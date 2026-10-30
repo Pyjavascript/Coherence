@@ -4572,7 +4572,6 @@
 
 /* Text links. */
 .auth-switch:hover,
-.rsb .bp-name-input .bp-addimg:hover,
 .tour-sample button:hover {
   color: var(--hover-primary);
 }

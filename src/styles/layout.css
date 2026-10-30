@@ -820,29 +820,46 @@ body {
   border-color: #c9d2ff;
 }
 
-.rsb .bp-name-input .bp-input {
-  padding-right: 110px;
+.rsb .bp-name-input {
+  --addimg-sz: calc(var(--bp-field-h) - 16px);
 }
 
+.rsb .bp-name-input .bp-input {
+  padding-right: calc(var(--addimg-sz) + 18px);
+}
+
+/* Add image: an icon in a light-blue square, like a card's settings pencil
+   (.ncard-sheet-trigger), inset 8px inside the field. */
 .rsb .bp-name-input .bp-addimg {
   position: absolute;
-  top: 0;
-  right: 20px;
-  height: 100%;
-  max-width: 96px;
+  top: 8px;
+  right: 8px;
+  width: var(--addimg-sz);
+  max-width: none;
+  height: var(--addimg-sz);
   min-height: 0;
-  display: flex;
-  align-items: center;
+  display: grid;
+  place-items: center;
   padding: 0;
-  color: #0f1ff0;
-  background: transparent;
+  color: var(--shell-ink);
+  background: var(--shell-tint);
   border: 0;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  white-space: nowrap;
+  border-radius: calc(var(--addimg-sz) * var(--ui-ratio-sm));
   cursor: pointer;
+}
+
+.rsb .bp-name-input .bp-addimg svg {
+  width: 42%;
+  height: 42%;
+}
+
+.rsb .bp-name-input .bp-addimg:hover {
+  background: var(--shell-tint-2);
+}
+
+.rsb .bp-name-input .bp-addimg:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
 }
 
 .rsb .bp-row2 {
@@ -1314,13 +1331,12 @@ body {
   height: var(--tb-h);
   margin-block: 0;
   /* Icon-only white square: the 2x2 dots centred, like the model picker's
-     white face and resting shadow. */
+     white face. Its shadow is the shared top-bar one (polish/grid.css). */
   width: var(--tb-h);
   flex: none;
   justify-content: center;
   padding: 0;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(10, 20, 80, 0.06), 0 4px 14px rgba(10, 20, 80, 0.06);
   overflow: hidden;
   transition:
     background-color 180ms ease,
@@ -1499,10 +1515,10 @@ body {
   height: 46%;
 }
 
-/* White, like the model picker and Add beside it: navy glyph, the picker's
-   soft shadow, and the same small grow on hover instead of a tint. These
-   selectors outrank the navy .toolbar-icon-btn rules (here, enhancements.css)
-   and the #root shadow in polish/grid.css. */
+/* White, like the model picker and Add beside it: navy glyph and the same
+   small grow on hover instead of a tint. These selectors outrank the navy
+   .toolbar-icon-btn rules (here, enhancements.css); the shadow is the shared
+   top-bar one in polish/grid.css. */
 .ws-topbar .toolbar-panel-notch .toolbar-panel-btn,
 .ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover,
 .ws-topbar .toolbar-panel-notch .toolbar-panel-btn.is-active {
@@ -1512,12 +1528,10 @@ body {
 
 #root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn {
   transition: var(--hover-transition), transform 120ms ease, scale var(--shell-dur) var(--shell-ease);
-  box-shadow: 0 1px 2px rgb(12 23 79 / .06), 0 4px 14px -4px rgb(12 23 79 / .12) !important;
 }
 
 #root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover {
   scale: var(--hover-grow);
-  box-shadow: 0 1px 2px rgb(12 23 79 / .08), 0 8px 20px -6px rgb(12 23 79 / .18) !important;
 }
 
 #root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover:active {
@@ -1851,10 +1865,10 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* No room kept for the message tray: the cards run down behind it and end
-     --ws-gutter from the bottom, the same inset as the other sides; the tray
-     sits 8px above that (--tray-bottom, composer.css), merged over them. */
-  padding: 0 clamp(12px, 1.6vw, 24px) var(--ws-gutter);
+  /* The cards end one grid gap above the message tray (--tray-bottom,
+     composer.css; --tray-h, MainWorkspace.jsx), so it never covers them.
+     QuickGrid.jsx reads this padding when it fits the rows to the screen. */
+  padding: 0 clamp(12px, 1.6vw, 24px) calc(var(--tray-bottom, 22px) + var(--tray-h, 0px) + clamp(10px, 1.6cqw, 18px));
   background-image: radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px);
   background-size: 18px 18px;
   background-attachment: local;

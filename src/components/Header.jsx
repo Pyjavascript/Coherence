@@ -185,7 +185,7 @@ const PanelIcon = () => (
 
 // Workspace toolbar: the Grid | Node switch and Add Node (options depend on the
 // active view) on the left; the model selector and the panel toggle on the
-// right. Generate lives in the message box at the bottom, Export at the bottom
+// right. Generate lives in the bottom-right tray, Export at the bottom
 // of the brand panel.
 export default function Header({
   tier,

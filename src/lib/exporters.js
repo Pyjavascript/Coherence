@@ -51,6 +51,21 @@ export function gridToText(nodes, ctx) {
   return [head, settings, ...blocks].join("\n\n");
 }
 
+// Same content as gridToText, as Markdown: a settings list, then a section per card.
+export function gridToMarkdown(nodes, ctx) {
+  const head = `# ${ctx.brand.name || "Untitled brand"} — Coherence copy\n\n_${new Date().toLocaleDateString()}_`;
+  const settings = `## Brand settings\n\n${brandSettings(ctx).map(([label, value]) => `- **${label}:** ${value}`).join("\n")}`;
+  const blocks = nodes.map((node) => {
+    const lines = ordered(node).map(({ item, index, fav }) => {
+      const d = toDisplay(item);
+      const tag = node.items.length > 1 ? `${fav ? "★ " : ""}Variant ${index + 1}: ` : fav ? "★ " : "";
+      return [`**${tag}${d.headline}**`, d.sub].filter(Boolean).join("  \n");
+    });
+    return `## ${labelOf(node)}\n\n${lines.join("\n\n")}`;
+  });
+  return [head, settings, ...blocks].join("\n\n") + "\n";
+}
+
 const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
 // The brand settings first (two columns), a blank row, then the copy table.

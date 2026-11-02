@@ -105,13 +105,6 @@ export default function AuthModal({ onClose, onSuccess, initialMode = "login" })
           </>
         ) : (
         <>
-        <button type="button" className="auth-google" onClick={handleGoogleSignIn} disabled={loading}>
-          <GoogleIcon />
-          Sign in with Google
-        </button>
-
-        <div className="auth-divider"><span>or</span></div>
-
         <form className="auth-form" onSubmit={handleSubmit}>
           {error && <p className="auth-error" role="alert">{error}</p>}
           <div className="auth-field">
@@ -126,6 +119,13 @@ export default function AuthModal({ onClose, onSuccess, initialMode = "login" })
             {loading ? "Please wait..." : isLogin ? "Login" : "Create Account"}
           </button>
         </form>
+
+        <div className="auth-divider"><span>or</span></div>
+
+        <button type="button" className="auth-google" onClick={handleGoogleSignIn} disabled={loading}>
+          <GoogleIcon />
+          {isLogin ? "Continue with Google" : "Sign up with Google"}
+        </button>
         </>
         )}
       </div>

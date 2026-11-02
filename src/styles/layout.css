@@ -1115,23 +1115,132 @@ body {
   background: var(--hover-solid);
 }
 
-/* Export: [format dropdown][Export], one row the dropdowns' height. */
-.rsb .bp-export-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.rsb .bp-export-row .bp-dd {
+/* Export: one full-width button; its formats open upward over the panel
+   (it is the last thing in it) and each copies or downloads at once. */
+.rsb .bp-export {
   position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
-/* Last thing in the panel, so the menu opens upward into the panel. */
-.rsb .bp-export-row .bp-dd-menu {
-  top: auto;
-  bottom: calc(100% + 4px);
+/* White on the navy panel, like the free hook card's Generate. */
+.rsb .bp-export-btn {
+  width: 100%;
+  justify-content: center;
+  color: var(--shell-ink);
+  background: #fff;
+  font-size: clamp(16px, 1.3vw, 18px);
+}
+
+.rsb .bp-export-btn:hover:not(:disabled),
+.rsb .bp-export.open .bp-export-btn {
+  background: var(--shell-tint-2);
+}
+
+.rsb .bp-export-menu {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  background: #fff;
+  border-radius: var(--r);
+  box-shadow: 0 22px 48px -18px rgba(12, 23, 79, 0.45), 0 4px 14px rgba(12, 23, 79, 0.1);
+  transform-origin: bottom center;
+  animation: bp-export-in var(--pl-d-3) var(--pl-ease-out) both;
+}
+
+.rsb .bp-export-opt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 14px 6px 6px;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--r) - 6px);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  animation: bp-export-opt-in var(--pl-d-3) var(--pl-ease-out) both;
+  animation-delay: calc(var(--i, 0) * 35ms);
+  transition: background-color var(--pl-d-1) var(--pl-ease-out);
+}
+
+.rsb .bp-export-opt:hover,
+.rsb .bp-export-opt:focus-visible {
+  background: var(--shell-tint-2);
+  outline: none;
+}
+
+.rsb .bp-export-opt-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--shell-blue);
+  background: #eef1ff;
+  border-radius: calc(40px * var(--ui-ratio-sm));
+  transition: color var(--pl-d-1) var(--pl-ease-out), background-color var(--pl-d-1) var(--pl-ease-out);
+}
+
+.rsb .bp-export-opt:hover .bp-export-opt-icon,
+.rsb .bp-export-opt:focus-visible .bp-export-opt-icon {
+  color: #fff;
+  background: var(--shell-blue);
+}
+
+.rsb .bp-export-opt-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.rsb .bp-export-opt-hint {
+  color: #8e93ad;
+  font-size: 12.5px;
+}
+
+@keyframes bp-export-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+
+@keyframes bp-export-opt-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rsb .bp-export-menu,
+  .rsb .bp-export-opt {
+    animation: none;
+  }
+}
+
+/* Message to Adapt: taller than the other fields; red when Generate was
+   pressed without one. */
+.rsb .bp-message .bp-textarea {
+  height: calc(var(--bp-field-h) * 2);
+}
+
+.rsb .bp-message.is-invalid .bp-textarea {
+  border-color: #e5484d;
+}
+
+.rsb .bp-field-error {
+  margin: 6px 0 0 4px;
+  color: #d13a3f;
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .rsb .bp-export-btn {
@@ -1141,6 +1250,7 @@ body {
 .rsb .bp-export-btn svg {
   width: 20px;
   height: 20px;
+  color: currentColor;
 }
 
 .rsb .bp-export-btn:disabled {
@@ -1149,7 +1259,7 @@ body {
 }
 
 .rsb .bp-export-btn:disabled:hover {
-  background: var(--shell-navy);
+  background: #fff;
 }
 
 /* Generate Free Hook card */
@@ -1173,19 +1283,9 @@ body {
   color: #fff;
 }
 
-.rsb .bp-card-hook .bp-gen-icon {
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  background: transparent;
-}
-
-.rsb .bp-card-hook .bp-gen-icon svg {
-  width: 30px;
-  height: 30px;
+/* The bolt in its white circle (composer.css .hook-bolt), as on the stage. */
+.rsb .bp-card-hook .hook-bolt {
+  --bolt-size: 48px;
 }
 
 .rsb .bp-card-hook .bp-gen-top h4 {
@@ -1879,7 +1979,7 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* The cards end one grid gap above the message tray (--tray-bottom,
+  /* The cards end one grid gap above the Generate tray (--tray-bottom,
      composer.css; --tray-h, MainWorkspace.jsx), so it never covers them.
      QuickGrid.jsx reads this padding when it fits the rows to the screen. */
   padding: 0 clamp(12px, 1.6vw, 24px) calc(var(--tray-bottom, 22px) + var(--tray-h, 0px) + clamp(10px, 1.6cqw, 18px));
@@ -1931,7 +2031,7 @@ body {
   .qg-grid { --qg-cols: 4; }
 }
 
-/* Mobile: a plain scrolling column (the base padding clears the message tray). */
+/* Mobile: a plain scrolling column (the base padding clears the Generate tray). */
 @container ws (max-width: 639px) {
   .qg-grid {
     min-height: 0;
@@ -1941,7 +2041,7 @@ body {
 
 /* No cards: the empty grid steps aside (so nothing scrolls) and the card sits
    centred in the open space: below the toolbar, beside the panels and above
-   the message box (--tray-h, MainWorkspace.jsx), not behind it. */
+   the Generate tray (--tray-h, MainWorkspace.jsx), not behind it. */
 .qg.is-empty {
   display: grid;
   place-items: center;
@@ -2425,7 +2525,7 @@ body {
 }
 
 /* Narrow workspace: stack the zoom controls vertically (+ on top, − below) in
-   the corner, so they take less room beside the message tray.
+   the corner, so they take less room beside the Generate tray.
    Kept after the rule above, which would otherwise win. */
 @container ws (max-width: 640px) {
   .ws-view-nodes .canvas-controls {

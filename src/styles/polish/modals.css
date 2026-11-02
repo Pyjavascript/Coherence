@@ -219,6 +219,11 @@ html body .overlay :is(.hook-brief, .research-field textarea, .coherence-prompt)
   letter-spacing: var(--md-body-ls);
 }
 html body .overlay .auth-field input { height: var(--md-btn-h); border-radius: var(--md-btn-r); font-size: var(--md-body); }
+/* Auth inputs: a white field with a visible outline, so they read as inputs
+   at rest (the faint tint alone vanished against the dialog). */
+html body .overlay .auth-field input { background: #fff; border: 1.5px solid #d5dbf0; }
+html body .overlay .auth-field input:hover:not(:focus) { border-color: #b7c1e6; }
+html body .overlay .auth-field input:focus { border-color: #8fa0ff; }
 html body .overlay .profile-input { height: var(--md-ctl-h); border-radius: calc(var(--md-ctl-h) * var(--ui-ratio)); font-size: var(--md-body); }
 html body .overlay .profile-input-icon .profile-input { padding-left: 44px; }
 html body .overlay .profile-row { padding: 12px 0; }

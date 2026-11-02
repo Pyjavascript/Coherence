@@ -18,7 +18,7 @@ export class AIError extends Error {
 export function describeError(err) {
   if (err?.code === "limit_reached") return `Daily generation limit reached (40/day). Resets tomorrow.`;
   if (err?.code === "not_enough_credits") return `${err.message} Remove some cards, or regenerate them one at a time.`;
-  if (err?.code === "hook_limit") return "Today's free hook is used. It resets with your credits.";
+  if (err?.code === "hook_limit") return "Today's free hooks are used. They reset with your credits.";
   if (err?.code === "unauthorized") return "That plugin key isn't valid. Generate a new one in your profile.";
   return err?.message ? `Generation failed — ${err.message}` : "Generation failed. Try again.";
 }

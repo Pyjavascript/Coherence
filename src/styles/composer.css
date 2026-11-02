@@ -1,74 +1,113 @@
 /* ==========================================================================
-   Message tray — always open at the bottom centre of the stage
-   (components/MessageComposer.jsx, placed by layout/MainWorkspace.jsx, which
-   keeps its height in --tray-h). The "?" and Node Studio's zoom controls share
-   the bottom-right corner, so the tray stays clear of them while there is
-   room, and they lift above it once the workspace is narrow.
+   The stage's bottom row (components/GenerateDock.jsx, placed by
+   layout/MainWorkspace.jsx, which keeps the tray's height in --tray-h and the
+   zoom controls' / Generate's widths in --zoom-room / --cta-room). The
+   quick-hook bolt sits in the bottom-left corner, in line with the toolbar's
+   left edge; on the right come the tour "?", in Node Studio the zoom
+   controls, and Generate in the very corner. Everything shares one centre line and the toolbar's height, and the
+   row is inset from the bottom by the toolbar's inset from the top.
    ========================================================================== */
 
-/* Floats over the grid / canvas. --tray-side is the room kept free on each
-   side (the tray stays centred, so both sides give it up). --tray-bottom is
-   its gap from the bottom edge, the same in both views (switching never moves
-   it) and shared by the "?" and Node Studio's zoom controls, so all of them
-   end on one line. The Quick Grid cards end above it (layout.css .qg). */
+/* --tray-bottom / --tray-right / --tray-left: the row's insets, the same as
+   the toolbar's (--ws-gutter). The Quick Grid's cards end above the row
+   (layout.css .qg). */
 .ws-stage {
-  --tray-bottom: calc(var(--ws-gutter) + 8px);
+  --tray-bottom: var(--ws-gutter);
+  --tray-right: var(--ws-gutter);
+  --tray-left: var(--ws-gutter);
+  --tray-gap: 12px;
+  --cta-h: var(--tb-h); /* the toolbar's controls' height */
+  --fab: var(--tb-h);
 }
 
-@container ws (min-width: 761px) {
-  .ws-stage .tour-launch,
-  .ws-stage .ws-view-nodes .canvas-controls {
-    bottom: var(--tray-bottom);
-  }
+/* The floating brand panel open (desktop): the right side keeps clear of it,
+   its right edge on the cards' right edge. */
+.app-shell[data-bp="desktop"][data-right="open"] .ws-stage {
+  --tray-right: calc(var(--rsb-w) + var(--gap) + var(--ws-gutter));
 }
 
-/* One width in both views, set by the window alone (--tray-w): opening or
-   closing either side panel, or switching Grid / Node Studio, never resizes
-   it. It is centred in the part of the stage you can see, and only gives up
-   width when that part is too narrow to keep --tray-side free on each side. */
-.ws-tray {
-  --tray-w: clamp(340px, 24vw, 420px); /* 340px: room for the placeholder on one line */
-  --tray-side: 76px;
-  --tray-room: 100%; /* the visible width it is centred in */
+.ws-tray,
+.ws-tray-start {
   position: absolute;
   z-index: 16;
   bottom: var(--tray-bottom);
-  left: calc(var(--tray-room) / 2);
-  width: min(var(--tray-w), calc(var(--tray-room) - 2 * var(--tray-side)));
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  transform: translateX(-50%);
+  align-items: center;
+  gap: var(--tray-gap);
   pointer-events: none;
-  /* Re-centres in step with the brand panel, like the grid (layout.css .qg). */
-  transition: left var(--pl-panel-close) var(--pl-panel-ease);
 }
 
-.ws-tray > * {
+.ws-tray-start {
+  left: var(--tray-left);
+}
+
+.ws-tray {
+  right: var(--tray-right);
+  /* Moves in step with the brand panel, like the grid (layout.css .qg). */
+  transition: right var(--pl-panel-close) var(--pl-panel-ease);
+}
+
+.app-shell[data-bp="desktop"][data-right="open"] .ws-tray {
+  transition: right var(--pl-panel-open) var(--pl-panel-ease);
+}
+
+.ws-tray > *,
+.ws-tray-start > * {
   pointer-events: auto;
 }
 
-/* The floating brand panel open (desktop): the visible part is the strip left
-   of it, in Grid and Node Studio alike, so the tray stays put on switching. */
-.app-shell[data-bp="desktop"][data-right="open"] .ws-tray {
-  --tray-room: calc(100% - var(--rsb-w) - var(--gap));
-  transition: left var(--pl-panel-open) var(--pl-panel-ease);
+/* The "?" sits in the tray's row instead of floating in the corner. In Node
+   Studio it leaves room after it for the zoom controls (Quick Grid has none). */
+.ws-stage .ws-tray .tour-launch {
+  position: static;
+  flex: none;
 }
 
-/* Narrow: the tray spans the stage, sitting lower, and the corner controls
-   sit 10px above its top edge. */
+.ws-stage[data-view="nodes"] .ws-tray .tour-launch {
+  margin-right: var(--zoom-room, 0px);
+}
+
+/* Node Studio's zoom controls: between the "?" and Generate, one height with
+   the "?", centred on the row's line. */
+.ws-stage .ws-view-nodes .canvas-controls {
+  box-sizing: border-box;
+  height: 40px;
+  right: calc(var(--tray-right) + var(--cta-room, 0px));
+  bottom: calc(var(--tray-bottom) + (var(--tray-h, 40px) - 40px) / 2);
+  transition: right var(--pl-panel-close) var(--pl-panel-ease);
+}
+
+.app-shell[data-bp="desktop"][data-right="open"] .ws-view-nodes .canvas-controls {
+  transition: right var(--pl-panel-open) var(--pl-panel-ease);
+}
+
+/* Narrow: the bolt keeps the left corner and the tray takes the rest of the
+   row, Generate filling it; the zoom controls stack in the right corner
+   10px above the row. */
 @container ws (max-width: 760px) {
   .ws-stage {
     --tray-bottom: 14px;
+    --tray-right: 12px;
+    --tray-left: 12px;
+    --tray-gap: 10px;
   }
 
-  .ws-tray {
-    --tray-w: 100%;
-    --tray-side: 12px;
+  .ws-stage .ws-tray {
+    left: calc(var(--tray-left) + var(--fab) + var(--tray-gap));
   }
 
-  .ws-stage .tour-launch,
+  .ws-stage[data-view="nodes"] .ws-tray .tour-launch {
+    margin-right: 0;
+  }
+
+  .ws-tray .gen-cta {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
   .ws-stage .ws-view-nodes .canvas-controls {
+    height: auto;
+    right: var(--tray-right);
     bottom: calc(var(--tray-bottom) + var(--tray-h, 0px) + 10px);
   }
 }
@@ -85,255 +124,215 @@
   filter: none;
 }
 
-/* ---------- Message box ------------------------------------------------- */
+/* ---------- Generate ---------------------------------------------------- */
 
-/* The angle the rainbow ring is drawn from; registered so it can animate. */
-@property --mc-angle {
+/* The angle the rings are drawn from; registered so it can animate. */
+@property --ring-angle {
   syntax: "<angle>";
   initial-value: 0deg;
   inherits: false;
 }
 
-/* .mc is a 2px frame round the white .mc-surface: a blue outline always (a
-   little deeper while typing), red when the message is missing, and a turning
-   pastel rainbow (::before) with a blurred glow (::after) while generating.
-   The rainbow mixes light tints of the app's own blue and indigo
-   (--shell-blue #173cf5, --shell-indigo #2b2f8c) with soft pink, red, peach,
-   yellow, mint and aqua. No halo round it, so it sits right on the cards. */
-.mc {
-  --mc-rainbow: conic-gradient(
-    from var(--mc-angle),
-    #7d93ff,
-    #a99bff,
-    #8a8fe0,
-    #e7a3ff,
-    #ff9ecd,
-    #ff8f9a,
-    #ffb88a,
-    #ffe08a,
-    #9fe8b8,
-    #86dbe8,
-    #a7b9ff,
-    #7d93ff
+/* A solid blue button, the toolbar's height. While generating, a
+   pastel rainbow (light tints of the app's blue and indigo with soft pink,
+   peach, yellow, mint and aqua) turns round it with a blurred glow. */
+.gen-cta {
+  --ring: conic-gradient(
+    from var(--ring-angle),
+    #7d93ff, #a99bff, #8a8fe0, #e7a3ff, #ff9ecd, #ff8f9a,
+    #ffb88a, #ffe08a, #9fe8b8, #86dbe8, #a7b9ff, #7d93ff
   );
   position: relative;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 2px;
-  background: #a9b8ff;
-  border-radius: var(--r);
-  box-shadow:
-    0 18px 40px -18px rgba(23, 60, 245, 0.45),
-    0 4px 14px rgba(24, 38, 99, 0.08);
-  font-family: "Manrope", system-ui, sans-serif;
-  transform-origin: bottom center;
-  animation: mc-in var(--pl-d-3) var(--pl-ease-out) both;
-  transition: background-color 220ms ease, box-shadow 220ms ease;
-}
-
-.mc::before,
-.mc::after {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  border-radius: inherit;
-  background: var(--mc-rainbow);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 400ms ease;
-  animation: mc-spin 2.4s linear infinite;
-  animation-play-state: paused;
-}
-
-.mc::before {
-  inset: 0;
-}
-
-.mc::after {
-  inset: 4px;
-  filter: blur(16px);
-}
-
-.mc:focus-within {
-  background: #8fa0ff;
-}
-
-/* Generate was pressed without a message. */
-.mc.is-invalid {
-  background: #e5484d;
-}
-
-.mc.is-busy::before,
-.mc.is-busy::after {
-  animation-play-state: running;
-}
-
-.mc.is-busy::before {
-  opacity: 1;
-}
-
-/* Pastels are faint against white, so the glow is stronger than the ring. */
-.mc.is-busy::after {
-  opacity: 0.9;
-}
-
-/* Message and Generate side by side, Generate centred on the field as it
-   grows; the error (when shown) runs under both. */
-.mc-surface {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 6px 12px;
-  padding: 12px 12px 12px 20px;
-  background: #fff;
-  border-radius: calc(var(--r) - 2px);
-}
-
-.mc button:focus-visible {
-  outline: 2px solid #8fa0ff;
-  outline-offset: 2px;
-}
-
-/* .mc prefix beats the app-wide textarea / textarea:focus rules (index.css).
-   Measured on screen, the line box centred left the letters (capitals to
-   baseline) about 2.5px high, so the top padding is 2px more than the bottom:
-   the text reads as centred in the box, level with the arrow button. */
-.mc .mc-input,
-.mc .mc-input:focus {
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-  max-height: 140px;
-  padding: 2px 6px 0 0;
-  overflow-y: auto;
-  color: var(--shell-ink);
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  outline: none;
-  resize: none;
-  font: inherit;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
-/* The placeholder is always one line: if the box is ever too narrow for it,
-   it ends in "…" rather than wrapping (and growing the box to two lines). */
-.mc .mc-input::placeholder {
-  color: #8e93ad;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mc-error {
-  grid-column: 1 / -1;
-  min-width: 0;
-  margin: 0 0 2px;
-  color: #d13a3f;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-/* Generate: an up arrow in a rounded box (the card buttons' corner). Tinted
-   while the box is empty, blue once there's a message, and a pulsing square
-   in the same colour while generating. */
-.mc-send {
-  --sz: 44px;
-  width: var(--sz);
-  height: var(--sz);
+  height: var(--cta-h);
   display: grid;
   place-items: center;
   flex: none;
-  margin-left: auto;
-  padding: 0;
-  color: var(--shell-ink);
-  background: var(--shell-tint-2);
+  padding: 0 clamp(24px, 2.4vw, 36px);
+  color: #fff;
+  background: var(--shell-blue);
   border: 0;
-  border-radius: calc(var(--sz) * var(--ui-ratio-sm));
+  border-radius: calc(var(--cta-h) * var(--ui-ratio));
+  box-shadow:
+    0 18px 40px -18px rgba(23, 60, 245, 0.6),
+    0 4px 14px rgba(24, 38, 99, 0.1);
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   cursor: pointer;
+  animation: dock-in var(--pl-d-3) var(--pl-ease-out) both;
   transition:
     background-color var(--pl-d-2) var(--pl-ease-out),
-    color var(--pl-d-2) var(--pl-ease-out),
+    box-shadow var(--pl-d-2) var(--pl-ease-out),
     scale var(--pl-d-1) var(--pl-ease-out);
 }
 
-.mc-send svg {
-  width: 50%;
-  height: 50%;
+.gen-cta::before,
+.gen-cta::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -3px;
+  border-radius: calc(var(--cta-h) * var(--ui-ratio) + 3px);
+  background: var(--ring);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease;
+  animation: ring-spin 2.4s linear infinite paused;
 }
 
-.mc-send.is-ready {
-  color: #fff;
-  background: var(--shell-blue);
+.gen-cta::after {
+  inset: 2px;
+  filter: blur(16px);
 }
 
-.mc-send:hover:not(:disabled) {
-  background: #dbe4ff;
-}
-
-.mc-send.is-ready:hover:not(:disabled) {
+.gen-cta:hover:not(:disabled) {
   background: var(--shell-blue-hover);
+  box-shadow:
+    0 22px 44px -16px rgba(23, 60, 245, 0.7),
+    0 4px 14px rgba(24, 38, 99, 0.12);
 }
 
-.mc-send:active:not(:disabled) {
-  scale: var(--pl-press-scale-sm);
+.gen-cta:active:not(:disabled) {
+  scale: var(--pl-press-scale);
 }
 
-/* Generating: same box and colour, the arrow becomes a pulsing square. */
-.mc-send:disabled {
+.gen-cta:focus-visible,
+.hook-fab:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 3px;
+}
+
+/* Both labels share one cell, so the width never changes between them. */
+.gen-cta-label {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity var(--pl-d-2) var(--pl-ease-out),
+    transform var(--pl-d-2) var(--pl-ease-out);
+}
+
+.gen-cta-label[data-shown] {
+  opacity: 1;
+  transform: none;
+}
+
+.gen-cta-spin {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgb(255 255 255 / 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: ring-spin-turn 0.8s linear infinite;
+}
+
+/* Generating: the rainbow turns round the button. */
+.gen-cta.is-busy {
   cursor: progress;
 }
 
-.mc-stop {
-  width: 34%;
-  height: 34%;
-  background: currentColor;
-  border-radius: 3px;
-  animation: mc-stop-pulse 1.1s var(--pl-ease-inout) infinite;
+.gen-cta.is-busy::before,
+.gen-cta.is-busy::after {
+  animation-play-state: running;
 }
 
-@keyframes mc-stop-pulse {
-  50% {
-    opacity: 0.55;
-    scale: 0.82;
-  }
+.gen-cta.is-busy::before {
+  opacity: 1;
+}
+
+.gen-cta.is-busy::after {
+  opacity: 0.9;
 }
 
 /* Daily limit reached: muted, but it still says why when pressed. */
-.mc-send.is-limited {
+.gen-cta.is-limited {
   filter: grayscale(0.6);
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* Phones: a tighter box. */
-@container ws (max-width: 520px) {
-  .mc-surface {
-    gap: 6px 8px;
-    padding: 9px 9px 9px 16px;
-  }
+/* ---------- Quick-hook bolt ---------------------------------------------- */
 
-  .mc .mc-input,
-  .mc .mc-input:focus {
-    max-height: 104px;
-    font-size: 14px;
-  }
-
-  .mc-send {
-    --sz: 40px;
-  }
+/* The free hook card's bolt in a white circle (here and in the brand panel's
+   card): a blue ring sweeps round it and the bolt charges up now and then.
+   Pressing it makes a hook straight away. */
+.hook-bolt {
+  --bolt-size: var(--fab);
+  width: var(--bolt-size);
+  height: var(--bolt-size);
+  display: grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  color: #0f55ff;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    conic-gradient(from var(--ring-angle), #173cf5, #7d93ff 25%, #e4e9ff 45%, #a99bff 70%, #173cf5) border-box;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  box-shadow: 0 8px 22px -10px rgba(23, 60, 245, 0.6);
+  cursor: pointer;
+  animation:
+    ring-spin 3.2s linear infinite,
+    bolt-glow var(--pl-d-loop) var(--pl-ease-inout) infinite;
+  transition:
+    color var(--pl-d-2) var(--pl-ease-out),
+    scale var(--pl-d-1) var(--pl-ease-out);
 }
 
-/* Rises in from the bottom edge. */
-@keyframes mc-in {
+.hook-bolt svg {
+  width: 46%;
+  height: 46%;
+  fill: currentColor;
+  fill-opacity: 0;
+  animation: bolt-charge var(--pl-d-loop) var(--pl-ease-inout) infinite;
+  transition: fill-opacity var(--pl-d-2) var(--pl-ease-out);
+}
+
+.hook-bolt:hover {
+  background:
+    linear-gradient(#0f55ff, #0f55ff) padding-box,
+    conic-gradient(from var(--ring-angle), #173cf5, #7d93ff 25%, #e4e9ff 45%, #a99bff 70%, #173cf5) border-box;
+  color: #fff;
+}
+
+.hook-bolt:hover svg {
+  fill-opacity: 1;
+  animation: bolt-zap 420ms var(--pl-ease-spring);
+}
+
+.hook-bolt:active {
+  scale: var(--pl-press-scale-sm);
+}
+
+.hook-fab {
+  animation:
+    dock-in var(--pl-d-3) var(--pl-ease-out) both,
+    ring-spin 3.2s linear infinite,
+    bolt-glow var(--pl-d-loop) var(--pl-ease-inout) infinite;
+}
+
+/* Today's free hooks are used: still opens (the dialog says when more come),
+   but at rest. */
+.hook-bolt.is-used {
+  animation: none;
+  filter: grayscale(0.5);
+  opacity: 0.75;
+}
+
+.hook-bolt.is-used svg {
+  animation: none;
+}
+
+@keyframes dock-in {
   from {
     opacity: 0;
-    transform: translateY(8px) scaleY(0.96);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -341,24 +340,65 @@
   }
 }
 
-@keyframes mc-spin {
+@keyframes ring-spin {
   to {
-    --mc-angle: 360deg;
+    --ring-angle: 360deg;
   }
 }
 
-/* Reduced motion: the rainbow still shows while generating, it just doesn't turn. */
+@keyframes ring-spin-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* Once per loop the bolt fills, swells and settles. */
+@keyframes bolt-charge {
+  0%, 62%, 100% {
+    fill-opacity: 0;
+    transform: none;
+  }
+  72% {
+    fill-opacity: 1;
+    transform: scale(1.16) rotate(-6deg);
+  }
+  82% {
+    fill-opacity: 0.85;
+    transform: scale(0.96) rotate(3deg);
+  }
+}
+
+@keyframes bolt-glow {
+  0%, 62%, 100% {
+    box-shadow: 0 8px 22px -10px rgba(23, 60, 245, 0.6), 0 0 0 0 rgba(23, 60, 245, 0);
+  }
+  72% {
+    box-shadow: 0 8px 22px -10px rgba(23, 60, 245, 0.6), 0 0 0 6px rgba(23, 60, 245, 0.16);
+  }
+}
+
+@keyframes bolt-zap {
+  30% {
+    transform: scale(1.22) rotate(-10deg);
+  }
+  60% {
+    transform: scale(0.94) rotate(4deg);
+  }
+}
+
+/* Reduced motion: the rings still show, they just don't turn. */
 @media (prefers-reduced-motion: reduce) {
-  .mc::before,
-  .mc::after {
+  .gen-cta::before,
+  .gen-cta::after,
+  .hook-bolt,
+  .hook-fab,
+  .hook-bolt svg,
+  .hook-bolt:hover svg {
     animation: none;
   }
 
-  .mc-send {
+  .gen-cta,
+  .gen-cta-label {
     transition: none;
-  }
-
-  .mc-stop {
-    animation: none;
   }
 }

@@ -318,7 +318,7 @@ export default function QuickGrid({ quick, atGenLimit }) {
     if (!scroller || !el) return;
     const box = scroller.getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    // The bottom padding is the room kept clear of the message tray.
+    // The bottom padding is the room kept clear of the Generate tray.
     const below = r.bottom - (box.bottom - parseFloat(getComputedStyle(scroller).paddingBottom));
     const above = r.top - box.top;
     if (below > 0) scroller.scrollBy({ top: Math.min(below, above), behavior: "smooth" });

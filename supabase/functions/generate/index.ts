@@ -90,7 +90,7 @@ var MEDIA = [
     key: "packaging",
     label: "Packaging",
     tag: "2\u20136 words",
-    color: "#f47a2c",
+    color: "#2C93D8",
     placeholder: "What it is, felt instantly.",
     limits: { headline: { label: "Pack line", words: 6 } }
   },
@@ -98,7 +98,7 @@ var MEDIA = [
     key: "marketing",
     label: "Marketing",
     tag: "<12 words",
-    color: "#f3245c",
+    color: "#1FB6C9",
     placeholder: "One line. Identity over feature.",
     limits: { headline: { label: "Campaign line", words: 12 } }
   },
@@ -106,7 +106,7 @@ var MEDIA = [
     key: "advertising",
     label: "Advertising",
     tag: "headline + subtext",
-    color: "#f72fbd",
+    color: "#B04FC7",
     placeholder: "Headline plus one-line subtext.",
     limits: { headline: { label: "Headline", words: 8 }, sub: { label: "Subtext", words: 12 } }
   },
@@ -114,7 +114,7 @@ var MEDIA = [
     key: "website",
     label: "Website",
     tag: "hero + support",
-    color: "#07b67c",
+    color: "#12A08E",
     placeholder: "Hero headline plus supporting line.",
     limits: { headline: { label: "Hero", words: 10 }, sub: { label: "Support", words: 20 } }
   },
@@ -122,7 +122,7 @@ var MEDIA = [
     key: "email",
     label: "Email",
     tag: "subject + preview",
-    color: "#2b2f8c",
+    color: "#4653FF",
     placeholder: "Subject line plus preview text.",
     full: true,
     limits: { headline: { label: "Subject", words: 8, chars: 60 }, sub: { label: "Preview", words: 14, chars: 110 } }
@@ -131,10 +131,10 @@ var MEDIA = [
 var MEDIA_BY_KEY = Object.fromEntries(MEDIA.map((m) => [m.key, m]));
 var NODE_CATS = {
   email: { label: "Email", color: "#4653FF" },
-  social: { label: "Social", color: "#B7539E" },
-  website: { label: "Website", color: "#1F9C6E" },
-  packaging: { label: "Packaging", color: "#B4590A" },
-  advertising: { label: "Advertising", color: "#0EA5B7" },
+  social: { label: "Social", color: "#8E57E0" },
+  website: { label: "Website", color: "#12A08E" },
+  packaging: { label: "Packaging", color: "#2C93D8" },
+  advertising: { label: "Advertising", color: "#B04FC7" },
   script: { label: "Video / ad script", color: "#84848D", comingSoon: true }
 };
 var PLATFORMS = [
@@ -758,7 +758,7 @@ function findBanned(value, banned) {
 
 // supabase/functions/generate/handler.ts
 var MAX_GENERATIONS = 40;
-var FREE_HOOKS_PER_DAY = 1;
+var FREE_HOOKS_PER_DAY = 5;
 var corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",

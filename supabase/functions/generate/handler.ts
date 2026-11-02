@@ -5,7 +5,7 @@ import { buildGeneration, buildLengthFixPrompt, modelFor, RequestError } from ".
 import { findBanned } from "../_shared/banned.js";
 
 const MAX_GENERATIONS = 40; // keep in sync with LIMITS.generations in src/lib/clientId.js
-const FREE_HOOKS_PER_DAY = 1; // keep in sync with src/lib/hookQuota.js
+const FREE_HOOKS_PER_DAY = 5; // keep in sync with src/lib/hookQuota.js
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

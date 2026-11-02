@@ -13,7 +13,7 @@ import ProfileModal from "./components/ProfileModal";
 import UsageModal from "./components/UsageModal";
 import TourModal from "./components/TourModal";
 import CanvasViewport from "./components/CanvasViewport";
-import MessageComposer from "./components/MessageComposer";
+import GenerateButton, { HookFab } from "./components/GenerateDock";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightSidebar from "./components/layout/RightSidebar";
 import MainWorkspace from "./components/layout/MainWorkspace";
@@ -25,7 +25,7 @@ import { generateHook } from "./services/ai";
 import { buildBrandBriefPrompt } from "./lib/prompts";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { DEFAULT_TIER, MEDIA, MEDIA_BY_KEY, NODE_CATS, SAMPLE_BRAND } from "./lib/constants";
-import { gridToText, gridToCsv, downloadFile, fileSlug } from "./lib/exporters";
+import { gridToText, gridToCsv, gridToMarkdown, downloadFile, fileSlug } from "./lib/exporters";
 import { hookQuotaFrom } from "./lib/hookQuota";
 import { brandPanelCopy, toast } from "./lib/brandPanelCopy";
 import { nextCreditReset } from "./lib/usageActivity";
@@ -64,7 +64,6 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showUsage, setShowUsage] = useState(false);
   const [panelFocus, setPanelFocus] = useState(null); // { target } — new object per request
-  const [composerFocus, setComposerFocus] = useState(null); // new object per request
   const platforms = NO_PLATFORMS;
   const hookQuota = hookQuotaFrom(usage.hooks);
   const [showTour, setShowTour] = useState(() => !readTourSeen());
@@ -121,8 +120,12 @@ export default function App() {
     if (layout.rightOpen) setPanelFocus({ target });
   }, [layout.rightOpen]);
 
-  // Opens the message box at the bottom of the workspace, focuses it and flags it as missing.
-  const focusComposer = useCallback(() => setComposerFocus({}), []);
+  // The message to adapt is in the brand panel: open it there, focus the
+  // field and flag it as missing.
+  const focusMessage = useCallback(() => {
+    layout.open("right");
+    setPanelFocus({ target: "bp-message" });
+  }, [layout.open]);
 
   const handleGenerated = useCallback(() => {
     refreshUsage();
@@ -130,15 +133,15 @@ export default function App() {
 
   // Both views work for a brand. Adding a node needs one picked (saved, or a
   // new one already started); generating also needs its name and message to
-  // adapt. Returns false after a toast says what's missing; it never opens a
-  // side panel by itself.
+  // adapt. Returns false after a toast says what's missing; only a missing
+  // message opens the brand panel (it is the one field Generate needs).
   const ensureBrand = ({ generate = false } = {}) => {
     const name = ws.brand.name.trim();
     const message = ws.brand.message.trim();
-    // Generating with no message to adapt always goes to the message box first.
+    // Generating with no message to adapt always goes to the message field first.
     if (generate && !message) {
       setStatus("Add a message to adapt first.", "err");
-      focusComposer();
+      focusMessage();
       return false;
     }
     if (!ws.currentId && !name && !message) {
@@ -279,6 +282,9 @@ export default function App() {
     } else if (kind === "csv") {
       downloadFile(`${fileSlug(name)}.csv`, gridToCsv(nodes, ctx), "text/csv;charset=utf-8");
       setStatus(...toast("exportCsv"));
+    } else if (kind === "md") {
+      downloadFile(`${fileSlug(name)}.md`, gridToMarkdown(nodes, ctx), "text/markdown;charset=utf-8");
+      setStatus(...toast("exportMd"));
     }
   };
 
@@ -314,7 +320,7 @@ export default function App() {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [ws.dirty]);
 
-  // Generate from the keyboard shortcut or the composer's send button.
+  // Generate from the keyboard shortcut or the Generate button.
   const triggerGenerate = () => {
     if (atGenLimit) return setStatus("Daily generation limit reached.", "warn");
     if (!isGeneratingAll && !quick.busy) requireLogin(handleGenerate)();
@@ -354,6 +360,8 @@ export default function App() {
     layout.open("right");
     setStatus(...toast("sampleLoaded"));
   };
+
+  const openHook = () => setModal("hook");
 
   const cardCount = quick.nodes.length;
   const generatingDetail = layout.view === "quick" && cardCount > 0
@@ -421,15 +429,15 @@ export default function App() {
           views={views}
           onHelp={() => setShowTour(true)}
           tray={
-            <MessageComposer
-              value={ws.brand.message}
-              onChange={(text) => ws.setField("message", text)}
+            <GenerateButton
               onGenerate={triggerGenerate}
               generating={isGeneratingAll || quick.busy}
               generatingDetail={generatingDetail}
               atGenLimit={atGenLimit}
-              focusRequest={composerFocus}
             />
+          }
+          trayStart={
+            <HookFab onHook={openHook} hooksLeft={premium ? null : hookQuota.left} />
           }
           toolbar={
             <Header
@@ -465,7 +473,7 @@ export default function App() {
             onExport={handleExport}
             onSave={requireLogin(handleSaveBrand)}
             onDelete={requireLogin(handleDeleteBrand)}
-            onResearch={() => setModal("research")} onCoherence={() => setModal("coherence")} onHook={() => setModal("hook")}
+            onResearch={() => setModal("research")} onCoherence={() => setModal("coherence")} onHook={openHook}
             onHistory={() => setModal("history")}
             onStatus={setStatus}
             onClose={() => layout.close("right")}

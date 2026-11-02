@@ -6,7 +6,7 @@ import {
 import { toast } from "../lib/brandPanelCopy";
 import { resizeImageFile } from "../lib/image";
 import { shortcut } from "../lib/shortcuts";
-import { timeUntilReset } from "../lib/hookQuota";
+import { FREE_HOOKS_PER_DAY, timeUntilReset } from "../lib/hookQuota";
 import BrandSelect, { LockIcon } from "./Select";
 
 // Text input / textarea that is read-only behind a lock until Premium; any
@@ -28,12 +28,112 @@ function LockedField({ locked, onLocked, as: Tag = "input", className = "", ...p
   );
 }
 
+const MAX_MESSAGE = 2000; // the generate function's cap on brand.message
+
 // Export formats for the Quick Grid's copy (App.jsx handleExport kinds).
 const EXPORT_OPTIONS = [
-  { value: "copy", label: "Copy all" },
-  { value: "txt", label: ".txt file" },
-  { value: "csv", label: ".csv file" },
+  { value: "copy", label: "Copy to clipboard", hint: "Paste it anywhere", icon: "M8.5 8.5h11v11h-11zM15.5 5.6c0-1.3-.9-2.1-2.1-2.1H6.1C4.8 3.5 4 4.4 4 5.6v7.3c0 1.2.8 2.1 2 2.1h.5" },
+  { value: "txt", label: "Text file", hint: ".txt", icon: "M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8L14 3.5zM14 3.5V8h4.5M9 12.5h6M9 16h4" },
+  { value: "csv", label: "Spreadsheet", hint: ".csv", icon: "M4.5 5.5h15v13h-15zM4.5 10h15M4.5 14.5h15M10 5.5v13" },
+  { value: "md", label: "Markdown", hint: ".md", icon: "M3.5 6.5h17v11h-17zM7 14.5v-5l2.5 3 2.5-3v5M15.5 9.5v5M13.5 12.5l2 2 2-2" },
 ];
+
+// One Export button; it opens the formats, and picking one copies or downloads at once.
+function ExportMenu({ canExport, onExport }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const itemRefs = useRef([]);
+
+  useEffect(() => {
+    if (!canExport) setOpen(false);
+  }, [canExport]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    itemRefs.current[0]?.focus();
+    const onPointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) setOpen(false);
+    };
+    const onKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const moveFocus = (event) => {
+    const items = itemRefs.current;
+    const index = items.indexOf(document.activeElement);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      items[(index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
+    } else if (event.key === "Tab") {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div className={"bp-export" + (open ? " open" : "")} ref={rootRef}>
+      <button
+        type="button"
+        ref={triggerRef}
+        className="bp-copy bp-export-btn"
+        title={canExport ? "Export your copy" : "Generate copy on the Quick Grid first to export it"}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={!canExport}
+        onClick={() => setOpen((isOpen) => !isOpen)}
+      >
+        Export
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-2" />
+        </svg>
+      </button>
+      {open && (
+        <div className="bp-export-menu" role="menu" aria-label="Export format" onKeyDown={moveFocus}>
+          {EXPORT_OPTIONS.map((option, index) => (
+            <button
+              key={option.value}
+              type="button"
+              role="menuitem"
+              ref={(element) => { itemRefs.current[index] = element; }}
+              className="bp-export-opt"
+              style={{ "--i": index }}
+              onClick={() => {
+                setOpen(false);
+                triggerRef.current?.focus();
+                onExport(option.value);
+              }}
+            >
+              <span className="bp-export-opt-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={option.icon} />
+                </svg>
+              </span>
+              <span className="bp-export-opt-label">{option.label}</span>
+              <span className="bp-export-opt-hint">{option.hint}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The free hook card's lightning bolt in its circle (also the stage's quick-hook button).
+export const BoltIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+    <path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12l1-8z" />
+  </svg>
+);
 
 export default function BrandPanel({
   brand, onField, stylePack, onStylePack, premium,
@@ -42,9 +142,11 @@ export default function BrandPanel({
 }) {
   // Advanced Behaviour (including the style pack) is Premium and starts collapsed.
   const [advOpen, setAdvOpen] = useState(false);
-  const [exportKind, setExportKind] = useState("copy");
   const [upsell, setUpsell] = useState(null); // { name, where: "advanced" }
+  // Generate was pressed with no message: the field is flagged until one is written.
+  const [messageFlagged, setMessageFlagged] = useState(false);
   const fileInputRef = useRef(null);
+  const messageMissing = messageFlagged && !brand.message?.trim();
   const bind = (k) => ({ value: brand[k] ?? "", onChange: (e) => onField(k, e.target.value) });
   const opts = (list) => list.map((option) => ({ value: option, label: option }));
   const advLocked = !premium;
@@ -63,8 +165,13 @@ export default function BrandPanel({
   // App asks for a field (e.g. Generate without a brand name); wait for the panel to slide in.
   useEffect(() => {
     if (!focusRequest) return;
+    if (focusRequest.target === "bp-message") setMessageFlagged(true);
     focusTarget(focusRequest.target, 340);
   }, [focusRequest]);
+
+  useEffect(() => {
+    if (brand.message?.trim()) setMessageFlagged(false);
+  }, [brand.message]);
 
   useEffect(() => {
     if (premium) setUpsell(null);
@@ -159,6 +266,24 @@ export default function BrandPanel({
           <div className="bp-field">
             <label className="bp-label" htmlFor="bp-belief">Core Belief</label>
             <textarea id="bp-belief" className="bp-textarea" rows={2} placeholder="e.g. Scent is memory, not marketing." {...bind("belief")} />
+          </div>
+          {/* What Generate adapts into every format (the only place it is edited). */}
+          <div className={"bp-field bp-message" + (messageMissing ? " is-invalid" : "")}>
+            <label className="bp-label" htmlFor="bp-message">Message to Adapt</label>
+            <textarea
+              id="bp-message"
+              className="bp-textarea"
+              rows={3}
+              maxLength={MAX_MESSAGE}
+              placeholder="What do you want to generate?"
+              aria-required="true"
+              aria-invalid={messageMissing || undefined}
+              aria-describedby={messageMissing ? "bp-message-error" : undefined}
+              {...bind("message")}
+            />
+            {messageMissing && (
+              <p id="bp-message-error" className="bp-field-error">Write a message to generate every format.</p>
+            )}
           </div>
           <div className="bp-field">
             <div className="bp-label-row">
@@ -327,15 +452,16 @@ export default function BrandPanel({
       <section className="bp-section bp-bonus-section">
         <div className="bp-card-hook">
           <div className="bp-gen-top">
-            <span className="bp-gen-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12l1-8z" /></svg>
-            </span>
+            {/* The bolt in its circle is a shortcut to the same hook. */}
+            <button type="button" className={"hook-bolt" + (hookQuota?.left === 0 ? " is-used" : "")} aria-label="Generate a free hook" title="Generate a free hook" onClick={onHook}>
+              <BoltIcon />
+            </button>
             <div>
               <h4>Generate Free Hook.</h4>
               <p>
                 {hookQuota && hookQuota.left <= 0
-                  ? `Today's free hook is used · next in ${timeUntilReset()}`
-                  : `${hookQuota?.left ?? 1} free hook left today`}
+                  ? `Today's free hooks are used · more in ${timeUntilReset()}`
+                  : `${hookQuota?.left ?? FREE_HOOKS_PER_DAY} free hook${(hookQuota?.left ?? FREE_HOOKS_PER_DAY) === 1 ? "" : "s"} left today`}
               </p>
             </div>
           </div>
@@ -343,26 +469,9 @@ export default function BrandPanel({
         </div>
       </section>
 
-      {/* The Quick Grid's copy: pick a format, then copy it or download the file. */}
+      {/* The Quick Grid's copy: Export opens the formats; each copies or downloads straight away. */}
       <section className="bp-section bp-export-section">
-        <h3 className="bp-section-title">Export</h3>
-        <div className="bp-card">
-          <div className="bp-export-row">
-            <BrandSelect label="Export format" value={exportKind} onChange={setExportKind} options={EXPORT_OPTIONS} />
-            <button
-              type="button"
-              className="bp-copy bp-export-btn"
-              title={canExport ? "Export the Quick Grid's copy" : "Generate copy on the Quick Grid first to export it"}
-              disabled={!canExport}
-              onClick={() => onExport(exportKind)}
-            >
-              Export
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-2" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <ExportMenu canExport={canExport} onExport={onExport} />
       </section>
     </div>
   );

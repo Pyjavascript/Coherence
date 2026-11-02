@@ -185,8 +185,8 @@ export const brandPanelCopy = {
 
   freeHook: {
     heading: "Free hook",
-    remaining: "1 free hook left today",
-    used: "Free hook used. Next one in {time}",
+    remaining: "{n} free hooks left today",
+    used: "Free hooks used. More in {time}",
     button: "Generate",
   },
 
@@ -216,7 +216,7 @@ export const brandPanelCopy = {
       label: "Your hook",
       button: "Copy hook",
       buttonDone: "Copied ✓",
-      usedUp: "That's today's free hook. A new one arrives in {time}",
+      usedUp: "That's all of today's free hooks. More arrive in {time}",
       unavailable: "We can't create hooks here right now",
       failed: "Something went wrong. Close this and try once more",
     },
@@ -252,6 +252,7 @@ export const brandPanelCopy = {
     exportEmpty: { type: "error", message: "Generate copy first to export it" },
     exportTxt: { type: "success", message: "Your text file is ready" },
     exportCsv: { type: "success", message: "Your CSV file is ready" },
+    exportMd: { type: "success", message: "Your Markdown file is ready" },
     copyAll: { type: "success", message: "Copied {n} pieces. Paste them anywhere" },
 
     restoreGrid: { type: "success", message: "{medium} is back on the grid" },

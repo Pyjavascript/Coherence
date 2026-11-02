@@ -134,7 +134,7 @@ export const TOUR_STEPS = [
   },
   {
     title: "One message, every medium",
-    body: "Type your message once and press Generate to write for every medium at once.",
+    body: "Write your message once in the brand panel and press Generate to write for every medium at once.",
     Art: ArtGenerate,
   },
   {

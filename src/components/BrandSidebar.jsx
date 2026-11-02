@@ -162,7 +162,7 @@ export default function BrandSidebar({
           aria-haspopup={user ? "dialog" : undefined}
           aria-label={`Credits used: ${usagePercent}%`}
           title={tip(`Credits used: ${usagePercent}%`)}
-          onClick={user ? onUsage : onSignup}
+          onClick={user ? onUsage : onLogin}
           icon={
             <span
               className="rail-credits-meter"

@@ -3151,11 +3151,6 @@ body {
   translate: -50% 100%;
 }
 
-/* "+" in an empty column. */
-.sn-add-empty {
-  margin: 80px auto 0;
-}
-
 .sn-add:focus-visible,
 .sn-round:focus-visible,
 .sn-gen:focus-visible,

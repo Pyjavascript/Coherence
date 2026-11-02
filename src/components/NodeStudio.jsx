@@ -22,7 +22,6 @@ const NODE_W = 400;
 // Columns sit NODE_W + 40px apart: x of each category's first node.
 const COL_X = { email: 40, social: 480, website: 920, packaging: 1360, advertising: 1800 };
 // Where a column's first node sits, and how far above it the column title goes.
-const COL_LEFT = 40;
 const COL_TOP = 100;
 const COL_HEAD_OFFSET = 46;
 const wordCount = (v) => ((v && v.body) || "").trim().split(/\s+/).filter(Boolean).length;
@@ -539,7 +538,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   // Where the next node of a column goes: below its last node, or at the top.
   const columnEnd = (list, category) => {
     const catNodes = list.filter((x) => x.category === category);
-    if (!catNodes.length) return { x: COL_X[category] ?? COL_X.email, y: 100 };
+    if (!catNodes.length) return { x: COL_X[category] ?? COL_X.email, y: COL_TOP };
     const last = catNodes[catNodes.length - 1];
     const lastSize = sizesRef.current[last.id] || { h: 300 };
     return { x: last.x, y: last.y + lastSize.h + NODE_GAP_FREE };
@@ -1103,39 +1102,11 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
         </div>
         <div role="status" aria-live="polite" style={SR_ONLY}>{said}</div>
 
-        {/* Visual column headers for empty states only (nodes are absolutely positioned).
-            Lined up with where a column's title sits when it has nodes. */}
-        <div className="nodecols" style={{ pointerEvents: 'none', position: 'absolute', top: COL_TOP - COL_HEAD_OFFSET, left: COL_LEFT, display: 'flex', gap: '40px' }}>
-          {COL_ORDER.map((key) => {
-            const cat = NODE_CATS[key];
-            const list = nodes.filter((n) => n.category === key);
-
-            return (
-              <section className="sn-col" key={key} style={{ pointerEvents: 'auto', position: 'relative', flex: `0 0 ${NODE_W}px`, width: NODE_W }}>
-                {list.length === 0 && !cat.comingSoon && (
-                  <>
-                    <header className="sn-col-head" style={{ "--cat": cat.color, position: 'absolute', top: 0, left: 0, right: 0 }}>
-                      <span className="sn-col-dot" aria-hidden="true" />
-                      <h2>{cat.label}</h2>
-                      <span className="sn-count" aria-label="0 nodes">0</span>
-                    </header>
-                    <button type="button" className="sn-add sn-add-empty" aria-label={`Add ${cat.label} node`} onClick={() => addNodes(key, 1)}>
-                      {svg(<path d="M12 5v14M5 12h14" />)}
-                    </button>
-                  </>
-                )}
-                {/* {cat.comingSoon && (
-                  <div className="sn-node sn-soon" style={{ marginTop: '80px' }}>
-                    <header className="sn-head">
-                      <span className="sn-icon">{CAT_ICONS[key]}</span>
-                      <p>Script and storyboard generation is coming soon.</p>
-                    </header>
-                  </div>
-                )} */}
-              </section>
-            );
-          })}
-        </div>
+        {/* Nothing on the canvas: marks where the column titles go, so the home
+            view (CanvasViewport) leaves room for the next node's title. */}
+        {nodes.length === 0 && (
+          <header className="sn-col-head" aria-hidden="true" style={{ position: 'absolute', top: COL_TOP - COL_HEAD_OFFSET, visibility: 'hidden' }} />
+        )}
 
         {/* Draggable Free Nodes */}
         {nodes.map(n => {

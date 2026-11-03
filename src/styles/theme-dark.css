@@ -1,0 +1,124 @@
+/* ==========================================================================
+   Dark theme — hand-tuning. Loaded last (main.jsx).
+
+   Most of the dark theme is generated: scripts/vite-dark-theme.js gives every
+   colour rule in src/styles a dark twin. This file only covers what a
+   colour-by-colour mapping can't know: the frame and canvas, which navy is a
+   surface and which is a selected state, and a few one-offs.
+   ========================================================================== */
+
+/* Switching themes swaps every colour in one frame (src/lib/theme.js). */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --dk-frame: #0b0b0d;
+  --dk-panel: #141417;
+  --dk-line: rgb(255 255 255 / .07);
+}
+
+/* ---------- Frame ----------------------------------------------------------- */
+/* The light theme's navy frame is a surface, not a selected state: it goes
+   near-black instead of the raised grey other navy fills become. */
+:root[data-theme="dark"] :is(body, .app, .app-loading, .app-shell, .lnav) {
+  background: var(--dk-frame);
+}
+
+/* ---------- Canvas ---------------------------------------------------------- */
+/* The near-white-to-periwinkle board becomes near-black with a faint blue
+   haze at the bottom, darker than the cards so they lift off it. */
+:root[data-theme="dark"] .workspace {
+  background: linear-gradient(180deg, #121215 0%, #131317 40%, #15172a 80%, #191d38 100%);
+  --dot-color: rgb(255 255 255 / .09);
+}
+:root[data-theme="dark"] .ws-view-nodes .canvas-surface,
+:root[data-theme="dark"] .qg {
+  background-color: transparent;
+}
+
+/* ---------- Brand panel ----------------------------------------------------- */
+/* Navy in light; a dark panel a step above the frame here. */
+:root[data-theme="dark"] .rsb {
+  background: var(--dk-panel);
+  box-shadow: inset 0 0 0 1px var(--dk-line);
+}
+
+/* ---------- Node Studio connectors (stroke set in NodeStudio.jsx) ---------- */
+:root[data-theme="dark"] .nodesvg path { stroke: #6c6e80; }
+:root[data-theme="dark"] .nodesvg circle { fill: #6c6e80; }
+
+/* ---------- Tour ------------------------------------------------------------ */
+/* The navy Continue would turn the same grey as the band; here it inverts to
+   a light button instead. */
+html[data-theme="dark"] body .overlay .tour .tour-primary,
+html[data-theme="dark"] body .overlay .tour .tour-primary::before {
+  color: #111114;
+  background: #ececf0;
+  /* Dark type on a light fill reads thinner: one step heavier to match Back. */
+  font-weight: 700;
+}
+html[data-theme="dark"] body .overlay .tour .tour-primary:hover::before {
+  background: #ffffff;
+}
+
+/* ---------- Free hook ------------------------------------------------------- */
+/* The brand-blue card would float like a popup on the dark panel: here it is
+   one more panel card (the External Ai card's grey), with a dark Generate. */
+:root[data-theme="dark"] .rsb .bp-card-hook {
+  color: #fff;
+  background: #202226;
+}
+:root[data-theme="dark"] .rsb .bp-card-hook .bp-gen-top h4 {
+  font-weight: 600;
+}
+:root[data-theme="dark"] .rsb .bp-card-hook .bp-gen-top p {
+  color: #8b8b93;
+  font-size: 12px;
+}
+:root[data-theme="dark"] .rsb .bp-card-hook .bp-gen-btn {
+  color: #fff;
+  background: var(--dk-panel);
+  box-shadow: inset 0 0 0 1px var(--dk-line);
+  font-weight: 600;
+}
+:root[data-theme="dark"] .rsb .bp-card-hook .bp-gen-btn:hover {
+  background: #1a1a1e;
+}
+
+/* The bolt (hook card and stage): a solid white bolt in a dark circle, no
+   blue ring or glow. */
+:root[data-theme="dark"] .hook-bolt,
+:root[data-theme="dark"] .hook-fab {
+  color: #fff;
+  background: var(--dk-panel) padding-box;
+  border-color: rgb(255 255 255 / .1);
+  box-shadow: none;
+  animation: none;
+}
+:root[data-theme="dark"] .hook-fab {
+  animation: dock-in var(--pl-d-3) var(--pl-ease-out) both;
+}
+:root[data-theme="dark"] .hook-bolt svg {
+  fill-opacity: 1;
+  animation: none;
+}
+:root[data-theme="dark"] .hook-bolt:hover {
+  background: #26262a padding-box;
+  color: #fff;
+}
+
+/* ---------- Loading sweeps -------------------------------------------------- */
+/* A faint white band on the dark bars (the generated twin would turn the
+   light band into a dark one). */
+:root[data-theme="dark"] :is(.ncard-skel, .skel, .ncard-body.is-refreshing)::after {
+  background: linear-gradient(90deg, rgb(255 255 255 / 0) 0%, rgb(255 255 255 / .08) 50%, rgb(255 255 255 / 0) 100%);
+}
+
+/* Tour step bars: the current one matches the light Continue button. */
+html[data-theme="dark"] body .overlay .tour .tour-dots button.is-on::before {
+  background: #ececf0;
+}

@@ -32,7 +32,7 @@ const BRANDS = [
   },
 ];
 
-// The brand's logo in white, straight on the navy rail.
+// The brand's logo in the text colour, straight on the list.
 const Mark = ({ brand }) => (
   <svg className="tour-mark" viewBox="0 0 24 24" aria-hidden="true"><path d={brand.path} /></svg>
 );
@@ -57,9 +57,9 @@ const ArtBrand = () => (
       ))}
     </div>
     <div className="tour-panel">
-      <span className="tour-label">Brand Name</span>
+      <span className="tour-label">Brand name</span>
       <span className="tour-field">Spotify</span>
-      <span className="tour-label">Core Belief</span>
+      <span className="tour-label">Core belief</span>
       <span className="tour-field">Music for every moment.</span>
       <span className="tour-row">
         <span className="tour-tag">Discovery</span>
@@ -217,6 +217,19 @@ export default function TourModal({ onClose, onSample }) {
         </div>
 
         <div className="tour-foot">
+          {/* One bar per step: the current one is longer. Each jumps to its step. */}
+          <div className="tour-dots" role="group" aria-label="Tour steps">
+            {TOUR_STEPS.map((s, i) => (
+              <button
+                key={s.title}
+                type="button"
+                className={i === step ? "is-on" : ""}
+                aria-label={`Step ${i + 1} of ${TOUR_STEPS.length}: ${s.title}`}
+                aria-current={i === step ? "step" : undefined}
+                onClick={() => goTo(i)}
+              />
+            ))}
+          </div>
           <div className="tour-actions">
             <button type="button" className="tour-secondary" onClick={step === 0 ? onClose : back}>
               {step === 0 ? "Skip tour" : "Back"}

@@ -11,6 +11,7 @@ import { reducedMotion, tokenMs } from "../lib/motion";
 import BannedCheck from "./nodes/BannedCheck";
 import Select from "./Select";
 import { fieldPlaceholders } from "../lib/placeholders";
+import { shortcut } from "../lib/shortcuts";
 
 const uid =() => "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 // Vertical gap between a node and the node stacked below it.
@@ -40,6 +41,17 @@ const SR_ONLY = { position: "absolute", width: 1, height: 1, overflow: "hidden",
 const PLATFORM_OPTIONS = PLATFORMS.map((p) => ({ value: p, label: p }));
 const COMPONENT_OPTIONS = Object.entries(WEBSITE_COMPONENTS).map(([value, c]) => ({ value, label: c.label }));
 const isTyping = (el) => Boolean(el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
+// Versions: a copied node is the next version of its name ("Launch email" ->
+// "Launch email v2" -> "v3"); a name with no "vN" is version 1.
+const VERSION_RE = /\s+v(\d+)$/i;
+const baseLabel = (label) => String(label || "").replace(VERSION_RE, "").trim();
+const versionOf = (label) => Number(String(label || "").match(VERSION_RE)?.[1] || 1);
+// A node as plain text (its name, then the copy showing), for pasting elsewhere.
+const nodeText = (n) => {
+  const v = n.variants[n.activeIdx || 0] || n.variants[0];
+  const out = !v ? "" : v.pointers ? v.pointers.map((p) => `${p.title} — ${p.detail}`).join("\n") : [v.headline, v.body].filter(Boolean).join("\n\n");
+  return [n.label || "Untitled node", out].filter(Boolean).join("\n");
+};
 const XIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
 );
@@ -161,7 +173,7 @@ function NodeOutput({ node, banned, onVariant }) {
 // linkEnd: "src" / "tgt" while a link touching this node is hovered or selected.
 // drop: "ok" / "no" while a new link is dragged over this node.
 function StudioNode({
-  node, banned, expanded, onToggle, linkEnd, drop, onField, onGenerate, onDelete, onCopy, onVariant,
+  node, banned, expanded, picked, onToggle, linkEnd, drop, onField, onGenerate, onDelete, onCopy, onVariant,
 }) {
   const cat = NODE_CATS[node.category];
   const comp = node.component || "hero";
@@ -173,7 +185,7 @@ function StudioNode({
 
   return (
     <article
-      className={"node sn-node" + (expanded ? " is-open" : "") + (leaving ? " is-leaving" : "")}
+      className={"node sn-node" + (expanded ? " is-open" : "") + (picked ? " is-picked" : "") + (leaving ? " is-leaving" : "")}
       data-id={node.id}
       data-pl-link-end={linkEnd || undefined}
       data-pl-drop={drop || undefined}
@@ -330,6 +342,16 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   const [linkDrag, setLinkDrag] = useState(null);       // { id, side, pointer, hit } while dragging a new link
   const [flashKey, setFlashKey] = useState(null);
   const [said, setSaid] = useState("");                 // screen-reader announcement
+  // Nodes picked by clicking (Shift / Ctrl / Cmd adds) or Ctrl/Cmd+A: they drag
+  // together, and Ctrl/Cmd+D or copy + paste makes their next versions.
+  const [picked, setPicked] = useState(() => new Set());
+  const pickedRef = useRef(picked);
+  pickedRef.current = picked;
+  const clipRef = useRef(null);                         // { ids, text } of the last node copy
+  // Alt + drag draws a selection box (canvas units) and picks every node it touches.
+  const [marquee, setMarquee] = useState(null);         // { x, y, w, h } while drawing
+  const [altHeld, setAltHeld] = useState(false);        // Alt is down: the canvas shows a crosshair
+  const marqueeUsed = useRef(false);                    // a box was drawn during this Alt press
   const canvasRef = useRef(null);
   const uiRef = useRef(null);
   const chipRef = useRef(null);
@@ -460,8 +482,10 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     const pointerId = e.pointerId;
     const startX = e.clientX;
     const startY = e.clientY;
-    const originX = node.x;
-    const originY = node.y;
+    const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+    // Dragging a picked node moves every picked node with it.
+    const group = pickedRef.current.has(node.id) ? pickedRef.current : new Set([node.id]);
+    const origins = new Map(nodesRef.current.filter((n) => group.has(n.id)).map((n) => [n.id, { x: n.x, y: n.y }]));
     let moved = false;
 
     // Detect if canvas world is scaled by CanvasViewport
@@ -482,7 +506,10 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
       }
 
       // Nodes can go anywhere on the canvas, including left of / above where they start.
-      patch(node.id, { x: originX + dx, y: originY + dy });
+      commit((list) => list.map((n) => {
+        const o = origins.get(n.id);
+        return o ? { ...n, x: o.x + dx, y: o.y + dy } : n;
+      }));
     };
 
     const onUp = (upEvt) => {
@@ -497,6 +524,14 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
         dragGuard.current = true;
         setTimeout(() => { dragGuard.current = false; }, 60);
         setDraggingId(null);
+      } else if (upEvt.type !== "pointerdown") {
+        // A click picks the node; Shift / Ctrl / Cmd adds it to (or takes it out of) the pick.
+        setPicked((prev) => {
+          if (!additive) return prev.size === 1 && prev.has(node.id) ? prev : new Set([node.id]);
+          const next = new Set(prev);
+          if (next.has(node.id)) next.delete(node.id); else next.add(node.id);
+          return next;
+        });
       }
     };
 
@@ -610,6 +645,66 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   const deleteNode = (id) => {
     commit((l) => l.filter((n) => n.id !== id).map((n) => ({ ...n, connections: n.connections.filter((c) => c !== id) })));
     setOpen(id, false);
+    setPicked((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  /* ----- versions ----- */
+  // Copies nodes as their next versions, laid out as they are, below
+  // everything on the canvas (so the copies read as a new row under the
+  // originals). Links between the copied nodes are copied too; the copies
+  // become the pick and the canvas pans to them.
+  const duplicateNodes = (ids) => {
+    const all = nodesRef.current;
+    const source = all.filter((n) => ids.has(n.id));
+    if (!source.length) return;
+    const bottom = Math.max(...all.map((n) => n.y + (sizesRef.current[n.id]?.h || 300)));
+    const dy = bottom + NODE_GAP_FREE - Math.min(...source.map((n) => n.y));
+    const idMap = new Map(source.map((n) => [n.id, uid()]));
+    // Highest version so far per column + name, so two copies never share one.
+    const nameOf = (n) => baseLabel(n.label) || NODE_CATS[n.category].label;
+    const latest = new Map();
+    const nextLabel = (n) => {
+      const base = nameOf(n);
+      const key = `${n.category}\u0000${base}`;
+      if (!latest.has(key)) {
+        latest.set(key, Math.max(...all.filter((m) => m.category === n.category && nameOf(m) === base).map((m) => versionOf(m.label))));
+      }
+      const v = latest.get(key) + 1;
+      latest.set(key, v);
+      return `${base} v${v}`;
+    };
+    const copies = [...source].sort((a, b) => a.y - b.y || a.x - b.x).map((n) => {
+      zCounter.current += 1;
+      return {
+        ...n,
+        id: idMap.get(n.id),
+        label: nextLabel(n),
+        y: n.y + dy,
+        z: zCounter.current,
+        generating: false,
+        connections: n.connections.filter((c) => idMap.has(c)).map((c) => idMap.get(c)),
+      };
+    });
+    commit((list) => [...list, ...copies]);
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      source.forEach((n) => { if (prev.has(n.id)) next.add(idMap.get(n.id)); });
+      return next;
+    });
+    const copyIds = copies.map((n) => n.id);
+    setPicked(new Set(copyIds));
+    const msg = copies.length === 1 ? `Made ${copies[0].label}.` : `Made new versions of ${copies.length} nodes.`;
+    setStatus(msg, "ok");
+    say(msg);
+    // Once they're on the canvas, bring them into view (CanvasViewport).
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      canvasRef.current?.dispatchEvent(new CustomEvent("canvas-reveal", { bubbles: true, detail: { ids: copyIds } }));
+    }));
   };
 
   /* ----- links ----- */
@@ -704,11 +799,33 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   // selected line. A press anywhere else drops the selection.
   useEffect(() => {
     if (!active) return undefined;
+    // Node shortcuts stay out of text fields and open dialogs.
+    const free = (e) => !isTyping(e.target) && !document.querySelector(".overlay");
     const onKey = (e) => {
+      if (e.key === "Alt") {
+        if (!e.repeat) marqueeUsed.current = false;
+        setAltHeld(true);
+      }
       if (e.key === "Escape") {
         if (cancelLinkDrag.current) { cancelLinkDrag.current(); return; }
         setSelectedKey(null);
         setHoverKey(null);
+        setPicked((prev) => (prev.size ? new Set() : prev));
+        return;
+      }
+      const mod = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
+      if (mod && e.key.toLowerCase() === "a" && free(e)) {
+        e.preventDefault();
+        const all = nodesRef.current;
+        if (!all.length) return;
+        setPicked(new Set(all.map((n) => n.id)));
+        setStatus(`${all.length} node${all.length === 1 ? "" : "s"} selected. ${shortcut("D")} makes new versions; ${shortcut("C")} copies them.`, "");
+        return;
+      }
+      if (mod && e.key.toLowerCase() === "d" && free(e)) {
+        // Always claim it, so the browser never bookmarks the page instead.
+        e.preventDefault();
+        if (pickedRef.current.size) duplicateNodes(pickedRef.current);
         return;
       }
       if ((e.key === "Delete" || e.key === "Backspace") && selectedKey && !isTyping(e.target)) {
@@ -716,18 +833,115 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
         unlinkKey(selectedKey);
       }
     };
+    // A click (not a pan) on empty canvas drops the node pick.
+    let emptyDown = null;
+    const onAltUp = (e) => {
+      if (e.key !== "Alt") return;
+      setAltHeld(false);
+      // After drawing a box, letting go of Alt shouldn't open the browser's menu.
+      if (marqueeUsed.current) e.preventDefault();
+    };
+    const onBlur = () => setAltHeld(false);
     const onDown = (e) => {
+      const el = e.target instanceof Element ? e.target : null;
+      if (e.altKey && e.isPrimary && e.button === 0 && el?.closest(".canvas-surface") && !el.closest(".canvas-controls")) {
+        emptyDown = null;
+        startMarquee(e);
+        return;
+      }
+      emptyDown = el?.closest(".canvas-surface") && !el.closest(".cn, .canvas-controls, .pl-link-ui, .pl-link-hit")
+        ? { x: e.clientX, y: e.clientY }
+        : null;
       if (!selectedKey) return;
-      if (e.target instanceof Element && e.target.closest(".pl-chip, .pl-link-hit")) return;
+      if (el && el.closest(".pl-chip, .pl-link-hit")) return;
       setSelectedKey(null);
+    };
+    const onUp = (e) => {
+      if (emptyDown && Math.hypot(e.clientX - emptyDown.x, e.clientY - emptyDown.y) < 4) {
+        setPicked((prev) => (prev.size ? new Set() : prev));
+      }
+      emptyDown = null;
+    };
+    // Copy puts the picked nodes on the clipboard as text (to paste anywhere)
+    // and remembers them: pasting that same text back here makes new versions.
+    // Selected text in a field or an output copies as usual.
+    const onCopy = (e) => {
+      if (!pickedRef.current.size || !free(e) || !window.getSelection()?.isCollapsed) return;
+      const list = nodesRef.current.filter((n) => pickedRef.current.has(n.id));
+      if (!list.length) return;
+      const text = list.map(nodeText).join("\n\n---\n\n");
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", text);
+      clipRef.current = { ids: list.map((n) => n.id), text };
+      setStatus(`Copied ${list.length} node${list.length === 1 ? "" : "s"}. Paste here for new versions, or anywhere as text.`, "ok");
+    };
+    const onPaste = (e) => {
+      const clip = clipRef.current;
+      if (!clip || !free(e)) return;
+      if (e.clipboardData.getData("text/plain").replace(/\r\n/g, "\n") !== clip.text) return;
+      e.preventDefault();
+      duplicateNodes(new Set(clip.ids));
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onDown, true);
+    document.addEventListener("pointerup", onUp, true);
+    document.addEventListener("copy", onCopy);
+    document.addEventListener("paste", onPaste);
+    document.addEventListener("keyup", onAltUp);
+    window.addEventListener("blur", onBlur);
     return () => {
+      document.removeEventListener("keyup", onAltUp);
+      window.removeEventListener("blur", onBlur);
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onDown, true);
+      document.removeEventListener("pointerup", onUp, true);
+      document.removeEventListener("copy", onCopy);
+      document.removeEventListener("paste", onPaste);
     };
   });
+
+  // Alt + drag: a selection box from the pointer, picking every node it
+  // touches as it grows (Shift too keeps the nodes already picked). It takes
+  // the press before the node or the canvas sees it, so nothing drags or pans,
+  // and the click that ends it does nothing.
+  const startMarquee = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    marqueeUsed.current = true;
+    const pid = e.pointerId;
+    const origin = toCanvas(e);
+    const base = e.shiftKey ? new Set(pickedRef.current) : new Set();
+    let hit = base;
+    const update = (ev) => {
+      const p = toCanvas(ev);
+      const box = { x: Math.min(origin.x, p.x), y: Math.min(origin.y, p.y), w: Math.abs(p.x - origin.x), h: Math.abs(p.y - origin.y) };
+      setMarquee(box);
+      hit = new Set(base);
+      nodesRef.current.forEach((n) => {
+        const b = boxOf(n, sizesRef.current);
+        if (b.x < box.x + box.w && b.x + b.w > box.x && b.y < box.y + box.h && b.y + b.h > box.y) hit.add(n.id);
+      });
+      setPicked(hit);
+    };
+    const move = (ev) => { if (ev.pointerId === pid) update(ev); };
+    const swallowClick = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
+    const up = (ev) => {
+      if (ev.pointerId !== pid) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      setMarquee(null);
+      window.addEventListener("click", swallowClick, true);
+      setTimeout(() => window.removeEventListener("click", swallowClick, true), 0);
+      if (hit.size) {
+        setStatus(`${hit.size} node${hit.size === 1 ? "" : "s"} selected. ${shortcut("D")} makes new versions; ${shortcut("C")} copies them.`, "");
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    update(e);
+  };
 
   // Pointer position in canvas space (the canvas is scaled by the viewport).
   const toCanvas = (e) => {
@@ -966,7 +1180,11 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   }
 
   return (
-    <div className={"studio" + (linkDrag ? " pl-canvas-linking" : "")} data-pl-studio-enter={entering || undefined}>
+    <div
+      className={"studio" + (linkDrag ? " pl-canvas-linking" : "")}
+      data-pl-studio-enter={entering || undefined}
+      data-marquee={marquee ? "drawing" : altHeld ? "ready" : undefined}
+    >
       <div
         className="nodecanvas"
         ref={canvasRef}
@@ -1108,6 +1326,10 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
           <header className="sn-col-head" aria-hidden="true" style={{ position: 'absolute', top: COL_TOP - COL_HEAD_OFFSET, visibility: 'hidden' }} />
         )}
 
+        {marquee && (
+          <div className="sn-marquee" aria-hidden="true" style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }} />
+        )}
+
         {/* Draggable Free Nodes */}
         {nodes.map(n => {
           const topInfo = topNodes[n.id];
@@ -1134,6 +1356,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
                 node={n}
                 banned={ctx.brand.banned}
                 expanded={expanded.has(n.id)}
+                picked={picked.has(n.id)}
                 onToggle={() => setOpen(n.id, !expanded.has(n.id))}
                 linkEnd={linkEndOf(n.id)}
                 drop={linkDrag?.hit?.id === n.id ? linkDrag.hit.state : null}

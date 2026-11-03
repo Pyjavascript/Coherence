@@ -1,9 +1,9 @@
 import { BoltIcon } from "./BrandPanel";
 
 // The stage's bottom row (placed by layout/MainWorkspace.jsx): the quick-hook
-// bolt on the left, Generate on the right before the "?" (and Node Studio's
-// zoom). Generate adapts the brand panel's "Message to Adapt" into every
-// format; while it runs, a rainbow ring turns round it. The bolt makes a free
+// bolt on the left; on the right the "?", Node Studio's zoom, then Generate in the
+// corner. Generate adapts the brand panel's "Message to Adapt" into every
+// format; while it runs, a spinner shows "Generating…". The bolt makes a free
 // hook straight away (the hook dialog starts generating as it opens).
 
 // hooksLeft: free hooks left today (null = unlimited / Premium).

@@ -1,8 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import darkTheme from "./scripts/vite-dark-theme.js";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), darkTheme()],
   // Scan only the web app for dependencies. By default Vite crawls every .html
   // in the repo, including Figma/src/ui/ui.html, whose "@web/…" imports only
   // resolve under Figma/vite.config.ts.

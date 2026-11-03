@@ -126,22 +126,16 @@
 
 /* ---------- Generate ---------------------------------------------------- */
 
-/* The angle the rings are drawn from; registered so it can animate. */
+/* The angle the bolt's ring is drawn from; registered so it can animate. */
 @property --ring-angle {
   syntax: "<angle>";
   initial-value: 0deg;
   inherits: false;
 }
 
-/* A solid blue button, the toolbar's height. While generating, a
-   pastel rainbow (light tints of the app's blue and indigo with soft pink,
-   peach, yellow, mint and aqua) turns round it with a blurred glow. */
+/* A solid blue button, the toolbar's height. While generating, a spinner
+   and "Generating…" replace the label. */
 .gen-cta {
-  --ring: conic-gradient(
-    from var(--ring-angle),
-    #7d93ff, #a99bff, #8a8fe0, #e7a3ff, #ff9ecd, #ff8f9a,
-    #ffb88a, #ffe08a, #9fe8b8, #86dbe8, #a7b9ff, #7d93ff
-  );
   position: relative;
   height: var(--cta-h);
   display: grid;
@@ -165,25 +159,6 @@
     background-color var(--pl-d-2) var(--pl-ease-out),
     box-shadow var(--pl-d-2) var(--pl-ease-out),
     scale var(--pl-d-1) var(--pl-ease-out);
-}
-
-.gen-cta::before,
-.gen-cta::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: -3px;
-  border-radius: calc(var(--cta-h) * var(--ui-ratio) + 3px);
-  background: var(--ring);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 400ms ease;
-  animation: ring-spin 2.4s linear infinite paused;
-}
-
-.gen-cta::after {
-  inset: 2px;
-  filter: blur(16px);
 }
 
 .gen-cta:hover:not(:disabled) {
@@ -231,22 +206,8 @@
   animation: ring-spin-turn 0.8s linear infinite;
 }
 
-/* Generating: the rainbow turns round the button. */
 .gen-cta.is-busy {
   cursor: progress;
-}
-
-.gen-cta.is-busy::before,
-.gen-cta.is-busy::after {
-  animation-play-state: running;
-}
-
-.gen-cta.is-busy::before {
-  opacity: 1;
-}
-
-.gen-cta.is-busy::after {
-  opacity: 0.9;
 }
 
 /* Daily limit reached: muted, but it still says why when pressed. */
@@ -386,10 +347,8 @@
   }
 }
 
-/* Reduced motion: the rings still show, they just don't turn. */
+/* Reduced motion: the bolt's ring still shows, it just doesn't turn. */
 @media (prefers-reduced-motion: reduce) {
-  .gen-cta::before,
-  .gen-cta::after,
   .hook-bolt,
   .hook-fab,
   .hook-bolt svg,

@@ -185,3 +185,28 @@
 }
 #root .tour-launch:hover { box-shadow: var(--pl-shadow-2) !important; }
 .tour-launch:active { transform: scale(var(--pl-press-scale)); }
+
+/* Picked nodes (click, Shift/Ctrl/Cmd+click, Ctrl/Cmd+A): the app's blue
+   outline on the node's own 2px ring, so picking never shifts the layout. */
+html body .ws-view-nodes .sn-node.is-picked { outline-color: var(--shell-blue); }
+
+/* Alt + drag selection box (NodeStudio.jsx): a crosshair while Alt is held,
+   then a soft blue box; nothing under it reacts or selects text meanwhile. */
+.canvas-surface:has(.studio[data-marquee]),
+.studio[data-marquee] * {
+  cursor: crosshair !important;
+}
+.studio[data-marquee="drawing"] {
+  user-select: none;
+}
+.studio[data-marquee="drawing"] .cn {
+  pointer-events: none;
+}
+.sn-marquee {
+  position: absolute;
+  z-index: 60;
+  border: calc(1.5px * var(--pl-inv, 1)) solid var(--shell-blue);
+  border-radius: 6px;
+  background: rgb(23 60 245 / 0.08);
+  pointer-events: none;
+}

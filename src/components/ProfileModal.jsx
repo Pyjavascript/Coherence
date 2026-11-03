@@ -4,6 +4,7 @@ import FigmaLogo from "./FigmaLogo";
 import { useAuth } from "../hooks/useAuth";
 import { resizeAvatarFile } from "../lib/image";
 import { requireSupabase } from "../lib/supabase";
+import { useThemePref } from "../lib/theme";
 
 // Our own metadata keys, so a Google sign-in (which rewrites full_name /
 // avatar_url / picture) never clobbers what the user set here. An `avatar`
@@ -111,6 +112,53 @@ const EyeIcon = ({ off }) => (
     {off && <path d="m4 4 16 16" />}
   </svg>
 );
+
+const THEMES = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "System" },
+];
+
+// Light / Dark / System. Arrow keys move between the options, like any radio group.
+function AppearancePicker() {
+  const [pref, setPref] = useThemePref();
+  const labelId = useId();
+
+  const onKeyDown = (event) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    if (!step) return;
+    event.preventDefault();
+    const i = THEMES.findIndex((t) => t.value === pref);
+    const next = THEMES[(i + step + THEMES.length) % THEMES.length];
+    setPref(next.value);
+    event.currentTarget.querySelector(`[data-value="${next.value}"]`)?.focus();
+  };
+
+  return (
+    <div className="pl-acct-row">
+      <div className="pl-acct-copy">
+        <strong id={labelId}>Appearance</strong>
+        <p>Light, dark, or match your system.</p>
+      </div>
+      <div className="appearance-seg" role="radiogroup" aria-labelledby={labelId} onKeyDown={onKeyDown}>
+        {THEMES.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            role="radio"
+            data-value={t.value}
+            aria-checked={pref === t.value}
+            tabIndex={pref === t.value ? 0 : -1}
+            className={pref === t.value ? "is-on" : ""}
+            onClick={() => setPref(t.value)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const MASK = "•".repeat(22);
 
@@ -561,8 +609,9 @@ export default function ProfileModal({ user, onClose, onLogout, onSaved, onDelet
 
             {error && <p className="auth-error profile-error" role="alert">{error}</p>}
 
-            {/* Account actions: copy left, button right. */}
+            {/* Account rows: copy left, control right. */}
             <div className="pl-acct-rows">
+              <AppearancePicker />
               <div className="pl-acct-row">
                 <div className="pl-acct-copy">
                   <strong>Log out</strong>

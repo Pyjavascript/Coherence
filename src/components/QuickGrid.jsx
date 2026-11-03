@@ -252,10 +252,10 @@ const TRACKS = 12;
 // whole row, except at three columns where it spans two.
 const weightOf = (full, cols) => Math.min(cols, full ? (cols === 3 ? 2 : cols) : 1);
 
-// Packs cards into rows in order, then stretches each row to the full width:
-// a row with room left over (a card was closed, or the next one didn't fit)
-// shares that room between its cards by weight. Returns each card's track span
-// and the row count.
+// Packs cards into rows in order (a full-width card takes its weight's worth
+// of room), keeps at least two cards on the bottom row, then the cards of
+// each row share the full width equally: two in a row get half each, whatever
+// their weight. Returns each card's track span and the row count.
 const packRows = (fulls, cols) => {
   const rows = [];
   fulls.forEach((full, i) => {
@@ -268,8 +268,15 @@ const packRows = (fulls, cols) => {
       rows.push({ weight, cards: [[i, weight]] });
     }
   });
+  // The bottom row never holds a card alone (when there's room for two across):
+  // the row above hands down its last card, keeping the order.
+  const last = rows[rows.length - 1];
+  const above = rows[rows.length - 2];
+  if (cols > 1 && above && last.cards.length === 1 && above.cards.length > 1) {
+    last.cards.unshift(above.cards.pop());
+  }
   const spans = [];
-  rows.forEach((row) => row.cards.forEach(([i, weight]) => { spans[i] = (TRACKS * weight) / row.weight; }));
+  rows.forEach((row) => row.cards.forEach(([i]) => { spans[i] = TRACKS / row.cards.length; }));
   return { spans, rows: Math.max(1, rows.length) };
 };
 

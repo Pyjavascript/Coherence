@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
+import "./lib/theme.js";
 import "./styles/index.css";
 import "./styles/layout.css";
 import "./styles/enhancements.css";
@@ -16,6 +17,8 @@ import "./styles/polish/links.css";
 import "./styles/composer.css";
 // Top bar layout and the corner controls.
 import "./styles/workspace-theme.css";
+// Dark theme hand-tuning (the rest is generated, see scripts/vite-dark-theme.js).
+import "./styles/theme-dark.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

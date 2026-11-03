@@ -79,8 +79,47 @@ export default function CanvasViewport({ children }) {
     };
   }, [homeY, firstCard]);
   const [isPanning, setIsPanning] = useState(false);
+  const [gliding, setGliding] = useState(false);
   const viewRef = useRef(view);
   viewRef.current = view;
+
+  // Node Studio asks to see some nodes (new versions land below everything):
+  // if any of them is off screen, glide so their top-left corner sits just
+  // under the toolbar, keeping the zoom.
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return undefined;
+    let timer = 0;
+    const onReveal = (event) => {
+      const cards = (event.detail?.ids || [])
+        .map((id) => el.querySelector(`.cn[data-id="${CSS.escape(id)}"]`))
+        .filter(Boolean)
+        .map((card) => card.getBoundingClientRect());
+      if (!cards.length) return;
+      const box = {
+        left: Math.min(...cards.map((r) => r.left)),
+        top: Math.min(...cards.map((r) => r.top)),
+        right: Math.max(...cards.map((r) => r.right)),
+        bottom: Math.max(...cards.map((r) => r.bottom)),
+      };
+      const vp = el.getBoundingClientRect();
+      const barBottom = Math.max(0, -parseFloat(getComputedStyle(el).top) || 0);
+      const top = vp.top + barBottom + 16;
+      const inView = box.left >= vp.left && box.right <= vp.right && box.top >= top && box.bottom <= vp.bottom;
+      if (inView) return;
+      const dx = box.left >= vp.left && box.right <= vp.right ? 0 : vp.left + 40 - box.left;
+      const dy = top + 30 - box.top; // room for the column title above the first card
+      setGliding(true);
+      setView((current) => ({ ...current, x: current.x + dx, y: current.y + dy }));
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setGliding(false), 520);
+    };
+    el.addEventListener("canvas-reveal", onReveal);
+    return () => {
+      el.removeEventListener("canvas-reveal", onReveal);
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const zoomAt = useCallback((nextZoom, clientX, clientY) => {
     const viewport = viewportRef.current;
@@ -215,7 +254,13 @@ export default function CanvasViewport({ children }) {
         "--canvas-dot-y": `${view.y}px`,
       }}
     >
-      <div className="canvas-world" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }}>
+      <div
+        className="canvas-world"
+        style={{
+          transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+          transition: gliding ? "transform 480ms var(--pl-ease-out)" : undefined,
+        }}
+      >
         {children}
       </div>
       <div className="canvas-controls" aria-label="Canvas zoom controls">

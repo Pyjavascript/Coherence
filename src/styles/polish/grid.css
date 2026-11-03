@@ -108,18 +108,44 @@
 #root .ncard-sheet { box-shadow: var(--pl-shadow-3) !important; }
 
 /* ---------- Card body: loading + new copy arriving ----------------------- */
-/* Skeleton: calmer, staggered sweep */
-.ncard-skel {
-  animation: pl-shimmer var(--pl-d-loop) var(--pl-ease-inout) infinite;
+/* Loading sweeps (card skeletons, regenerating copy, the hook's skeleton).
+   The light band is its own layer moved with `transform`, which the browser
+   animates off the main thread: it stays smooth while a generation keeps the
+   page busy. (Animating background-position repainted every frame and
+   stuttered.) The band crosses the whole bar each cycle without pausing. */
+.ncard-skel,
+.skel {
+  position: relative;
+  overflow: hidden;
+  background-image: none;
+  animation: none;
 }
-.ncard-skel:nth-child(2) { animation-delay: calc(var(--pl-stagger) * 2); }
-.ncard-skel:nth-child(3) { animation-delay: calc(var(--pl-stagger) * 4); }
+.skel { background-color: var(--panel-sunk); }
+.ncard-skel::after,
+.skel::after,
 .ncard-body.is-refreshing::after {
-  animation: pl-shimmer var(--pl-d-loop) var(--pl-ease-inout) infinite;
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0) 0%, rgb(255 255 255 / .7) 50%, rgb(255 255 255 / 0) 100%);
+  background-size: auto;
+  transform: translateX(-100%);
+  animation: pl-sweep 1.6s cubic-bezier(.45, .05, .55, .95) infinite;
+  will-change: transform;
+  pointer-events: none;
 }
+/* The lines sweep one after another, like a wave down the card. */
+.ncard-skel:nth-child(2)::after,
+.skel:nth-child(2)::after { animation-delay: 90ms; }
+.ncard-skel:nth-child(3)::after { animation-delay: 180ms; }
+/* The moving band must not make the copy box scroll sideways. */
+.ncard-body.is-refreshing { overflow-x: hidden; }
+/* The old copy dims under the sweep. Its fade-in animation (below) would
+   otherwise hold it at full opacity. */
 .ncard-body.is-refreshing .ncard-copy {
-  filter: blur(.4px);
-  transition: opacity var(--pl-d-2) var(--pl-ease-out), filter var(--pl-d-2) var(--pl-ease-out);
+  opacity: .45;
+  animation: none;
+  transition: opacity var(--pl-d-2) var(--pl-ease-out);
 }
 
 /* New copy: each line fades/rises in, in reading order */

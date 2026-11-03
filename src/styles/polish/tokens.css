@@ -96,6 +96,8 @@
 @keyframes pl-pop-in { from { opacity: 0; transform: scale(var(--pl-pop-from)); } to { opacity: 1; transform: none; } }
 @keyframes pl-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes pl-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+/* A layer sliding fully across its box (loading sweeps, polish/grid.css). */
+@keyframes pl-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 @keyframes pl-breathe { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.35); opacity: .7; } }
 @keyframes pl-spin { to { transform: rotate(360deg); } }
 

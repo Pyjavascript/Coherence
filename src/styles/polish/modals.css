@@ -549,9 +549,40 @@ html body .overlay .pl-acct-row :is(.profile-pill, .profile-delete) {
 html body .overlay .pl-acct-row .profile-pill { background: var(--shell-tint); border-color: transparent; }
 html body .overlay .pl-acct-row .profile-pill:hover { background: var(--shell-tint-2); }
 html body .overlay .pl-acct-row :is(.profile-pill, .profile-delete) svg { width: 16px; height: 16px; }
+/* Appearance: Light / Dark / System. The buttons' height and corner; the
+   chosen option takes the view switch's navy. Equal columns, so nothing
+   shifts when the choice changes. */
+.appearance-seg {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(62px, 1fr));
+  gap: 2px;
+  height: var(--md-btn-h);
+  padding: 4px;
+  box-sizing: border-box;
+  background: var(--shell-tint);
+  border-radius: var(--btn-r);
+}
+.appearance-seg button {
+  min-width: 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: calc(var(--btn-r) - 4px);
+  background: transparent;
+  color: #70748d;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  cursor: pointer;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out), color var(--pl-d-2) var(--pl-ease-out);
+}
+.appearance-seg button:hover:not(.is-on) { background: var(--shell-tint-2); color: var(--shell-ink); }
+.appearance-seg button.is-on { background: var(--shell-navy); color: #fff; }
+.appearance-seg button:focus-visible { outline: none; box-shadow: var(--pl-focus-ring); }
 @media (max-width: 519.98px) {
   .pl-acct-row { align-items: flex-start; flex-direction: column; gap: 12px; }
   html body .overlay .pl-acct-row :is(.profile-pill, .profile-delete) { width: 100%; justify-content: center; }
+  .appearance-seg { width: 100%; }
 }
 
 /* Footer: only Cancel + Save changes (ProfileModal shows it only while there is something to save) */
@@ -832,7 +863,7 @@ html body .overlay .tour .tour-body {
   padding: 22px var(--md-pad) 0;
   text-align: left;
 }
-html body .overlay .tour .tour-copy h2 { margin: 0 0 8px; font-size: clamp(20px, 2vw, 22px); }
+html body .overlay .tour .tour-copy h2 { margin: 0 0 8px; font-size: clamp(20px, 2vw, 22px); font-weight: 700; }
 html body .overlay .tour .tour-copy > p:not(.tour-sample) {
   max-width: none;
   margin: 0;
@@ -850,6 +881,38 @@ html body .overlay .tour .tour-foot {
   gap: 12px;
   padding: 24px var(--md-pad) var(--md-pad);
 }
+/* Step bars, left of the buttons: the current step's bar is longer and takes
+   the Continue button's navy. Each button is taller than its bar, so it's
+   easy to hit. */
+html body .overlay .tour .tour-foot { justify-content: space-between; }
+html body .overlay .tour .tour-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+}
+html body .overlay .tour .tour-dots button {
+  width: 16px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: width var(--pl-d-3) var(--pl-ease-out);
+}
+html body .overlay .tour .tour-dots button::before {
+  content: "";
+  display: block;
+  height: 4px;
+  background: #cfd2df;
+  border-radius: 2px;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out);
+}
+html body .overlay .tour .tour-dots button.is-on { width: 32px; }
+html body .overlay .tour .tour-dots button.is-on::before { background: var(--shell-navy); }
+html body .overlay .tour .tour-dots button:not(.is-on):hover::before { background: #aeb2c4; }
+html body .overlay .tour .tour-dots button:focus-visible { outline: none; box-shadow: var(--pl-focus-ring); }
 html body .overlay .tour .tour-actions {
   display: flex;
   gap: 10px;
@@ -862,6 +925,7 @@ html body .overlay .tour .tour-actions button {
   padding: 0 22px;
   border-radius: 999px;
   font-size: 15px;
+  font-weight: 600;
   white-space: nowrap;
 }
 html body .overlay .tour .tour-primary {
@@ -874,3 +938,22 @@ html body .overlay .tour .tour-primary::before { background: var(--hover-solid);
 @media (max-width: 400px) {
   html body .overlay .tour .tour-actions button { padding: 0 16px; }
 }
+
+/* ---------- Auth: a compact card ------------------------------------------ */
+/* Narrower than the shared 460px, with 42px fields and buttons (corners
+   follow their height), a smaller title and tighter rhythm. */
+html body .overlay > .auth-modal {
+  max-width: 380px;
+  --md-pad: 20px;
+  --md-btn-h: 42px;
+  --md-btn-fs: 14px;
+  --md-btn-r: calc(var(--md-btn-h) * var(--ui-ratio));
+  --md-head-top: 26px;
+}
+html body .overlay .auth-modal .modal-head h3 { font-size: 21px; }
+html body .overlay .auth-modal .modal-head { margin-bottom: 8px; }
+html body .overlay .auth-card { gap: 10px; }
+html body .overlay .auth-form { gap: 10px; }
+html body .overlay .auth-field label { margin-bottom: 5px; font-size: 12.5px; }
+html body .overlay .auth-google svg { width: 18px; height: 18px; }
+html body .overlay .auth-divider { font-size: 12px; }

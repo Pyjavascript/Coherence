@@ -1135,84 +1135,41 @@ body {
   background: var(--shell-tint-2);
 }
 
+/* The formats: the panel's own dropdown menu (.bp-dd-menu / .bp-dd-opt),
+   opening upward since Export is the last thing in the panel. */
 .rsb .bp-export-menu {
-  position: absolute;
-  z-index: 5;
-  left: 0;
-  right: 0;
-  bottom: calc(100% + 8px);
-  display: grid;
-  gap: 2px;
-  padding: 6px;
-  background: #fff;
-  border-radius: var(--r);
-  box-shadow: 0 22px 48px -18px rgba(12, 23, 79, 0.45), 0 4px 14px rgba(12, 23, 79, 0.1);
+  top: auto;
+  bottom: calc(100% + 6px);
+  max-height: none;
+  outline: none;
   transform-origin: bottom center;
-  animation: bp-export-in var(--pl-d-3) var(--pl-ease-out) both;
+  animation: bp-export-in var(--pl-d-2) var(--pl-ease-out) both;
 }
 
 .rsb .bp-export-opt {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  min-height: 52px;
-  padding: 6px 14px 6px 6px;
-  color: var(--shell-ink);
-  background: transparent;
-  border: 0;
-  border-radius: calc(var(--r) - 6px);
-  font: inherit;
-  font-size: 14px;
   font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  animation: bp-export-opt-in var(--pl-d-3) var(--pl-ease-out) both;
-  animation-delay: calc(var(--i, 0) * 35ms);
-  transition: background-color var(--pl-d-1) var(--pl-ease-out);
-}
-
-.rsb .bp-export-opt:hover,
-.rsb .bp-export-opt:focus-visible {
-  background: var(--shell-tint-2);
-  outline: none;
 }
 
 .rsb .bp-export-opt-icon {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  color: var(--shell-blue);
-  background: #eef1ff;
-  border-radius: calc(40px * var(--ui-ratio-sm));
-  transition: color var(--pl-d-1) var(--pl-ease-out), background-color var(--pl-d-1) var(--pl-ease-out);
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--shell-muted);
+  transition: color var(--pl-d-1) var(--pl-ease-out);
 }
 
 .rsb .bp-export-opt:hover .bp-export-opt-icon,
 .rsb .bp-export-opt:focus-visible .bp-export-opt-icon {
-  color: #fff;
-  background: var(--shell-blue);
-}
-
-.rsb .bp-export-opt-icon svg {
-  width: 20px;
-  height: 20px;
+  color: var(--shell-blue);
 }
 
 .rsb .bp-export-opt-hint {
-  color: #8e93ad;
-  font-size: 12.5px;
+  color: var(--shell-muted);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 @keyframes bp-export-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.97);
-  }
-}
-
-@keyframes bp-export-opt-in {
   from {
     opacity: 0;
     transform: translateY(4px);
@@ -1220,18 +1177,13 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rsb .bp-export-menu,
-  .rsb .bp-export-opt {
+  .rsb .bp-export-menu {
     animation: none;
   }
 }
 
-/* Message to Adapt: taller than the other fields; red when Generate was
-   pressed without one. */
-.rsb .bp-message .bp-textarea {
-  height: calc(var(--bp-field-h) * 2);
-}
-
+/* Message to Adapt: the same height as the other fields (longer text scrolls
+   inside it); red when Generate was pressed without one. */
 .rsb .bp-message.is-invalid .bp-textarea {
   border-color: #e5484d;
 }

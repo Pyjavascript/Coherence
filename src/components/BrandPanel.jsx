@@ -32,15 +32,18 @@ const MAX_MESSAGE = 2000; // the generate function's cap on brand.message
 
 // Export formats for the Quick Grid's copy (App.jsx handleExport kinds).
 const EXPORT_OPTIONS = [
-  { value: "copy", label: "Copy to clipboard", hint: "Paste it anywhere", icon: "M8.5 8.5h11v11h-11zM15.5 5.6c0-1.3-.9-2.1-2.1-2.1H6.1C4.8 3.5 4 4.4 4 5.6v7.3c0 1.2.8 2.1 2 2.1h.5" },
+  { value: "copy", label: "Copy to clipboard", hint: "", icon: "M8.5 8.5h11v11h-11zM15.5 5.6c0-1.3-.9-2.1-2.1-2.1H6.1C4.8 3.5 4 4.4 4 5.6v7.3c0 1.2.8 2.1 2 2.1h.5" },
   { value: "txt", label: "Text file", hint: ".txt", icon: "M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8L14 3.5zM14 3.5V8h4.5M9 12.5h6M9 16h4" },
   { value: "csv", label: "Spreadsheet", hint: ".csv", icon: "M4.5 5.5h15v13h-15zM4.5 10h15M4.5 14.5h15M10 5.5v13" },
   { value: "md", label: "Markdown", hint: ".md", icon: "M3.5 6.5h17v11h-17zM7 14.5v-5l2.5 3 2.5-3v5M15.5 9.5v5M13.5 12.5l2 2 2-2" },
 ];
 
-// One Export button; it opens the formats, and picking one copies or downloads at once.
+// One Export button; it opens the formats (styled as the panel's dropdowns),
+// and picking one copies or downloads at once.
 function ExportMenu({ canExport, onExport }) {
   const [open, setOpen] = useState(false);
+  const fromKeyboard = useRef(false); // opened with Enter / Space: focus the first format
+  const menuRef = useRef(null);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
   const itemRefs = useRef([]);
@@ -51,7 +54,10 @@ function ExportMenu({ canExport, onExport }) {
 
   useEffect(() => {
     if (!open) return undefined;
-    itemRefs.current[0]?.focus();
+    // Opened by mouse, the menu itself takes focus (so arrows still work)
+    // and only the row under the pointer lights up.
+    if (fromKeyboard.current) itemRefs.current[0]?.focus();
+    else menuRef.current?.focus();
     const onPointerDown = (event) => {
       if (!rootRef.current?.contains(event.target)) setOpen(false);
     };
@@ -90,7 +96,10 @@ function ExportMenu({ canExport, onExport }) {
         aria-haspopup="menu"
         aria-expanded={open}
         disabled={!canExport}
-        onClick={() => setOpen((isOpen) => !isOpen)}
+        onClick={(event) => {
+          fromKeyboard.current = event.detail === 0;
+          setOpen((isOpen) => !isOpen);
+        }}
       >
         Export
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -98,28 +107,27 @@ function ExportMenu({ canExport, onExport }) {
         </svg>
       </button>
       {open && (
-        <div className="bp-export-menu" role="menu" aria-label="Export format" onKeyDown={moveFocus}>
+        <div className="bp-dd-menu bp-export-menu" role="menu" aria-label="Export format" tabIndex={-1} ref={menuRef} onKeyDown={moveFocus}>
           {EXPORT_OPTIONS.map((option, index) => (
             <button
               key={option.value}
               type="button"
               role="menuitem"
               ref={(element) => { itemRefs.current[index] = element; }}
-              className="bp-export-opt"
-              style={{ "--i": index }}
+              className="bp-dd-opt bp-export-opt"
               onClick={() => {
                 setOpen(false);
                 triggerRef.current?.focus();
                 onExport(option.value);
               }}
             >
-              <span className="bp-export-opt-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <span className="bp-dd-opt-label">
+                <svg className="bp-export-opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d={option.icon} />
                 </svg>
+                <span>{option.label}</span>
               </span>
-              <span className="bp-export-opt-label">{option.label}</span>
-              <span className="bp-export-opt-hint">{option.hint}</span>
+              {option.hint && <span className="bp-export-opt-hint">{option.hint}</span>}
             </button>
           ))}
         </div>
@@ -273,7 +281,7 @@ export default function BrandPanel({
             <textarea
               id="bp-message"
               className="bp-textarea"
-              rows={3}
+              rows={2}
               maxLength={MAX_MESSAGE}
               placeholder="What do you want to generate?"
               aria-required="true"
@@ -457,7 +465,7 @@ export default function BrandPanel({
               <BoltIcon />
             </button>
             <div>
-              <h4>Generate Free Hook.</h4>
+              <h4>Generate a free hook</h4>
               <p>
                 {hookQuota && hookQuota.left <= 0
                   ? `Today's free hooks are used · more in ${timeUntilReset()}`

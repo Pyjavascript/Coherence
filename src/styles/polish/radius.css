@@ -208,11 +208,13 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 .app-shell[data-bp=tablet] .lnav[data-open=true] { border-radius: var(--ui-r); }
 .app-shell[data-bp=mobile] .lnav { border-radius: var(--ui-r); }
 /* Left rail: icon tiles, their rows and the usage ring are rounded squares
-   (--ui-icon-r), not circles. The ring's layers stay concentric. */
+   (--ui-icon-r), not circles. The ring's layers stay concentric. Brand
+   avatars are the exception: round badges. */
 .lnav-row,.lnav-head { border-radius: var(--ui-icon-r); }
-.lnav-avatar,.lnav-icon,.lnav .rail-credits-meter,.lnav-toggle:hover .lnav-slot { border-radius: var(--ui-icon-r); }
-.lnav .rail-credits-meter::before { border-radius: calc(var(--ui-icon-r) - var(--ui-icon) * 0.12); }
-.lnav .rail-credits-meter::after { border-radius: calc(var(--ui-icon-r) - var(--ui-icon) * 0.12 - 3px); }
+.lnav-avatar { border-radius: 50%; }
+.lnav-icon,.lnav .rail-credits-meter,.lnav-toggle:hover .lnav-slot { border-radius: var(--ui-icon-r); }
+.lnav .rail-credits-meter::before { border-radius: var(--ui-icon-r); }
+.lnav .rail-credits-meter::after { border-radius: calc(var(--ui-icon-r) - 3px); }
 .lnav .rail-account-card,.lnav .rail-usage-card { border-radius: var(--ui-r); }
 .rsb { border-radius: var(--ui-r); }
 .rsb .rsb-head button { border-radius: calc(40px * var(--ui-ratio-sm)); }

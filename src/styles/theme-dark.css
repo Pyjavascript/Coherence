@@ -19,6 +19,14 @@
   --dk-frame: #0b0b0d;
   --dk-panel: #141417;
   --dk-line: rgb(255 255 255 / .07);
+  /* Elevation: a faint white edge plus a soft black drop, so cards and
+     controls lift off the near-black board. */
+  --dk-edge: inset 0 0 0 1px rgb(255 255 255 / .04);
+  --dk-edge-hover: inset 0 0 0 1px rgb(255 255 255 / .06);
+  --dk-drop: 0 1px 2px rgb(0 0 0 / .4), 0 8px 24px -12px rgb(0 0 0 / .5);
+  --dk-drop-hover: 0 2px 4px rgb(0 0 0 / .45), 0 16px 36px -14px rgb(0 0 0 / .65);
+  --dk-drop-pop: 0 24px 56px -16px rgb(0 0 0 / .75);
+  --dk-border: rgb(255 255 255 / .06);
 }
 
 /* ---------- Frame ----------------------------------------------------------- */
@@ -39,12 +47,57 @@
 :root[data-theme="dark"] .qg {
   background-color: transparent;
 }
+/* The generated twin of the base .canvas-surface rule uses the `background`
+   shorthand, which resets the size: without this the dot grid is one
+   canvas-sized dot and Node Studio shows no dots at all. */
+:root[data-theme="dark"] .ws-view-nodes .canvas-surface {
+  background-size: var(--canvas-dot-size) var(--canvas-dot-size);
+  background-position: var(--canvas-dot-x) var(--canvas-dot-y);
+}
 
 /* ---------- Brand panel ----------------------------------------------------- */
 /* Navy in light; a dark panel a step above the frame here. */
 :root[data-theme="dark"] .rsb {
   background: var(--dk-panel);
-  box-shadow: inset 0 0 0 1px var(--dk-line);
+}
+
+/* ---------- Elevation ------------------------------------------------------- */
+/* The light sheets clear every shadow under #root (`box-shadow: none
+   !important`) and add back navy ones that vanish on black. These rules
+   carry body #root to outrank both. Borderless surfaces get the white edge as
+   an inset ring; controls that already have a 1px border keep it, fainter,
+   so nothing changes size. */
+:root[data-theme="dark"] body #root :is(.ncard, .sn-node, .sn-add, .lnav-icon),
+:root[data-theme="dark"] body #root .ws-topbar :is(.ws-switch, .toolbar-add-node) {
+  box-shadow: var(--dk-edge), var(--dk-drop) !important;
+}
+:root[data-theme="dark"] body #root :is(.ncard, .sn-node):hover,
+:root[data-theme="dark"] body #root .ws-view-nodes .sn-node:hover,
+:root[data-theme="dark"] body #root .ws-topbar .toolbar-add-node:hover:not(:disabled) {
+  box-shadow: var(--dk-edge-hover), var(--dk-drop-hover) !important;
+}
+:root[data-theme="dark"] body #root .ws-view-nodes .cn.dragging .sn-node {
+  box-shadow: var(--dk-edge-hover), var(--dk-drop-pop) !important;
+}
+
+:root[data-theme="dark"] body #root .ws-topbar :is(.model-selector-trigger, .toolbar-nav-btn, .toolbar-panel-notch .toolbar-panel-btn),
+:root[data-theme="dark"] body #root :is(.tour-launch, .canvas-controls) {
+  border-color: var(--dk-border);
+  box-shadow: var(--dk-drop) !important;
+}
+:root[data-theme="dark"] body #root .ws-topbar :is(.model-selector-trigger, .toolbar-nav-btn, .toolbar-panel-notch .toolbar-panel-btn):hover,
+:root[data-theme="dark"] body #root .ws-topbar .model-selector.is-open .model-selector-trigger,
+:root[data-theme="dark"] body #root .tour-launch:hover {
+  box-shadow: var(--dk-drop-hover) !important;
+}
+:root[data-theme="dark"] body #root :is(.hook-fab, .gen-cta) {
+  box-shadow: var(--dk-drop) !important;
+}
+
+:root[data-theme="dark"] body #root .rsb,
+:root[data-theme="dark"] body #root :is(.model-selector-menu, .bp-dd-menu, .research-select-menu),
+:root[data-theme="dark"] body #root .overlay :is(.modal, .coherence-modal, .profile-modal, .confirm-dialog, .tour) {
+  box-shadow: var(--dk-edge-hover), var(--dk-drop-pop) !important;
 }
 
 /* ---------- Node Studio connectors (stroke set in NodeStudio.jsx) ---------- */
@@ -121,4 +174,17 @@ html[data-theme="dark"] body .overlay .tour .tour-primary:hover::before {
 /* Tour step bars: the current one matches the light Continue button. */
 html[data-theme="dark"] body .overlay .tour .tour-dots button.is-on::before {
   background: #ececf0;
+}
+
+/* ---------- Brand logos ----------------------------------------------------- */
+/* A transparent logo keeps its white badge: drawn for a light page, it could
+   vanish on a dark one. Logos with their own background keep that colour. */
+:root[data-theme="dark"] .brand-logo {
+  background: var(--logo-plate, #fff);
+}
+
+/* ---------- Usage ring ------------------------------------------------------ */
+/* Light progress on a faint track, so the share used reads on the dark rail. */
+:root[data-theme="dark"] .lnav .rail-credits-meter::before {
+  background: conic-gradient(#ececf0 var(--credits-progress), rgb(255 255 255 / .1) 0);
 }

@@ -390,10 +390,30 @@ body {
   background: #fff;
 }
 
-.lnav-avatar img {
-  width: 64%;
-  height: 64%;
+/* An uploaded logo (BrandLogo.jsx): on its own background colour, or white
+   behind a transparent logo; a photo fills the badge. The trimmed logo's
+   size is set inline, from its shape. Hidden for the moment it takes to read. */
+.brand-logo {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--logo-plate, #fff);
+}
+
+.brand-logo img {
+  display: block;
+  max-width: none;
   object-fit: contain;
+}
+
+.brand-logo:not([data-fit]) img {
+  opacity: 0;
+}
+
+.brand-logo[data-fit="photo"] img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .lnav-avatar-fallback svg {
@@ -451,20 +471,23 @@ body {
   flex: none;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: transparent;
 }
 
+/* The ring is the meter's outer edge, at the full icon size: no tile
+   around it. It sits on the navy rail, so the progress is the brand blue
+   and the rest a faint white track. */
 .lnav .rail-credits-meter::before {
   position: absolute;
-  inset: 12%;
+  inset: 0;
   border-radius: 50%;
-  background: conic-gradient(var(--shell-navy) var(--credits-progress), #dcdfea 0);
+  background: conic-gradient(var(--shell-blue) var(--credits-progress), rgb(255 255 255 / .22) 0);
   content: "";
 }
 
 .lnav .rail-credits-meter::after {
   position: absolute;
-  inset: calc(12% + 3px);
+  inset: 3px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -861,6 +884,24 @@ body {
 
 .rsb .bp-name-input .bp-addimg:hover {
   background: var(--shell-tint-2);
+}
+
+/* With a logo uploaded, the button shows it: click to change. */
+.rsb .bp-name-input .bp-addimg.has-logo,
+.rsb .bp-name-input .bp-addimg.has-logo:hover {
+  overflow: hidden;
+  background: none;
+}
+
+.bp-addimg .brand-logo {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  transition: opacity 150ms ease;
+}
+
+.bp-addimg:hover .brand-logo {
+  opacity: 0.85;
 }
 
 .rsb .bp-name-input .bp-addimg:focus-visible {

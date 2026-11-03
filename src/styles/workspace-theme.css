@@ -81,6 +81,15 @@
   color: var(--bar-icon);
 }
 
+/* Narrow bars hide the chevron (layout.css): the logo alone, centred in a
+   square box like the menu button beside it. */
+@container ws (max-width: 380px) {
+  .ws-topbar .model-selector-trigger {
+    justify-content: center;
+    padding: 0 7px;
+  }
+}
+
 /* The menu button: a square box. Its slot (the notch) carries the size, and
    the button fills it, so folding the slot folds the box with it. */
 .ws-topbar .toolbar-panel-notch {
@@ -125,6 +134,28 @@
   width: 46%;
   height: 46%;
   stroke-width: 1.8;
+}
+
+/* The navigation toggle (tablet and mobile): the menu button's twin at the
+   other end of the bar, not a filled navy box. */
+.ws-topbar .toolbar-nav-btn,
+.ws-topbar .toolbar-nav-btn.is-active {
+  height: var(--tb-h);
+  box-sizing: border-box;
+  color: var(--bar-icon);
+  background: #fff;
+  border: 1px solid var(--bar-line);
+  border-radius: var(--bar-r);
+}
+
+#root .ws-topbar .toolbar-nav-btn:hover {
+  background: var(--bar-hover);
+  scale: none;
+}
+
+.ws-topbar .toolbar-nav-btn svg {
+  width: 46%;
+  height: 46%;
 }
 
 /* Desktop: the brand panel floats over the workspace's right side, so while

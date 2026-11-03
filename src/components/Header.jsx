@@ -237,7 +237,7 @@ export default function Header({
         {showNavToggle && (
           <button
             type="button"
-            className="toolbar-icon-btn"
+            className="toolbar-icon-btn toolbar-nav-btn"
             aria-label={navOpen ? "Close navigation" : "Open navigation"}
             aria-expanded={navOpen}
             onClick={onToggleNav}

@@ -230,13 +230,13 @@
   animation: pl-shimmer var(--pl-d-loop) var(--pl-ease-inout) infinite;
 }
 
-/* Navy icon buttons. The white panel toggle is left out: it takes the white
-   controls' shadow (model selector block below). */
-#root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn) {
+/* Navy icon buttons. The white panel and nav toggles are left out: they take
+   the white controls' shadow (model selector block below). */
+#root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn, .toolbar-nav-btn) {
   box-shadow: 0 1px 2px rgb(12 23 79 / .14), 0 6px 14px -6px rgb(12 23 79 / .40) !important;
 }
 @media (hover: hover) {
-  #root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn):hover:not(:disabled) {
+  #root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn, .toolbar-nav-btn):hover:not(:disabled) {
     box-shadow: 0 2px 4px rgb(12 23 79 / .16), 0 12px 22px -8px rgb(12 23 79 / .50) !important;
   }
 }
@@ -244,8 +244,8 @@
   translate: none;
   scale: var(--pl-press-scale);
 }
-#root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn):active:not(:disabled),
-#root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn)[aria-expanded=true] {
+#root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn, .toolbar-nav-btn):active:not(:disabled),
+#root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn, .toolbar-nav-btn)[aria-expanded=true] {
   box-shadow: 0 1px 2px rgb(12 23 79 / .18) !important;
 }
 #root .ws-topbar .toolbar-icon-btn:disabled { box-shadow: none !important; }
@@ -269,14 +269,16 @@
 #root .model-selector-trigger,
 #root .ws-topbar .ws-switch,
 #root .ws-topbar .toolbar-add-node,
-#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn {
+#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn,
+#root .ws-topbar .toolbar-nav-btn {
   box-shadow: var(--pl-shadow-tb) !important;
 }
 #root .model-selector.is-open .model-selector-trigger,
 #root .model-selector-trigger:hover,
 #root .ws-topbar .toolbar-add-node:hover:not(:disabled),
 #root .ws-topbar .toolbar-add-node[aria-expanded="true"],
-#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover {
+#root .ws-topbar .toolbar-panel-notch .toolbar-panel-btn:hover,
+#root .ws-topbar .toolbar-nav-btn:hover {
   box-shadow: var(--pl-shadow-tb-hover) !important;
 }
 

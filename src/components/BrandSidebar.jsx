@@ -3,6 +3,7 @@ import { LIMITS } from "../lib/clientId";
 import { Logo } from "../assets/globalAssets";
 import { profileOf } from "./ProfileModal";
 import BrandMark from "./BrandMark";
+import BrandLogo from "./BrandLogo";
 import { useCountUp } from "../hooks/useCountUp";
 
 // Labels fade in one after another when the sidebar opens; --pl-li is a
@@ -132,7 +133,7 @@ export default function BrandSidebar({
             onClick={() => onSelect(brand.id)}
             icon={
               brand.logo ? (
-                <span className="lnav-avatar"><img src={brand.logo} alt="" /></span>
+                <BrandLogo src={brand.logo} className="lnav-avatar" />
               ) : (
                 <span className="lnav-avatar lnav-avatar-fallback"><BrandMark brand={brand} /></span>
               )

@@ -147,28 +147,6 @@
   stroke-width: 1.8;
 }
 
-/* The navigation toggle (tablet and mobile): the menu button's twin at the
-   other end of the bar, not a filled navy box. */
-.ws-topbar .toolbar-nav-btn,
-.ws-topbar .toolbar-nav-btn.is-active {
-  height: var(--tb-h);
-  box-sizing: border-box;
-  color: var(--bar-icon);
-  background: #fff;
-  border: 1px solid var(--bar-line);
-  border-radius: var(--bar-r);
-}
-
-#root .ws-topbar .toolbar-nav-btn:hover {
-  background: var(--bar-hover);
-  scale: none;
-}
-
-.ws-topbar .toolbar-nav-btn svg {
-  width: 46%;
-  height: 46%;
-}
-
 /* Desktop: the brand panel floats over the workspace's right side, so while
    it's open the right group slides left to sit beside it instead of under it.
    Same tokens as the panel's slide (polish/shell.css), so the two move as
@@ -264,7 +242,6 @@
   }
 }
 
-.app-shell[data-bp="mobile"] .ws-topbar .toolbar-nav-btn svg,
 .app-shell[data-bp="mobile"] .ws-topbar .toolbar-panel-btn svg {
   width: 50%;
   height: 50%;
@@ -293,4 +270,36 @@
 .app-shell[data-bp="mobile"] .ws-topbar .toolbar-add-spark i::after {
   width: 1.5px;
   height: 6px;
+}
+
+/* The logo at the start of the bar (phones, in place of the Grid | Node
+   switch): a square the size of the boxes beside it, and the button that
+   opens the navigation. */
+.ws-topbar .toolbar-logo {
+  flex: none;
+  width: var(--tb-h);
+  height: var(--tb-h);
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bar-r);
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: scale 160ms cubic-bezier(.2, 0, 0, 1);
+}
+
+.ws-topbar .toolbar-logo:active {
+  scale: .94;
+}
+
+.ws-topbar .toolbar-logo:focus-visible {
+  outline: 2px solid #173cf5;
+  outline-offset: 2px;
+}
+
+.ws-topbar .toolbar-logo svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }

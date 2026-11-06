@@ -149,16 +149,23 @@ export const TOUR_STEPS = [
   },
 ];
 
-export default function TourModal({ onClose, onSample }) {
+// Phones have no Node Studio (Grid only), so their tour skips its step.
+const PHONE_STEPS = TOUR_STEPS.filter((s) => s.Art !== ArtNodes);
+
+export default function TourModal({ onClose, onSample, compact = false }) {
+  const steps = compact ? PHONE_STEPS : TOUR_STEPS;
   // dir: 1 moving forward, -1 back — the step copy slides in from that side.
-  const [{ step, dir }, setNav] = useState({ step: 0, dir: 1 });
+  const [nav, setNav] = useState({ step: 0, dir: 1 });
+  // Kept in range if the screen narrows to a phone mid-tour.
+  const step = Math.min(nav.step, steps.length - 1);
+  const { dir } = nav;
   const titleId = useId();
   const bodyId = useId();
   const primaryRef = useRef(null);
   const panelRef = useDialogBehavior(onClose, primaryRef);
   const dismiss = useOverlayDismiss(onClose);
-  const last = step === TOUR_STEPS.length - 1;
-  const { Art } = TOUR_STEPS[step];
+  const last = step === steps.length - 1;
+  const { Art } = steps[step];
 
   const goTo = (to) => setNav((cur) => (to === cur.step ? cur : { step: to, dir: to > cur.step ? 1 : -1 }));
   const next = () => (last ? onClose() : goTo(step + 1));
@@ -204,7 +211,7 @@ export default function TourModal({ onClose, onSample }) {
         {/* Every step's copy shares one grid cell, so the card is always as tall
             as the longest step and never jumps; only the active one is visible. */}
         <div className="tour-body">
-          {TOUR_STEPS.map((s, i) => {
+          {steps.map((s, i) => {
             const active = i === step;
             return (
               <div key={s.title} className="tour-copy" data-active={active} aria-hidden={!active} inert={active ? undefined : ""}>
@@ -219,12 +226,12 @@ export default function TourModal({ onClose, onSample }) {
         <div className="tour-foot">
           {/* One bar per step: the current one is longer. Each jumps to its step. */}
           <div className="tour-dots" role="group" aria-label="Tour steps">
-            {TOUR_STEPS.map((s, i) => (
+            {steps.map((s, i) => (
               <button
                 key={s.title}
                 type="button"
                 className={i === step ? "is-on" : ""}
-                aria-label={`Step ${i + 1} of ${TOUR_STEPS.length}: ${s.title}`}
+                aria-label={`Step ${i + 1} of ${steps.length}: ${s.title}`}
                 aria-current={i === step ? "step" : undefined}
                 onClick={() => goTo(i)}
               />

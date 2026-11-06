@@ -259,6 +259,7 @@ export const brandPanelCopy = {
     restoreStudio: { type: "success", message: "{category} is back in Node Studio" },
     restoreGridFailed: { type: "error", message: "We couldn't bring that back to the grid" },
     restoreStudioFailed: { type: "error", message: "We couldn't bring that back to the studio" },
+    restoreStudioMobile: { type: "warning", message: "Node Studio opens on a larger screen" },
 
     noteAddFailed: { type: "error", message: "We couldn't add that note" },
     noteDeleteFailed: { type: "error", message: "We couldn't remove that note" },

@@ -299,6 +299,8 @@ export default function App() {
   const handleRestore = (medium, items, input) => {
     const category = String(medium).startsWith("node-") ? medium.slice(5) : null;
     if (category) {
+      // Phones have no Node Studio to bring it back to.
+      if (layout.bp === "mobile") return setStatus(...toast("restoreStudioMobile"));
       if (!nodeStudioRef.current?.restore(category, items, input)) return setStatus(...toast("restoreStudioFailed"));
       layout.setView("nodes");
       setModal(null);
@@ -455,7 +457,7 @@ export default function App() {
               addLabel={layout.view === "quick" ? "Add Grid" : "Add Node"}
               addOptions={layout.view === "quick" ? QUICK_ADD_OPTIONS : STUDIO_ADD_OPTIONS}
               onAddNode={handleAddNode}
-              showNavToggle={layout.bp === "mobile"}
+              compact={layout.bp === "mobile"}
               navOpen={layout.leftOpen}
               onToggleNav={() => layout.toggle("left")}
               panelOpen={layout.rightOpen}
@@ -491,7 +493,7 @@ export default function App() {
       </div>
 
       {showTour && (
-        <TourModal onClose={closeTour} onSample={loadSampleBrand} />
+        <TourModal onClose={closeTour} onSample={loadSampleBrand} compact={layout.bp === "mobile"} />
       )}
 
       {showAuthModal && (

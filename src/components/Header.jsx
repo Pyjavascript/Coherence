@@ -165,14 +165,6 @@ function ModelSelector({ tier, onTier }) {
   );
 }
 
-// Same panel glyph as the desktop sidebar's collapse / expand toggle (BrandSidebar).
-const SidebarIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
-    <path d="M9 4v16" />
-  </svg>
-);
-
 // Drawn on Node Studio's "+" grid (22 units, 15-unit bars, 2.4 stroke) and
 // shown at the same share of its button, so the lines match that plus.
 const PanelIcon = () => (
@@ -183,10 +175,25 @@ const PanelIcon = () => (
   </svg>
 );
 
+// The sidebar's logo (src/assets/sidebar/logo.svg), inverted for the white
+// bar: a navy tile with the white "CC", the size and corners (0.3) of the
+// boxes beside it.
+const BarLogo = () => (
+  <svg viewBox="0 0 50 50" aria-hidden="true">
+    <rect width="50" height="50" rx="15" fill="#0A144B" />
+    {/* The "CC" at ~3/4 of the sidebar's size, so the tile has room around it. */}
+    <g fill="#fff" transform="translate(25 25) scale(.74) translate(-25 -25)">
+      <path d="M14.06 12h10.4v5.2h-10.4zM8.85 17.2h5.2v15.6h-5.2zM14.06 32.8h10.4V38h-10.4z" />
+      <path d="M35.87 12h5.28v5.2h-5.28zM30.67 17.2h5.2v15.6h-5.2zM35.87 32.8h5.28V38h-5.28z" />
+    </g>
+  </svg>
+);
+
 // Workspace toolbar: the Grid | Node switch and Add Node (options depend on the
 // active view) on the left; the model selector and the panel toggle on the
 // right. Generate lives in the bottom-right tray, Export at the bottom
-// of the brand panel.
+// of the brand panel. Phones (compact) have Grid only: the logo takes the
+// switch's place, at the start of the bar, and opens the navigation.
 export default function Header({
   tier,
   onTier,
@@ -197,7 +204,7 @@ export default function Header({
   addOptions,
   addDisabledTitle,
   onAddNode,
-  showNavToggle,
+  compact = false,
   navOpen,
   onToggleNav,
   panelOpen,
@@ -234,18 +241,19 @@ export default function Header({
   return (
     <header className="ws-topbar">
       <div className="ws-topbar-start" ref={addMenuRef}>
-        {showNavToggle && (
+        {/* Phones: the logo is also the navigation toggle. */}
+        {compact && (
           <button
             type="button"
-            className="toolbar-icon-btn toolbar-nav-btn"
+            className="toolbar-logo"
             aria-label={navOpen ? "Close navigation" : "Open navigation"}
             aria-expanded={navOpen}
             onClick={onToggleNav}
           >
-            <SidebarIcon />
+            <BarLogo />
           </button>
         )}
-        <ViewSwitch view={view} onChange={onViewChange} />
+        {!compact && <ViewSwitch view={view} onChange={onViewChange} />}
         <button
           type="button"
           className="toolbar-add-node"

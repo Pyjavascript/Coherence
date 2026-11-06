@@ -92,7 +92,9 @@ export function useLayoutState() {
   return {
     bp,
     inline,
-    view: state.view,
+    // Phones have Quick Grid only (no Grid | Node switch); the chosen view
+    // comes back on a wider screen.
+    view: bp === "mobile" ? "quick" : state.view,
     drawer: inline ? null : state.drawer,
     leftOpen: inline ? state.leftOpen : state.drawer === "left",
     rightOpen: inline ? state.rightOpen : state.drawer === "right",

@@ -188,3 +188,16 @@ html[data-theme="dark"] body .overlay .tour .tour-dots button.is-on::before {
 :root[data-theme="dark"] .lnav .rail-credits-meter::before {
   background: conic-gradient(#ececf0 var(--credits-progress), rgb(255 255 255 / .1) 0);
 }
+
+/* ---------- Top-bar logo (phones) ------------------------------------------ */
+/* Navy in light. Here it takes the other bar boxes' look: their raised grey
+   (the generated twin of their white), faint edge and drop, white "CC".
+   The grey is the button's own background (the SVG's tile is cleared) so
+   the inset edge shows on top of it. */
+:root[data-theme="dark"] .ws-topbar .toolbar-logo-tile {
+  fill: transparent;
+}
+:root[data-theme="dark"] body #root .ws-topbar .toolbar-logo {
+  background: #1b1b1b;
+  box-shadow: var(--dk-edge), var(--dk-drop) !important;
+}

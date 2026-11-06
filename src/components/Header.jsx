@@ -180,7 +180,7 @@ const PanelIcon = () => (
 // boxes beside it.
 const BarLogo = () => (
   <svg viewBox="0 0 50 50" aria-hidden="true">
-    <rect width="50" height="50" rx="15" fill="#0A144B" />
+    <rect className="toolbar-logo-tile" width="50" height="50" rx="15" fill="#0A144B" />
     {/* The "CC" at ~3/4 of the sidebar's size, so the tile has room around it. */}
     <g fill="#fff" transform="translate(25 25) scale(.74) translate(-25 -25)">
       <path d="M14.06 12h10.4v5.2h-10.4zM8.85 17.2h5.2v15.6h-5.2zM14.06 32.8h10.4V38h-10.4z" />

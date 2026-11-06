@@ -656,9 +656,59 @@ body {
   background: transparent;
 }
 
-/* Phones: everything in the panel at a slightly smaller scale. */
-.app-shell[data-bp="mobile"] .rsb-scroll {
-  zoom: 0.88;
+/* Phones: the panel's text reads at the left drawer's label size (15px), not
+   the desktop 13-14px. (It used to be zoomed to 0.88, which put labels and
+   fields near 11px.) Text inputs keep their desktop 13px. */
+.app-shell[data-bp="mobile"] .rsb .bp-section-title {
+  font-size: 17px;
+}
+
+.app-shell[data-bp="mobile"] .rsb .bp-label,
+.app-shell[data-bp="mobile"] .rsb .bp-tag,
+.app-shell[data-bp="mobile"] .rsb .bp-dd-trigger,
+.app-shell[data-bp="mobile"] .rsb .bp-dd-opt,
+.app-shell[data-bp="mobile"] .rsb .bp-copy,
+.app-shell[data-bp="mobile"] .rsb .bp-card-hook .bp-gen-top p {
+  font-size: 15px;
+}
+
+/* Half-width dropdowns: a step smaller with tighter sides, so values like
+   "Discovery" or a lock + "Conversational" still fit on a 360px phone. */
+.app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-trigger,
+.app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-locked .bp-dd-trigger,
+.app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-premium .bp-dd-trigger {
+  gap: 6px;
+  padding: 0 12px 0 14px;
+  font-size: 14px;
+}
+
+/* Locked half-width dropdowns also carry a lock icon: keep their value at the
+   original 13px and the lock a touch smaller so the word still fits. */
+.app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-locked .bp-dd-trigger,
+.app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-premium .bp-dd-trigger {
+  font-size: 13px;
+}
+
+.app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-lock {
+  width: 16px;
+  height: 16px;
+}
+
+/* Very narrow phones (<360px): dropdown values a step smaller again. */
+@media (max-width: 359.98px) {
+  .app-shell[data-bp="mobile"] .rsb .bp-dd-trigger {
+    font-size: 14px;
+  }
+
+  .app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-trigger {
+    font-size: 13px;
+  }
+}
+
+.app-shell[data-bp="mobile"] .rsb .bp-premium-note,
+.app-shell[data-bp="mobile"] .rsb .bp-export-opt-hint,
+.app-shell[data-bp="mobile"] .rsb .bp-field-error {
+  font-size: 13px;
 }
 
 .app-shell:not([data-bp="desktop"])[data-right="open"] .rsb {
@@ -2024,11 +2074,16 @@ body {
   .qg-grid { --qg-cols: 4; }
 }
 
-/* Mobile: a plain scrolling column (the base padding clears the Generate tray). */
+/* Mobile: a plain scrolling column (the base padding clears the Generate tray).
+   Taller cards with more air between them, so each reads as its own card
+   instead of running into the next. (.qg prefix: polish/grid.css, loaded
+   later, sets the grid's gap at the same specificity.) */
 @container ws (max-width: 639px) {
-  .qg-grid {
+  .qg .qg-grid {
+    --row-min: 220px;
     min-height: 0;
     grid-auto-rows: minmax(var(--row-min), auto);
+    gap: 16px;
   }
 }
 

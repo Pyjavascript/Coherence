@@ -20,8 +20,207 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,700&display=swap"
       rel="stylesheet"
     />
+    <!-- Boot loader: inline so it paints before the app's CSS and JS load.
+         1. The logo's tile (src/assets/sidebar/logo.svg, inverted: theme
+            colour) fades in on white.
+         2. The white "CC" is drawn like a pen stroke: each C's top bar runs
+            right to left, its column runs down, its bottom bar runs left to
+            right; the second C follows the first.
+         3. With the logo complete it gathers in like a drop, and its colour
+            pours out: a shape behind the tile swells, rounding from the
+            tile's corners into a circle, until it fills the screen and only
+            the white mark is left.
+         Once the screen is filled (#boot gets .is-filled) and the app is
+         ready, App.jsx fades it all out (hideBootLoader).
+         Smoothness: everything animates only transform and opacity, so it
+         runs on the compositor and stays fluid while the app's JS loads.
+         Timings: tile 0.05-0.5s, drawing 0.3-1.05s, gather 1.0-1.6s,
+         pour 1.15-2.05s. -->
+    <style>
+      #boot {
+        --boot-end: #0c174f;
+        --boot-size: 76px;
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background: #fff;
+        /* Once the pour has covered the screen, the screen takes the colour
+           (a resized window never shows a white corner). */
+        animation: boot-bg 1ms linear 2050ms both;
+        transition: opacity 600ms cubic-bezier(.4, 0, .2, 1), visibility 0s linear 600ms;
+      }
+      html[data-theme="dark"] #boot { --boot-end: #0b0b0d; }
+
+      /* The pour: a layer just wider than the screen's diagonal (--boot-d, set
+         below), scaled down to the tile's exact size (--boot-s0) and back up
+         to 1. It holds two shapes in the theme colour: the tile's rounded
+         square and a circle. The square shrinks inside the circle as they
+         grow, so the shape reads as the tile rounding into a circle. Scale
+         only: nothing repaints per frame. */
+      #boot .boot-fill {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: var(--boot-d, 300vmax);
+        height: var(--boot-d, 300vmax);
+        margin: calc(var(--boot-d, 300vmax) / -2) 0 0 calc(var(--boot-d, 300vmax) / -2);
+        transform: scale(var(--boot-s0, .02));
+        animation: boot-pour 900ms cubic-bezier(.65, 0, .25, 1) 1150ms both;
+        will-change: transform;
+      }
+      #boot .boot-fill > i {
+        position: absolute;
+        inset: 0;
+        background: var(--boot-end);
+      }
+      #boot .boot-fill .fill-circle { border-radius: 50%; }
+      /* Its corners reach ~8% past the circle; shrinking it to .9 pulls them
+         inside, so the union rounds from tile to circle, solid throughout. */
+      #boot .boot-fill .fill-tile {
+        border-radius: 40%;
+        animation: boot-round 600ms cubic-bezier(.45, 0, .25, 1) 1200ms both;
+      }
+
+      #boot .boot-mark {
+        position: relative;
+        width: var(--boot-size);
+        height: var(--boot-size);
+        border-radius: 40%;
+        background: var(--boot-end);
+        animation:
+          boot-in 450ms cubic-bezier(.22, 1, .36, 1) 50ms both,
+          boot-gather 600ms cubic-bezier(.45, 0, .25, 1) 1000ms;
+        transition: scale 600ms cubic-bezier(.4, 0, .2, 1);
+      }
+      /* Lift on white, on its own layer so it fades without repainting. */
+      #boot .boot-mark::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: 0 16px 36px -12px rgb(12 23 79 / .38);
+        animation: boot-fade-out 450ms ease-out 1200ms both;
+      }
+
+      /* The "CC": logo.svg's blocks as six bars (coordinates are the SVG's,
+         x2 as percentages of the 50-unit box). Each grows from where the pen
+         starts it; --d is its delay, --t its duration, --e its easing, so a
+         C reads as one stroke: speeding up into the top, steady down the
+         column, easing out along the bottom. */
+      #boot .boot-cc { position: absolute; inset: 0; }
+      #boot .boot-cc i {
+        position: absolute;
+        background: #fff;
+        transform: scale(0, 1);
+        animation: boot-draw-x var(--t) var(--e, linear) var(--d) both;
+      }
+      #boot .boot-cc i.v {
+        transform: scale(1, 0);
+        transform-origin: 50% 0;
+        animation-name: boot-draw-y;
+      }
+      #boot .boot-cc i.top { transform-origin: 100% 50%; --e: cubic-bezier(.5, 0, 1, 1); }
+      #boot .boot-cc i.bot { transform-origin: 0 50%; --e: cubic-bezier(0, 0, .45, 1); }
+      /* First C */
+      .c1-top { left: 28.12%; top: 24.01%; width: 20.79%; height: 10.4%; --d: 300ms; --t: 170ms; }
+      .c1-col { left: 17.69%; top: 34.41%; width: 10.4%; height: 31.2%; --d: 470ms; --t: 190ms; }
+      .c1-bot { left: 28.12%; top: 65.6%; width: 20.79%; height: 10.4%; --d: 660ms; --t: 190ms; }
+      /* Second C, a beat behind */
+      .c2-top { left: 71.74%; top: 24%; width: 10.57%; height: 10.4%; --d: 560ms; --t: 120ms; }
+      .c2-col { left: 61.35%; top: 34.4%; width: 10.4%; height: 31.2%; --d: 680ms; --t: 190ms; }
+      .c2-bot { left: 71.74%; top: 65.6%; width: 10.57%; height: 10.4%; --d: 870ms; --t: 170ms; }
+
+      /* Still loading once the colour has settled: the mark breathes gently. */
+      #boot .boot-cc { animation: boot-breathe 2000ms ease-in-out 2600ms infinite; }
+      #boot.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+      #boot.is-done .boot-mark { scale: 1.06; }
+      #boot .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      @keyframes boot-in {
+        from { opacity: 0; transform: scale(.88); }
+        to { opacity: 1; transform: none; }
+      }
+      @keyframes boot-draw-x {
+        to { transform: scale(1, 1); }
+      }
+      @keyframes boot-draw-y {
+        to { transform: scale(1, 1); }
+      }
+      /* A drop gathering before it releases: in, a soft swell, back. Uses
+         `scale` (boot-in holds `transform`). */
+      @keyframes boot-gather {
+        0% { scale: 1; }
+        30% { scale: .93; }
+        65% { scale: 1.035; }
+        100% { scale: 1; }
+      }
+      @keyframes boot-pour {
+        to { transform: scale(1); }
+      }
+      @keyframes boot-round {
+        to { transform: scale(.9); }
+      }
+      @keyframes boot-bg {
+        to { background-color: var(--boot-end); }
+      }
+      @keyframes boot-fade-out {
+        to { opacity: 0; }
+      }
+      @keyframes boot-breathe {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .6; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot { animation: none; background: var(--boot-end); }
+        #boot .boot-fill, #boot .boot-mark::before { display: none; }
+        #boot .boot-mark, #boot .boot-cc, #boot .boot-cc i, #boot .boot-cc i.v { animation: none; transform: none; }
+        #boot.is-done .boot-mark { scale: none; }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot" role="status">
+      <div class="boot-fill"><i class="fill-circle"></i><i class="fill-tile"></i></div>
+      <div class="boot-mark">
+        <div class="boot-cc" aria-hidden="true">
+          <i class="top c1-top"></i><i class="v c1-col"></i><i class="bot c1-bot"></i>
+          <i class="top c2-top"></i><i class="v c2-col"></i><i class="bot c2-bot"></i>
+        </div>
+      </div>
+      <span class="sr">Loading Coherence…</span>
+    </div>
+    <script>
+      // The pour layer: just wider than the screen's diagonal (--boot-d),
+      // starting at the tile's 76px (--boot-s0), hidden under it.
+      // .is-filled marks the pour as finished; hideBootLoader waits for it.
+      (function () {
+        var boot = document.getElementById("boot");
+        var fill = boot.querySelector(".boot-fill");
+        var d = Math.ceil(Math.sqrt(innerWidth * innerWidth + innerHeight * innerHeight) * 1.04);
+        boot.style.setProperty("--boot-d", d + "px");
+        boot.style.setProperty("--boot-s0", (76 / d).toFixed(4));
+        var filled = function () {
+          boot.classList.add("is-filled");
+          boot.dispatchEvent(new Event("boot-filled"));
+        };
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) return filled();
+        // Only the pour's own end (the shape inside it bubbles too).
+        fill.addEventListener("animationend", function onEnd(e) {
+          if (e.target !== fill) return;
+          fill.removeEventListener("animationend", onEnd);
+          filled();
+        });
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

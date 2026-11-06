@@ -29,6 +29,7 @@ import { gridToText, gridToCsv, gridToMarkdown, downloadFile, fileSlug } from ".
 import { hookQuotaFrom } from "./lib/hookQuota";
 import { brandPanelCopy, toast } from "./lib/brandPanelCopy";
 import { nextCreditReset } from "./lib/usageActivity";
+import { hideBootLoader } from "./lib/bootLoader";
 
 import host from "./hosts/browser";
 
@@ -83,6 +84,11 @@ export default function App() {
     setShowAuthModal("login");
     return false;
   }, [user]);
+
+  // The pixel-logo boot loader (index.html) covers the page until auth settles.
+  useEffect(() => {
+    if (!authLoading) hideBootLoader();
+  }, [authLoading]);
 
   // The Figma plugin links to /?open=profile so people can create a plugin key.
   // Signed out, it asks for a login first and opens the profile afterwards.
@@ -391,7 +397,8 @@ export default function App() {
     : "Live generation and brand saving aren't available — add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env, then restart npm run dev.";
 
   if (authLoading) {
-    return <div className="app-loading" role="status">Loading Coherence…</div>;
+    // The boot loader (index.html) is still on top; this is only the backdrop.
+    return <div className="app-loading" aria-hidden="true" />;
   }
 
   return (

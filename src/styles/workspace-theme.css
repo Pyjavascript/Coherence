@@ -32,6 +32,17 @@
   left: calc(100% + 8px);
 }
 
+/* Phones: the menu drops straight down from the button, its left edge on the
+   button's, so it reads as the button's own menu. It is placed against the
+   whole left group (.ws-topbar-start), whose last box is the Add button, so
+   the button's left edge is one box (--tb-h) in from the group's right. */
+@container ws (max-width: 520px) {
+  .ws-topbar .toolbar-node-menu {
+    top: calc(100% + 6px);
+    left: calc(100% - var(--tb-h));
+  }
+}
+
 .ws-topbar .toolbar-node-menu button {
   height: var(--tb-h);
   min-width: 0;
@@ -237,4 +248,49 @@
 #root .ws-view-nodes .canvas-controls,
 #root .tour-launch {
   box-shadow: 0 1px 2px rgb(20 20 30 / .04), 0 4px 14px -6px rgb(20 20 30 / .10) !important;
+}
+
+/* ---------- Phones: larger toolbar boxes and icons ------------------------- */
+/* 44px boxes read small on a phone. 50px boxes (top bar and the bottom row,
+   which share --tb-h) with the glyphs a little fuller inside them. */
+.app-shell[data-bp="mobile"] {
+  --tb-h: 50px;
+}
+
+/* Very narrow phones (<360px): five 50px boxes overrun the bar. */
+@media (max-width: 359.98px) {
+  .app-shell[data-bp="mobile"] {
+    --tb-h: 46px;
+  }
+}
+
+.app-shell[data-bp="mobile"] .ws-topbar .toolbar-nav-btn svg,
+.app-shell[data-bp="mobile"] .ws-topbar .toolbar-panel-btn svg {
+  width: 50%;
+  height: 50%;
+}
+
+.app-shell[data-bp="mobile"] .ws-switch-btn svg {
+  width: 54%;
+  height: 54%;
+}
+
+.app-shell[data-bp="mobile"] .ws-topbar .toolbar-add-spark {
+  grid-template-columns: repeat(2, 13px);
+  gap: 3px;
+}
+
+.app-shell[data-bp="mobile"] .ws-topbar .toolbar-add-spark i {
+  width: 13px;
+  height: 13px;
+}
+
+.app-shell[data-bp="mobile"] .ws-topbar .toolbar-add-spark i::before {
+  width: 6px;
+  height: 1.5px;
+}
+
+.app-shell[data-bp="mobile"] .ws-topbar .toolbar-add-spark i::after {
+  width: 1.5px;
+  height: 6px;
 }

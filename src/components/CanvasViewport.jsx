@@ -24,9 +24,12 @@ export default function CanvasViewport({ children }) {
     return { x: (first.getBoundingClientRect().left - w.left) / scale, w: first.offsetWidth };
   }, []);
 
-  // The canvas runs up under the transparent toolbar, so the home view moves
-  // the content down until its top (the column titles) sits 16px below the
-  // toolbar instead of behind it.
+  // On phones the canvas runs up under the transparent toolbar, so the home
+  // view moves the content down until its top (the column titles) sits 16px
+  // below the toolbar instead of behind it. On desktop and tablet the toolbar
+  // sits on the navy frame above the board (workspace-theme.css), so the
+  // titles go 24px below the board's top edge, in line with the Quick Grid's
+  // cards (this can move the content up as well as down).
   // Both are measured inside the surface, so the hidden view's fade-in
   // transform (it's often hidden when this runs) doesn't skew them: the
   // toolbar's height is the surface's negative top (layout.css), and the
@@ -42,7 +45,7 @@ export default function CanvasViewport({ children }) {
     let top = Infinity;
     items.forEach((item) => { top = Math.min(top, (item.getBoundingClientRect().top - w.top) / scale); });
     const barBottom = Math.max(0, -parseFloat(getComputedStyle(el).top) || 0);
-    return Math.max(0, Math.round(barBottom + 16 - top * zoom));
+    return Math.round((barBottom ? barBottom + 16 : 24) - top * zoom);
   }, []);
 
   // On a phone, keep the first column fitted until the user pans or zooms.

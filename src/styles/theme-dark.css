@@ -43,6 +43,14 @@
   background: linear-gradient(180deg, #121215 0%, #131317 40%, #15172a 80%, #191d38 100%);
   --dot-color: rgb(255 255 255 / .09);
 }
+/* Desktop + tablet: the bar sits on the frame and the board is the stage
+   (workspace-theme.css), so the board's gradient moves with it. */
+:root[data-theme="dark"] .app-shell[data-bp] .workspace {
+  background: none;
+}
+:root[data-theme="dark"] .app-shell[data-bp] .ws-stage {
+  background: linear-gradient(180deg, #121215 0%, #131317 40%, #15172a 80%, #191d38 100%);
+}
 :root[data-theme="dark"] .ws-view-nodes .canvas-surface,
 :root[data-theme="dark"] .qg {
   background-color: transparent;
@@ -59,6 +67,11 @@
 /* Navy in light; a dark panel a step above the frame here. */
 :root[data-theme="dark"] .rsb {
   background: var(--dk-panel);
+}
+/* Desktop: the panel is a column of the frame (workspace-theme.css), so it
+   takes the frame's colour. */
+:root[data-theme="dark"] .app-shell[data-bp="desktop"] .rsb {
+  background: transparent;
 }
 
 /* ---------- Elevation ------------------------------------------------------- */
@@ -190,14 +203,67 @@ html[data-theme="dark"] body .overlay .tour .tour-dots button.is-on::before {
 }
 
 /* ---------- Top-bar logo (phones) ------------------------------------------ */
-/* Navy in light. Here it takes the other bar boxes' look: their raised grey
+/* White with a navy "CC" in light. Here it takes the other bar boxes' look: their raised grey
    (the generated twin of their white), faint edge and drop, white "CC".
    The grey is the button's own background (the SVG's tile is cleared) so
    the inset edge shows on top of it. */
 :root[data-theme="dark"] .ws-topbar .toolbar-logo-tile {
   fill: transparent;
 }
+:root[data-theme="dark"] .ws-topbar .toolbar-logo svg g {
+  fill: #fff;
+}
 :root[data-theme="dark"] body #root .ws-topbar .toolbar-logo {
   background: #1b1b1b;
   box-shadow: var(--dk-edge), var(--dk-drop) !important;
+}
+
+/* ---------- Phone carousel pager -------------------------------------------- */
+/* The pale dots are the Generate blue mixed into the dark surface, not white. */
+:root[data-theme="dark"] .qg-pager-dot:not([aria-current]) {
+  background: color-mix(in srgb, var(--shell-blue) 45%, #3a3d52);
+}
+
+/* ---------- Plans dialog ----------------------------------------------------- */
+/* The featured card stays the brightest surface (white in light mode), the
+   icon tiles keep their light-mode look, and the buttons invert to white so
+   they still read as the solid call to action. */
+:root[data-theme="dark"] .plan-card.is-featured {
+  background: #343845;
+  border-color: rgb(255 255 255 / .08);
+}
+
+:root[data-theme="dark"] .is-featured .plan-chip {
+  background: #434859;
+}
+
+:root[data-theme="dark"] .plan-icon {
+  background:
+    radial-gradient(closest-side, rgb(255 255 255 / .95), rgb(214 219 232 / .7) 38%, transparent 100%),
+    linear-gradient(145deg, #3a3e4c, #14161d);
+}
+
+:root[data-theme="dark"] [data-plan="studio"] .plan-icon {
+  background:
+    radial-gradient(closest-side, #ffe7b0, rgb(240 182 74 / .75) 40%, transparent 100%),
+    linear-gradient(145deg, #1d2a78, #0c174f);
+}
+
+:root[data-theme="dark"] .is-featured .plan-icon {
+  background: radial-gradient(closest-side, #fff 0%, #ffe3ef 16%, #f6a9d4 40%, #a99dff 64%, #8cc0ff 82%, transparent 100%);
+}
+
+:root[data-theme="dark"] .plan-cta {
+  color: #14161d;
+  background: #fff;
+}
+
+:root[data-theme="dark"] .plan-cta:hover {
+  color: #fff;
+  background: var(--shell-blue);
+}
+
+:root[data-theme="dark"] .is-featured .plan-check {
+  color: #14161d;
+  background: #fff;
 }

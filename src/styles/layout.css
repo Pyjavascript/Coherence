@@ -137,7 +137,7 @@ body {
   width: var(--lnav-closed);
   display: flex;
   flex-direction: column;
-  gap: clamp(6px, 0.7vw, 10px);
+  gap: clamp(15px, 0.7vw, 10px);
   padding: var(--lnav-side);
   color: #fff;
   background: var(--shell-navy);
@@ -175,7 +175,7 @@ body {
   position: fixed;
   top: 0;
   bottom: 0;
-  width: min(300px, 86vw);
+  width: min(240px, 68vw);
   padding-inline: var(--lnav-pad);
   border-radius: var(--r);
   transform: translateX(-100%);
@@ -202,7 +202,7 @@ body {
   border: 0;
   border-radius: var(--r);
   font: inherit;
-  font-size: clamp(16px, 1.05vw, 18px);
+  font-size: clamp(15px, 1.05vw, 10px);
   font-weight: 500;
   text-align: left;
   white-space: nowrap;
@@ -290,7 +290,7 @@ body {
 .lnav .lnav-title {
   flex: 0 0 var(--lnav-label-w);
   color: #fff;
-  font-size: clamp(24px, 1vw, 16px);
+  font-size: clamp(22px, 1vw, 16px);
   font-weight: 700;
   line-height:0.9;
   white-space: nowrap;

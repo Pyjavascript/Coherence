@@ -68,8 +68,14 @@ export function useBrandWorkspace(setStatus, userId) {
     }
   }, [setStatus]);
 
+  // False while a user's list is first loading, so the rail doesn't treat
+  // "not loaded yet" as "no brands" (it centres Add Brand when there are none).
+  const [brandsLoaded, setBrandsLoaded] = useState(false);
   useEffect(() => {
-    refresh();
+    let live = true;
+    setBrandsLoaded(false);
+    refresh().finally(() => { if (live) setBrandsLoaded(true); });
+    return () => { live = false; };
   }, [refresh, userId]);
 
   const setField = (key, value) => setBrand((b) => ({ ...b, [key]: value }));
@@ -208,6 +214,7 @@ export function useBrandWorkspace(setStatus, userId) {
 
   return {
     brands,
+    brandsLoaded,
     currentId,
     scope,
     brand,

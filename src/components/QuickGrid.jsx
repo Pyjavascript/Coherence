@@ -282,8 +282,49 @@ const packRows = (fulls, cols) => {
 
 const DEFAULT_FULLS = MEDIA.map((m) => Boolean(m.full));
 
-export default function QuickGrid({ quick, atGenLimit }) {
+// Phones (carousel): the card in view, from the strip's scroll position.
+const slideAt = (strip) => {
+  const first = strip.firstElementChild;
+  if (!first) return 0;
+  const step = first.offsetWidth + (parseFloat(getComputedStyle(strip).columnGap) || 0);
+  return step ? Math.round(strip.scrollLeft / step) : 0;
+};
+
+// carousel (phones): one card at a time. The cards sit in a horizontal strip
+// that snaps card by card, so each thumb swipe moves exactly one card back or
+// forward. The pager under them shows where you are: a dot per card, the
+// current one a wide bar, all in the Generate button's blue (tap a dot to
+// jump to that card).
+export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
   const gridRef = useRef(null);
+  const [slide, setSlide] = useState(0);
+  const count = quick.nodes.length;
+  const current = Math.min(slide, Math.max(0, count - 1));
+
+  const goTo = (index, smooth = true) => {
+    const strip = gridRef.current;
+    const card = strip?.children[index];
+    if (!strip || !card) return;
+    strip.scrollTo({ left: card.offsetLeft - strip.firstElementChild.offsetLeft, behavior: smooth ? "smooth" : "auto" });
+    setSlide(index);
+  };
+
+  // Track the card in view as the strip is swiped.
+  useEffect(() => {
+    const strip = gridRef.current;
+    if (!carousel || !strip) return undefined;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setSlide(slideAt(strip)));
+    };
+    strip.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      strip.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [carousel]);
   // Cards across (layout.css --qg-cols, from the stage width).
   const [cols, setCols] = useState(1);
   const { spans } = packRows(quick.nodes.map((n) => n.width === "full"), cols);
@@ -323,6 +364,11 @@ export default function QuickGrid({ quick, atGenLimit }) {
     const scroller = gridRef.current?.parentElement;
     const el = quick.lastAdded && gridRef.current?.querySelector(`[data-flip-id="${quick.lastAdded}"]`);
     if (!scroller || !el) return;
+    // Phones: slide to the new card.
+    if (carousel) {
+      goTo([...gridRef.current.children].indexOf(el));
+      return;
+    }
     const box = scroller.getBoundingClientRect();
     const r = el.getBoundingClientRect();
     // The bottom padding is the room kept clear of the Generate tray.
@@ -344,7 +390,7 @@ export default function QuickGrid({ quick, atGenLimit }) {
   };
 
   return (
-    <div className={"qg" + (quick.nodes.length ? "" : " is-empty")}>
+    <div className={"qg" + (quick.nodes.length ? "" : " is-empty") + (carousel ? " is-carousel" : "")}>
       {!quick.nodes.length && (
         <div className="qg-empty">
           <h2>No cards on the grid</h2>
@@ -378,6 +424,22 @@ export default function QuickGrid({ quick, atGenLimit }) {
           />
         ))}
       </div>
+      {carousel && count > 1 && (
+        <div className="qg-pager">
+          <div className="qg-pager-dots">
+            {quick.nodes.map((n, i) => (
+              <button
+                key={n.id}
+                type="button"
+                className="qg-pager-dot"
+                aria-label={`${n.label || MEDIA_BY_KEY[n.type]?.label || "Card"} (${i + 1} of ${count})`}
+                aria-current={i === current || undefined}
+                onClick={() => goTo(i)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

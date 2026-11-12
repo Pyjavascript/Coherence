@@ -12,8 +12,9 @@ import AuthModal from "./components/AuthModal";
 import ProfileModal from "./components/ProfileModal";
 import UsageModal from "./components/UsageModal";
 import TourModal from "./components/TourModal";
+import PlansModal, { PlanProButton } from "./components/PlansModal";
 import CanvasViewport from "./components/CanvasViewport";
-import GenerateButton, { HookFab } from "./components/GenerateDock";
+import GenerateButton from "./components/GenerateDock";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightSidebar from "./components/layout/RightSidebar";
 import MainWorkspace from "./components/layout/MainWorkspace";
@@ -64,6 +65,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false); // false | "login" | "signup"
   const [showProfile, setShowProfile] = useState(false);
   const [showUsage, setShowUsage] = useState(false);
+  const [showPlans, setShowPlans] = useState(false);
   const [panelFocus, setPanelFocus] = useState(null); // { target } — new object per request
   const platforms = NO_PLATFORMS;
   const hookQuota = hookQuotaFrom(usage.hooks);
@@ -133,7 +135,14 @@ export default function App() {
     setPanelFocus({ target: "bp-message" });
   }, [layout.open]);
 
-  const handleGenerated = useCallback(() => {
+  // Whether the Quick Grid's copy was made for the brand that's open now. The
+  // grid keeps its cards when another brand is picked, so Export (brand
+  // panel) shows only once this brand has generated (or restored) copy, and
+  // hides again when the brand changes.
+  const [gridCopyIsCurrent, setGridCopyIsCurrent] = useState(false);
+
+  const handleGenerated = useCallback((event) => {
+    if (event?.type === "quick") setGridCopyIsCurrent(true);
     refreshUsage();
   }, [refreshUsage]);
 
@@ -210,6 +219,7 @@ export default function App() {
   const handleNewBrand = (scope = "regular") => {
     guardUnsaved(() => {
       ws.newBrand(scope);
+      setGridCopyIsCurrent(false);
       layout.open("right");
     });
   };
@@ -218,6 +228,7 @@ export default function App() {
     if (id === ws.currentId) return layout.open("right");
     guardUnsaved(async () => {
       await ws.selectBrand(id);
+      setGridCopyIsCurrent(false);
       layout.open("right");
     });
   };
@@ -241,6 +252,7 @@ export default function App() {
       tone: "danger",
       onConfirm: async () => {
         await ws.remove();
+        setGridCopyIsCurrent(false);
         refreshUsage();
       },
     });
@@ -307,6 +319,7 @@ export default function App() {
       return setStatus(...toast("restoreStudio", { category: NODE_CATS[category]?.label || "Copy" }));
     }
     if (!quick.restore(medium, items)) return setStatus(...toast("restoreGridFailed"));
+    setGridCopyIsCurrent(true); // history lists the open brand's own copy
     layout.setView("quick");
     setModal(null);
     setStatus(...toast("restoreGrid", { medium: MEDIA_BY_KEY[medium]?.label || "Copy" }));
@@ -337,7 +350,7 @@ export default function App() {
   // Keyboard shortcuts: Ctrl/⌘+Enter generates, Ctrl/⌘+S saves the brand.
   const shortcutsRef = useRef(null);
   shortcutsRef.current = {
-    blocked: Boolean(modal || confirm || showAuthModal || showProfile || showTour),
+    blocked: Boolean(modal || confirm || showAuthModal || showProfile || showTour || showPlans),
     generate: triggerGenerate,
     save: () => { if (!ws.saving) requireLogin(handleSaveBrand)(); },
   };
@@ -371,13 +384,20 @@ export default function App() {
 
   const openHook = () => setModal("hook");
 
+  // Checkout isn't connected yet (lib/plans.js): choosing a plan asks for an
+  // account first, then says so instead of pretending to subscribe.
+  const choosePlan = (plan) => {
+    setShowPlans(false);
+    requireLogin(() => setStatus(`${plan.name} checkout is coming soon.`, "warn"))();
+  };
+
   const cardCount = quick.nodes.length;
   const generatingDetail = layout.view === "quick" && cardCount > 0
     ? `${cardCount} card${cardCount === 1 ? "" : "s"}`
     : "";
 
   const views = {
-    quick: <QuickGrid quick={quick} atGenLimit={atGenLimit} />,
+    quick: <QuickGrid quick={quick} atGenLimit={atGenLimit} carousel={layout.bp === "mobile"} />,
     nodes: (
       <CanvasViewport>
         <NodeStudio
@@ -418,9 +438,13 @@ export default function App() {
           <BrandSidebar
             open={layout.leftOpen || layout.bp === "mobile"}
             drawer={!layout.inline && layout.leftOpen}
+            closeInHead={layout.bp === "mobile"}
             onToggle={() => layout.toggle("left")}
             brands={ws.brands}
+            brandsLoaded={ws.brandsLoaded}
             currentId={ws.currentId}
+            onHook={openHook}
+            hooksLeft={premium ? null : hookQuota.left}
             onSelect={handleSelectBrand}
             onNew={handleNewBrand}
             user={user}
@@ -445,9 +469,7 @@ export default function App() {
               atGenLimit={atGenLimit}
             />
           }
-          trayStart={
-            <HookFab onHook={openHook} hooksLeft={premium ? null : hookQuota.left} />
-          }
+          trayStart={premium ? null : <PlanProButton onClick={() => setShowPlans(true)} />}
           toolbar={
             <Header
               tier={tier}
@@ -478,7 +500,7 @@ export default function App() {
             saving={ws.saving}
             focusRequest={panelFocus}
             hookQuota={premium ? null : hookQuota}
-            canExport={quick.hasCopy}
+            canExport={quick.hasCopy && gridCopyIsCurrent}
             onExport={handleExport}
             onSave={requireLogin(handleSaveBrand)}
             onDelete={requireLogin(handleDeleteBrand)}
@@ -523,6 +545,10 @@ export default function App() {
           onTier={setTier}
           onClose={() => setShowUsage(false)}
         />
+      )}
+
+      {showPlans && (
+        <PlansModal onClose={() => setShowPlans(false)} onChoose={choosePlan} />
       )}
 
       {confirm && (

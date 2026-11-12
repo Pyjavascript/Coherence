@@ -482,10 +482,13 @@ export default function BrandPanel({
         </div>
       </section>
 
-      {/* The Quick Grid's copy: Export opens the formats; each copies or downloads straight away. */}
-      <section className="bp-section bp-export-section">
-        <ExportMenu canExport={canExport} onExport={onExport} />
-      </section>
+      {/* The Quick Grid's copy: Export opens the formats; each copies or downloads straight away.
+          Shown only once the open brand has copy on the grid (App.jsx). */}
+      {canExport && (
+        <section className="bp-section bp-export-section">
+          <ExportMenu canExport={canExport} onExport={onExport} />
+        </section>
+      )}
     </div>
   );
 }

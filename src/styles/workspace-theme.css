@@ -65,7 +65,10 @@
 }
 
 .ws-topbar .model-selector-trigger:hover,
-.ws-topbar .model-selector.is-open .model-selector-trigger {
+.ws-topbar .model-selector.is-open .model-selector-trigger,
+/* The Add box with its menu open looks like the open model picker: it used to
+   turn navy (layout.css), which vanished into the navy bar. */
+.ws-topbar .toolbar-add-node[aria-expanded="true"] {
   background: var(--bar-hover);
   scale: none;
 }
@@ -147,21 +150,202 @@
   stroke-width: 1.8;
 }
 
-/* Desktop: the brand panel floats over the workspace's right side, so while
-   it's open the right group slides left to sit beside it instead of under it.
-   Same tokens as the panel's slide (polish/shell.css), so the two move as
-   one and the picker never passes under the panel. */
-.app-shell[data-bp="desktop"] .ws-topbar-end {
-  transition: translate var(--pl-panel-close) var(--pl-panel-ease);
+/* ---------- The toolbar sits on the navy frame (every size) ----------------- */
+/* The bar is part of the navy frame, like the left rail: its boxes sit on the
+   navy, and the light board (the stage: grid, canvas, bottom row) is its own
+   rounded card below it. Phones too, where the logo starts the bar (below).
+   The workspace itself goes transparent; the board's gradient and corners
+   move to the stage. [data-bp] keeps these ahead of phone-only rules. */
+.app-shell[data-bp] .workspace {
+  background: none;
+  border-radius: 0;
 }
 
-.app-shell[data-bp="desktop"][data-right="open"] .ws-topbar-end {
-  translate: calc(-1 * (var(--rsb-w) + var(--gap))) 0;
-  transition: translate var(--pl-panel-open) var(--pl-panel-ease);
+/* Tops line up with the rail's logo (both sit --shell-pad down); the bar's
+   ends line up with the board's edges.
+   Phones: the bar's logo tile turns white with a navy "CC" (the rail logo's
+   colours), so it shows on the navy. */
+.ws-topbar .toolbar-logo-tile {
+  fill: #fff;
+}
+
+.ws-topbar .toolbar-logo svg g {
+  fill: var(--shell-navy);
+}
+
+.app-shell[data-bp] .ws-topbar {
+  padding: 0 0 var(--tb-pad-bottom);
+}
+
+.app-shell[data-bp] .ws-stage {
+  overflow: hidden;
+  overflow: clip;
+  border-radius: var(--r);
+  background: linear-gradient(
+    180deg,
+    #f9faff 0%,
+    #eef2ff 18%,
+    #dde7ff 42%,
+    #c9d9ff 66%,
+    #b2c9ff 85%,
+    #a0bdff 100%
+  );
+}
+
+/* Nothing runs under the bar any more: Node Studio's canvas fills the board
+   (it used to reach up under the floating bar), and both views start one
+   gutter below the board's top edge. The grid's 4px headroom (polish/grid.css:
+   margin-top -4px, padding-top 4px) is kept on top of the gutter. */
+.app-shell[data-bp] .ws-view-nodes .canvas-surface {
+  inset: 0;
+}
+
+.app-shell[data-bp] .ws-view-nodes .canvas-world .nodebar {
+  padding-top: var(--ws-gutter);
+}
+
+.app-shell[data-bp] .qg {
+  padding-top: calc(var(--ws-gutter) + 4px);
+}
+
+/* Toolbar boxes are the rail logo's height (--ui-icon), so the bar and the
+   logo line up as one row. The bottom row shares --tb-h, so it follows. */
+.app-shell:not([data-bp="mobile"]) {
+  --tb-h: var(--ui-icon);
+}
+
+/* The view switch and Add box take their corner from their height, not the
+   fixed 24px, which reads as a pill on the shorter box. 0.3 x, like the
+   logo tile beside them and the model / menu boxes (--bar-r), so the row
+   reads as one set. The switch's tabs and thumb follow (radius.css: --ui-r
+   minus the inset). */
+.app-shell:not([data-bp="mobile"]) .ws-topbar {
+  --ui-r: calc(var(--tb-h) * var(--ui-ratio-sm));
+}
+
+/* ---------- Phone drawer: no Minimize row, no close button ------------------ */
+/* BrandSidebar.jsx closeInHead drops the Minimize row on phones. */
+.lnav-head .lnav-title {
+  flex-shrink: 1;
+}
+
+/* Add Brand is pulled up to sit snug under Minimize (layout.css); with no
+   Minimize row it follows the logo row at the normal spacing. */
+.app-shell[data-bp="mobile"] .lnav .lnav-add {
+  margin-top: 0;
+}
+
+/* ---------- Left rail: free-hook bolt and a centred Add Brand ---------------- */
+/* The hook bolt (BrandSidebar.jsx) sits above the profile: the stage's old
+   bolt circle (composer.css .hook-bolt), at the rail's icon size. The row
+   itself stays clear; hovering anywhere on it lights the bolt. */
+.lnav .lnav-hook,
+.lnav .lnav-hook:hover {
+  background: transparent;
+}
+
+/* The profile icon's and credits meter's corner (radius.css --ui-icon-r), not
+   a circle, so the three footer icons read as one set. */
+.lnav-hook-bolt {
+  --bolt-size: var(--ui-icon);
+  box-sizing: border-box;
+  border-radius: var(--ui-icon-r);
+}
+
+.lnav-hook:hover .hook-bolt:not(.is-used) {
+  color: #fff;
+  background:
+    linear-gradient(#0f55ff, #0f55ff) padding-box,
+    conic-gradient(from var(--ring-angle), #173cf5, #7d93ff 25%, #e4e9ff 45%, #a99bff 70%, #173cf5) border-box;
+}
+
+.lnav-hook:hover .hook-bolt:not(.is-used) svg {
+  fill-opacity: 1;
+}
+
+.lnav-hook:active .hook-bolt {
+  scale: var(--pl-press-scale-sm);
+}
+
+.lnav-hook:focus-visible {
+  outline: 2px solid #8fa0ff;
+  outline-offset: 2px;
+}
+
+/* No brands yet: Add Brand sits in the brand list's slot, which is centred
+   in the rail's free space, and drops in there. */
+.lnav .lnav-add.is-centred {
+  margin-top: 0;
+  animation: lnav-add-centre var(--pl-d-3, 300ms) var(--shell-ease) both;
+}
+
+@keyframes lnav-add-centre {
+  from {
+    opacity: 0;
+    translate: 0 -10px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-shell[data-bp="desktop"] .ws-topbar-end {
+  .lnav .lnav-add.is-centred {
+    animation: none;
+  }
+}
+
+/* ---------- Desktop: the brand panel is a column of the navy frame ---------- */
+/* No floating card: the panel sits straight on the navy, full height, right
+   of the board, like the rail on the left. Its slot (.shell-right) opens to
+   the panel's width, so the board shrinks to make room, and the panel,
+   pinned to the slot's left edge, slides in from the window's right edge as
+   the slot grows. Same panel tokens as before (polish/tokens.css). */
+.app-shell[data-bp="desktop"] .shell-right {
+  width: 0;
+  transition: width var(--pl-panel-close) var(--pl-panel-ease);
+}
+
+.app-shell[data-bp="desktop"][data-right="open"] .shell-right {
+  width: calc(var(--rsb-w) + var(--gap));
+  transition: width var(--pl-panel-open) var(--pl-panel-ease);
+}
+
+.app-shell[data-bp="desktop"] .rsb,
+.app-shell[data-bp="desktop"][data-right="open"] .rsb {
+  top: 0;
+  bottom: 0;
+  left: var(--gap);
+  right: auto;
+  translate: none;
+  background: transparent;
+  border-radius: 0;
+}
+
+#root .app-shell[data-bp="desktop"] .rsb {
+  box-shadow: none !important;
+}
+
+/* The panel's title row is the toolbar's height and starts at its top, so
+   the title and its buttons share the toolbar's centre line. */
+.app-shell[data-bp="desktop"] .rsb-scroll {
+  padding-top: 0;
+}
+
+.app-shell[data-bp="desktop"] .rsb-head {
+  min-height: var(--tb-h);
+  align-items: center;
+}
+
+/* The board no longer runs under the panel, so the grid, the bottom row and
+   the zoom controls keep their normal insets while it's open. */
+.app-shell[data-bp="desktop"][data-right="open"] .ws-stage {
+  --tray-right: var(--ws-gutter);
+}
+
+.app-shell[data-bp="desktop"][data-right="open"] .qg {
+  padding-right: clamp(12px, 1.6vw, 24px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell[data-bp="desktop"] .shell-right {
     transition: none;
   }
 }
@@ -235,6 +419,20 @@
   --tb-h: 50px;
 }
 
+/* The top bar's boxes (logo, Add, model picker, menu) are 45 x 45 on phones;
+   the bottom row keeps the 50px above. Their corners are the profile icon's
+   (--ui-icon-r: the same 45px box at 0.42), logo tile included. */
+.app-shell[data-bp="mobile"] .ws-topbar {
+  --tb-h: 45px;
+  --bar-r: var(--ui-icon-r);
+  --ui-r: var(--ui-icon-r);
+}
+
+/* The logo tile's 50-unit viewBox: 0.42 x 50. */
+.app-shell[data-bp="mobile"] .ws-topbar .toolbar-logo-tile {
+  rx: calc(50px * var(--ui-ratio));
+}
+
 /* Very narrow phones (<360px): five 50px boxes overrun the bar. */
 @media (max-width: 359.98px) {
   .app-shell[data-bp="mobile"] {
@@ -302,4 +500,138 @@
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* ---------- Phones: the Quick Grid is a carousel ---------------------------- */
+/* One card at a time (QuickGrid.jsx, carousel). The cards sit in a horizontal
+   strip that snaps card by card (snap-stop: always), so each thumb swipe moves
+   exactly one card, however hard it is flicked. The strip runs edge to edge of the board, with the
+   usual 12px side gutter as its padding, so the next card slides in from the
+   board's edge instead of being cut off at the gutter. The grid's bottom
+   padding still keeps the Generate row clear. */
+.qg.is-carousel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.qg.is-carousel .qg-grid {
+  --strip-pad: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  gap: var(--strip-pad);
+  /* 4px above and below: room for the cards' shadows. */
+  padding: 4px var(--strip-pad);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--strip-pad);
+  scrollbar-width: none;
+}
+
+.qg.is-carousel .qg-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.qg.is-carousel .qg-grid > .ncard {
+  flex: 0 0 100%;
+  min-width: 0;
+  min-height: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Pager: a dot per card, centred; the current card's dot stretches into a
+   wide bar. One fixed colour, the Generate button's blue (--shell-blue):
+   solid for the bar, a pale tint for the rest. Each dot is also a button
+   that jumps to its card. */
+.qg-pager {
+  --dot: 6px;
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding: 16px 12px 4px;
+}
+
+.qg-pager-dots {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.qg-pager-dot {
+  position: relative;
+  flex: none;
+  width: var(--dot);
+  height: var(--dot);
+  padding: 0;
+  /* Solid, and dark enough to read on the board's light blue bottom. */
+  background: color-mix(in srgb, var(--shell-blue) 45%, #b9ccff);
+  border: 0;
+  border-radius: calc(var(--dot) / 2);
+  cursor: pointer;
+  transition:
+    width 320ms var(--shell-ease),
+    background-color 240ms ease;
+}
+
+/* A finger-sized hit area around each small dot. */
+.qg-pager-dot::after {
+  content: "";
+  position: absolute;
+  inset: -14px -3px;
+}
+
+.qg-pager-dot[aria-current] {
+  width: calc(var(--dot) * 3.6);
+  background: var(--shell-blue);
+}
+
+.qg-pager-dot:focus-visible {
+  outline: 2px solid var(--shell-blue);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qg-pager-dot {
+    transition: none;
+  }
+}
+
+/* ---------- Phones: larger card controls ------------------------------------ */
+/* (The bottom row reads "Pro", "?", then Generate filling the rest:
+   composer.css.) */
+
+/* The card header's edit / regenerate / close tiles read tiny at 30px with
+   14px glyphs: 38px tiles with ~19px glyphs, and a title and colour dot to
+   match. Corners follow the tiles' size (0.3 x, radius.css / enhancements.css). */
+.app-shell[data-bp="mobile"] .ncard .ncard-action {
+  --ncard-act: 38px;
+}
+
+.app-shell[data-bp="mobile"] .ncard .ncard-sheet-trigger {
+  --sz: 38px;
+}
+
+.app-shell[data-bp="mobile"] .ncard-head :is(.ncard-action, .ncard-sheet-trigger) svg {
+  width: 50%;
+  height: 50%;
+}
+
+.app-shell[data-bp="mobile"] .ncard .ncard-pill {
+  font-size: 17px;
+  gap: 10px;
+}
+
+.app-shell[data-bp="mobile"] .ncard .ncard-dot {
+  width: 10px;
+  height: 10px;
 }

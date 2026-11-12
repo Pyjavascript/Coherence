@@ -37,8 +37,11 @@
   pointer-events: none;
 }
 
+/* "Pro" and the "?": in line with the toolbar's left edge, centred on the
+   same line as the tray (which is Generate's height). */
 .ws-tray-start {
   left: var(--tray-left);
+  height: var(--tray-h, auto);
 }
 
 .ws-tray {
@@ -56,15 +59,11 @@
   pointer-events: auto;
 }
 
-/* The "?" sits in the tray's row instead of floating in the corner. In Node
-   Studio it leaves room after it for the zoom controls (Quick Grid has none). */
-.ws-stage .ws-tray .tour-launch {
+/* The "?" sits in the left group, after "Pro", instead of floating in the
+   corner. */
+.ws-stage .ws-tray-start .tour-launch {
   position: static;
   flex: none;
-}
-
-.ws-stage[data-view="nodes"] .ws-tray .tour-launch {
-  margin-right: var(--zoom-room, 0px);
 }
 
 /* Node Studio's zoom controls: between the "?" and Generate, one height with
@@ -92,12 +91,10 @@
     --tray-gap: 10px;
   }
 
+  /* "Pro" and the "?" keep the left corner; the tray (Generate, filling the
+     rest) starts right after them. */
   .ws-stage .ws-tray {
-    left: calc(var(--tray-left) + var(--fab) + var(--tray-gap));
-  }
-
-  .ws-stage[data-view="nodes"] .ws-tray .tour-launch {
-    margin-right: 0;
+    left: calc(var(--tray-left) + var(--start-room, 0px));
   }
 
   .ws-tray .gen-cta {

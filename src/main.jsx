@@ -17,6 +17,8 @@ import "./styles/polish/links.css";
 import "./styles/composer.css";
 // Top bar layout and the corner controls.
 import "./styles/workspace-theme.css";
+// The plans lock and dialog.
+import "./styles/plans.css";
 // Dark theme hand-tuning (the rest is generated, see scripts/vite-dark-theme.js).
 import "./styles/theme-dark.css";
 

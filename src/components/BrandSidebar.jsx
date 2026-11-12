@@ -5,6 +5,7 @@ import { profileOf } from "./ProfileModal";
 import BrandMark from "./BrandMark";
 import BrandLogo from "./BrandLogo";
 import { useCountUp } from "../hooks/useCountUp";
+import { BoltIcon } from "./BrandPanel";
 
 // Labels fade in one after another when the sidebar opens; --pl-li is a
 // label's place in that sequence (capped, so long brand lists don't lag).
@@ -65,8 +66,19 @@ const ProfileIcon = ({ src }) => (
 );
 
 export default function BrandSidebar({
-  open, drawer, onToggle, brands, currentId, onSelect, onNew, user, onLogin, onSignup, onProfile, onUsage, usage,
+  open, drawer, closeInHead = false, onToggle, brands, brandsLoaded = true, currentId, onSelect, onNew, user, onLogin, onSignup, onProfile, onUsage, usage,
+  onHook, hooksLeft,
 }) {
+  // No brands yet: Add Brand sits in the middle of the rail (in the brand
+  // list's centred slot) instead of at the top. Not while the list is still
+  // loading, so it doesn't jump for people who do have brands.
+  const empty = brandsLoaded && brands.length === 0;
+  // hooksLeft: free hooks left today (null = unlimited / Premium).
+  const hookTitle = hooksLeft == null
+    ? "Generate a hook"
+    : hooksLeft > 0
+      ? `Generate a free hook (${hooksLeft} left today)`
+      : "Today's free hooks are used";
   const generationsUsed = Math.min(LIMITS.generations, Math.max(0, usage?.generations || 0));
   const usagePercent = Math.round((generationsUsed / LIMITS.generations) * 100);
   // The ring's number counts up whenever usage changes.
@@ -77,6 +89,22 @@ export default function BrandSidebar({
   const rootRef = useRef(null);
   useFitLabels(rootRef);
 
+  const addRow = (
+    <Row
+      order={2}
+      className={"lnav-add" + (empty ? " is-centred" : "")}
+      title={tip("Add brand")}
+      onClick={() => onNew("regular")}
+      icon={
+        // Same glyph box as Minimize's icon (its square spans 3.5–20.5), so
+        // the two sit centred in their slots at the same size.
+        <svg className="lnav-glyph" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17" /></svg>
+      }
+      label="Add Brand"
+      fit
+    />
+  );
+
   return (
     <aside className="lnav" ref={rootRef} data-open={open} aria-label="Workspace navigation">
       <div className="lnav-head">
@@ -86,7 +114,9 @@ export default function BrandSidebar({
         <span className="lnav-label lnav-title rail-product-name" style={labelOrder(0)} data-fit>Coherence Content<br />Orchestration</span>
       </div>
 
-      <Row
+      {/* Phones: no close control at all; the drawer closes by tapping the
+          scrim beside it (or Escape). */}
+      {!closeInHead && <Row
         order={1}
         className="lnav-toggle"
         aria-expanded={open}
@@ -105,24 +135,13 @@ export default function BrandSidebar({
         }
         label="Minimize"
         fit
-      />
+      />}
 
-      <Row
-        order={2}
-        className="lnav-add"
-        title={tip("Add brand")}
-        onClick={() => onNew("regular")}
-        icon={
-          // Same glyph box as Minimize's icon (its square spans 3.5–20.5), so
-          // the two sit centred in their slots at the same size.
-          <svg className="lnav-glyph" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17" /></svg>
-        }
-        label="Add Brand"
-        fit
-      />
+      {!empty && addRow}
 
       <nav className="lnav-brands" aria-label="Brands">
         <div className="lnav-brand-list">
+        {empty && addRow}
         {brands.map((brand, i) => (
           <Row
             key={brand.id}
@@ -145,6 +164,24 @@ export default function BrandSidebar({
       </nav>
 
       <div className="lnav-footer">
+        {/* The free-hook bolt (it used to sit in the stage's bottom-left
+            corner): makes a hook straight away. */}
+        {onHook && (
+          <Row
+            order={footerOrder - 1}
+            className={"lnav-hook" + (hooksLeft === 0 ? " is-used" : "")}
+            aria-label={hookTitle}
+            title={tip(hookTitle)}
+            onClick={onHook}
+            icon={
+              <span className={"hook-bolt lnav-hook-bolt" + (hooksLeft === 0 ? " is-used" : "")} aria-hidden="true">
+                <BoltIcon />
+              </span>
+            }
+            label="Free hook"
+            fit
+          />
+        )}
         {user ? (
           <Row
             order={footerOrder}

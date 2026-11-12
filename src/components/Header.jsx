@@ -175,9 +175,9 @@ const PanelIcon = () => (
   </svg>
 );
 
-// The sidebar's logo (src/assets/sidebar/logo.svg), inverted for the white
-// bar: a navy tile with the white "CC", the size and corners (0.3) of the
-// boxes beside it.
+// The sidebar's logo (src/assets/sidebar/logo.svg): a tile with the "CC", the
+// size and corners (0.3) of the boxes beside it. Its colours come from CSS
+// (workspace-theme.css): white with a navy "CC" on the navy bar.
 const BarLogo = () => (
   <svg viewBox="0 0 50 50" aria-hidden="true">
     <rect className="toolbar-logo-tile" width="50" height="50" rx="15" fill="#0A144B" />

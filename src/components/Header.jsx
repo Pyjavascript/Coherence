@@ -119,9 +119,6 @@ function ModelSelector({ tier, onTier }) {
         }}
       >
         <span className="model-selector-logo" aria-hidden="true"><img src={ChatGpt} alt="ChatGPT" /></span>
-        <svg className="model-selector-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
       </button>
       {open && (
         <ul
@@ -177,10 +174,10 @@ const PanelIcon = () => (
 
 // The sidebar's logo (src/assets/sidebar/logo.svg): a tile with the "CC", the
 // size and corners (0.3) of the boxes beside it. Its colours come from CSS
-// (workspace-theme.css): white with a navy "CC" on the navy bar.
+// (workspace-theme.css): the theme colour (#113C49) with a white "CC".
 const BarLogo = () => (
   <svg viewBox="0 0 50 50" aria-hidden="true">
-    <rect className="toolbar-logo-tile" width="50" height="50" rx="15" fill="#0A144B" />
+    <rect className="toolbar-logo-tile" width="50" height="50" rx="15" fill="#113C49" />
     {/* The "CC" at ~3/4 of the sidebar's size, so the tile has room around it. */}
     <g fill="#fff" transform="translate(25 25) scale(.74) translate(-25 -25)">
       <path d="M14.06 12h10.4v5.2h-10.4zM8.85 17.2h5.2v15.6h-5.2zM14.06 32.8h10.4V38h-10.4z" />
@@ -238,6 +235,21 @@ export default function Header({
     };
   }, [addMenuOpen]);
 
+  // Whether the open menu's row is cut off and scrolls (narrow workspace):
+  // only then does it fade at its right edge (workspace-theme.css).
+  const addMenuListRef = useRef(null);
+  const [addMenuOverflows, setAddMenuOverflows] = useState(false);
+  useLayoutEffect(() => {
+    const list = addMenuListRef.current;
+    if (!addMenuOpen || !list) return undefined;
+    const check = () => setAddMenuOverflows(list.scrollWidth > list.clientWidth + 1);
+    check();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(check);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [addMenuOpen, addOptions.length]);
+
   return (
     <header className="ws-topbar">
       <div className="ws-topbar-start" ref={addMenuRef}>
@@ -269,7 +281,7 @@ export default function Header({
           </span>
         </button>
         {addMenuOpen && canAdd && (
-          <div className="toolbar-node-menu" role="menu" aria-label={addLabel}>
+          <div className={"toolbar-node-menu" + (addMenuOverflows ? " is-overflowing" : "")} role="menu" aria-label={addLabel} ref={addMenuListRef}>
             {addOptions.map((option) => (
               <button
                 type="button"

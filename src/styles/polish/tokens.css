@@ -35,20 +35,24 @@
   --pl-pop-from: .96;
 
   /* Elevation — layered, navy-tinted (replaces flat single shadows) */
-  --pl-shadow-0: 0 0 0 1px rgb(12 23 79 / .04);
-  --pl-shadow-1: 0 0 0 1px rgb(12 23 79 / .04), 0 1px 2px rgb(12 23 79 / .05), 0 2px 6px rgb(12 23 79 / .04);
-  --pl-shadow-2: 0 0 0 1px rgb(12 23 79 / .05), 0 2px 4px rgb(12 23 79 / .05), 0 8px 20px -4px rgb(12 23 79 / .10);
-  --pl-shadow-3: 0 0 0 1px rgb(12 23 79 / .05), 0 4px 8px rgb(12 23 79 / .06), 0 18px 40px -8px rgb(12 23 79 / .18);
-  --pl-shadow-4: 0 0 0 1px rgb(12 23 79 / .06), 0 8px 16px rgb(12 23 79 / .08), 0 32px 64px -12px rgb(12 23 79 / .30);
+  --pl-shadow-0: 0 0 0 1px rgb(17 60 73 / .04);
+  --pl-shadow-1: 0 0 0 1px rgb(17 60 73 / .04), 0 1px 2px rgb(17 60 73 / .05), 0 2px 6px rgb(17 60 73 / .04);
+  --pl-shadow-2: 0 0 0 1px rgb(17 60 73 / .05), 0 2px 4px rgb(17 60 73 / .05), 0 8px 20px -4px rgb(17 60 73 / .10);
+  --pl-shadow-3: 0 0 0 1px rgb(17 60 73 / .05), 0 4px 8px rgb(17 60 73 / .06), 0 18px 40px -8px rgb(17 60 73 / .18);
+  --pl-shadow-4: 0 0 0 1px rgb(17 60 73 / .06), 0 8px 16px rgb(17 60 73 / .08), 0 32px 64px -12px rgb(17 60 73 / .30);
   /* White top-bar controls (view switch, Add, model picker, panel toggle) */
-  --pl-shadow-tb: 0 1px 2px rgb(12 23 79 / .06), 0 4px 14px -4px rgb(12 23 79 / .12);
-  --pl-shadow-tb-hover: 0 1px 2px rgb(12 23 79 / .08), 0 8px 20px -6px rgb(12 23 79 / .18);
-  --pl-glow-accent: 0 0 0 3px rgb(23 60 245 / .14), 0 6px 18px -6px rgb(23 60 245 / .45);
-  --pl-focus-ring: 0 0 0 3px var(--focus-ring, #c9d2ff);
+  --pl-shadow-tb: 0 1px 2px rgb(17 60 73 / .06), 0 4px 14px -4px rgb(17 60 73 / .12);
+  --pl-shadow-tb-hover: 0 1px 2px rgb(17 60 73 / .08), 0 8px 20px -6px rgb(17 60 73 / .18);
+  --pl-glow-accent: 0 0 0 3px rgb(23 179 139 / .14), 0 6px 18px -6px rgb(23 179 139 / .45);
+  --pl-focus-ring: 0 0 0 3px var(--focus-ring, #bfe9dc);
   --pl-inset-hi: inset 0 1px 0 rgb(255 255 255 / .55); /* top highlight on solid buttons */
 
-  /* One radius for the whole app: 24px on desktop (~1000px+), fluid down to 14px on small phones */
-  --ui-r: clamp(14px, 8px + 1.6vw, 24px);
+  /* One radius for every corner in the app: 20px on phones, growing to 34px on wide screens.
+     Every other radius token below points at it. */
+  --ui-r: clamp(20px, 8px + 1.6vw, 24px);
+  /* The workspace frame only: softer, ~40px on a 1440px laptop, down to
+     18px on small phones (radius.css .workspace). */
+  --ui-r-frame: var(--ui-r);
   /* Corner-to-height ratio of the toolbar's square buttons (24px on a ~58px
      download button). Small controls scale their corners by it, so they read
      as rounded squares instead of circles or pills. */
@@ -56,16 +60,25 @@
   /* Small square buttons (~30-40px): at 0.42 they still read as circles, so
      they take tighter corners to look like the download button. */
   --ui-ratio-sm: 0.3;
-  --ui-icon-r: calc(var(--ui-icon) * var(--ui-ratio));
+  --ui-icon-r: var(--ui-r);
+  /* The Grid / Node view switch in the top bar (.ws-switch).
+     --ws-switch-r: the white box. --ws-switch-tab-r: the green highlight and
+     the two tabs inside it; follows the box unless you set it separately
+     (e.g. calc(var(--ws-switch-r) - 4px) for corners that nest inside the box). */
+  --ws-switch-r: clamp(16px, 8px + 1.6vw, 20px);
+  --ws-switch-tab-r: clamp(16px, 8px + 1.6vw, 20px);
+  /* The message box at the bottom ("What would you like to generate",
+     composer.css .composer). Its green arrow follows: this minus the 8px inset. */
+  --composer-r: var(--ws-switch-r);
   /* Node Studio's Generate button corner (47px tall). Every text button and
      CTA in the popups uses exactly this. */
-  --btn-r: calc(47px * var(--ui-ratio));
+  --btn-r: var(--ui-r);
   --pl-r-xs: var(--ui-r);
   --pl-r-sm: var(--ui-r);
   --pl-r-md: var(--ui-r);
   --pl-r-lg: var(--ui-r);
   --pl-r-xl: var(--ui-r);
-  --pl-r-pill: 999px;
+  --pl-r-pill: var(--ui-r);
 
   /* Control sizes */
   --pl-ctl-sm: 32px;

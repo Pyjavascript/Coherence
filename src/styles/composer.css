@@ -142,10 +142,10 @@
   color: #fff;
   background: var(--shell-blue);
   border: 0;
-  border-radius: calc(var(--cta-h) * var(--ui-ratio));
+  border-radius: var(--ui-r);
   box-shadow:
-    0 18px 40px -18px rgba(23, 60, 245, 0.6),
-    0 4px 14px rgba(24, 38, 99, 0.1);
+    0 18px 40px -18px rgba(23, 179, 139, 0.6),
+    0 4px 14px rgba(17, 60, 73, 0.1);
   font-family: "Manrope", system-ui, sans-serif;
   font-size: 16px;
   font-weight: 600;
@@ -161,8 +161,8 @@
 .gen-cta:hover:not(:disabled) {
   background: var(--shell-blue-hover);
   box-shadow:
-    0 22px 44px -16px rgba(23, 60, 245, 0.7),
-    0 4px 14px rgba(24, 38, 99, 0.12);
+    0 22px 44px -16px rgba(23, 179, 139, 0.7),
+    0 4px 14px rgba(17, 60, 73, 0.12);
 }
 
 .gen-cta:active:not(:disabled) {
@@ -171,7 +171,7 @@
 
 .gen-cta:focus-visible,
 .hook-fab:focus-visible {
-  outline: 2px solid #8fa0ff;
+  outline: 2px solid #74d4b8;
   outline-offset: 3px;
 }
 
@@ -199,7 +199,7 @@
   height: 18px;
   border: 2.5px solid rgb(255 255 255 / 0.35);
   border-top-color: #fff;
-  border-radius: 50%;
+  border-radius: var(--ui-r);
   animation: ring-spin-turn 0.8s linear infinite;
 }
 
@@ -227,13 +227,13 @@
   place-items: center;
   flex: none;
   padding: 0;
-  color: #0f55ff;
+  color: var(--shell-green);
   background:
     linear-gradient(#fff, #fff) padding-box,
-    conic-gradient(from var(--ring-angle), #173cf5, #7d93ff 25%, #e4e9ff 45%, #a99bff 70%, #173cf5) border-box;
+    conic-gradient(from var(--ring-angle), var(--shell-green), #74d4b8 25%, #e3f6f0 45%, #9fe3cd 70%, var(--shell-green)) border-box;
   border: 2px solid transparent;
-  border-radius: 50%;
-  box-shadow: 0 8px 22px -10px rgba(23, 60, 245, 0.6);
+  border-radius: var(--ui-r);
+  box-shadow: 0 8px 22px -10px rgba(23, 179, 139, 0.6);
   cursor: pointer;
   animation:
     ring-spin 3.2s linear infinite,
@@ -254,8 +254,8 @@
 
 .hook-bolt:hover {
   background:
-    linear-gradient(#0f55ff, #0f55ff) padding-box,
-    conic-gradient(from var(--ring-angle), #173cf5, #7d93ff 25%, #e4e9ff 45%, #a99bff 70%, #173cf5) border-box;
+    linear-gradient(var(--shell-green), var(--shell-green)) padding-box,
+    conic-gradient(from var(--ring-angle), var(--shell-green), #74d4b8 25%, #e3f6f0 45%, #9fe3cd 70%, var(--shell-green)) border-box;
   color: #fff;
 }
 
@@ -328,10 +328,10 @@
 
 @keyframes bolt-glow {
   0%, 62%, 100% {
-    box-shadow: 0 8px 22px -10px rgba(23, 60, 245, 0.6), 0 0 0 0 rgba(23, 60, 245, 0);
+    box-shadow: 0 8px 22px -10px rgba(23, 179, 139, 0.6), 0 0 0 0 rgba(23, 179, 139, 0);
   }
   72% {
-    box-shadow: 0 8px 22px -10px rgba(23, 60, 245, 0.6), 0 0 0 6px rgba(23, 60, 245, 0.16);
+    box-shadow: 0 8px 22px -10px rgba(23, 179, 139, 0.6), 0 0 0 6px rgba(23, 179, 139, 0.16);
   }
 }
 
@@ -357,4 +357,151 @@
   .gen-cta-label {
     transition: none;
   }
+}
+
+/* ---------- Message composer (GenerateDock.jsx) ------------------------- */
+/* The bottom row's centrepiece: the message to adapt, in a white box with
+   the green arrow (Generate) inset at its right end. The tray spans the row
+   and centres it; it never runs under "Pro" and the "?" on the left (their
+   width is --start-room, MainWorkspace.jsx), so it keeps the same room on
+   the right and stays centred. */
+.ws-stage .ws-tray {
+  left: var(--tray-left);
+  justify-content: center;
+}
+
+/* The message box's height, shared with the "Pro" tile (plans.css) so the
+   two match. Laptops + tablets: a roomy box, 1.3x the toolbar's boxes (64px
+   on a 1440px laptop); phones keep it near their height (below). */
+.ws-stage {
+  --cmp-h: calc(var(--cta-h) * 1.3);
+}
+
+.app-shell[data-bp="mobile"] .ws-stage {
+  --cmp-h: calc(var(--cta-h) + 2px);
+}
+
+.composer {
+  --cmp-pad: 8px;
+  --cmp-r: var(--composer-r); /* tokens.css */
+  position: relative;
+  box-sizing: border-box;
+  /* Exactly one grid card wide (--card-w, MainWorkspace.jsx; 640px when no
+     cards are laid out), centred in the tray. */
+  width: min(var(--card-w, 640px), 100% - 2 * var(--start-room, 0px));
+  align-self: center;
+  height: var(--cmp-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--cmp-pad);
+  padding-left: clamp(14px, 1.4vw, 20px);
+  background: #fff;
+  border-radius: var(--cmp-r);
+  box-shadow: var(--pl-shadow-tb);
+  animation: dock-in var(--pl-d-3) var(--pl-ease-out) both;
+  transition: box-shadow var(--pl-d-2) var(--pl-ease-out);
+}
+
+.composer:focus-within {
+  box-shadow: var(--pl-shadow-tb-hover), 0 0 0 2px rgb(23 179 139 / 0.22);
+}
+
+/* Generate was pressed with no message: a red ring until one is written. */
+.composer.is-invalid,
+.composer.is-invalid:focus-within {
+  box-shadow: var(--pl-shadow-tb), 0 0 0 2px rgb(220 53 69 / 0.55);
+}
+
+.composer .composer-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* One line, centred in the box (a global textarea rule sets 48px). */
+  box-sizing: content-box;
+  min-height: 0;
+  height: 1.4em;
+  margin: 0;
+  /* A clear, dark caret (it inherits nothing faint from the placeholder). */
+  caret-color: var(--shell-ink);
+  padding: 0;
+  overflow-y: auto;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  /* Square: only the white box around it is rounded (radius.css rounds every
+     textarea; that showed as round ends on the selection / when inspected). */
+  border-radius: 0;
+  outline: none;
+  resize: none;
+  font: inherit;
+  font-size: clamp(14px, 1.15vw, 18px);
+  font-weight: 500;
+  line-height: 1.4;
+  scrollbar-width: none;
+}
+
+.composer-input::-webkit-scrollbar {
+  display: none;
+}
+
+.composer-input::placeholder {
+  color: #7d8097;
+  opacity: 1;
+}
+
+/* The arrow: a green square inset in the box, its corner the box's minus the
+   inset, so the two corners run parallel. */
+.ws-tray .composer .composer-send {
+  --cta-h: calc(var(--cmp-h) - 2 * var(--cmp-pad));
+  width: var(--cta-h);
+  height: var(--cta-h);
+  flex: none;
+  padding: 0;
+  border-radius:var(--ws-switch-r) ;
+  background: var(--shell-green);
+  box-shadow: 0 6px 16px -8px rgba(23, 179, 139, 0.7);
+  animation: none;
+}
+
+.ws-tray .composer .composer-send:hover:not(:disabled) {
+  background: var(--shell-green-hover);
+  box-shadow: 0 8px 18px -8px rgba(23, 179, 139, 0.8);
+}
+
+.composer-send svg {
+  width: 46%;
+  height: 46%;
+}
+
+.composer-send .gen-cta-spin {
+  width: 40%;
+  height: 40%;
+}
+
+/* Screen-reader-only text (the composer's label). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Narrow: the composer fills the row after "Pro" and the "?". */
+@container ws (max-width: 760px) {
+  .ws-stage .ws-tray {
+    left: calc(var(--tray-left) + var(--start-room, 0px));
+  }
+
+  .composer {
+    width: 100%;
+  }
+}
+
+.app-shell[data-bp="mobile"] .composer {
+  --cmp-pad: 6px;
 }

@@ -13,7 +13,7 @@
   --md-h: 470px;            /* base (minimum) modal height: the original site's modal height */
   --md-max-h: 85vh;         /* never taller than this */
   --md-pad: 24px;           /* shared internal padding */
-  --md-r: var(--ui-r);      /* shell radius: the app-wide fluid radius (24px on desktop) */
+  --md-r: var(--ui-r);      /* the app-wide radius (--ui-r) */
   --md-gap: 12px;           /* header -> content / section rhythm */
   --md-h1: clamp(18px, 6px + 1.8vw, 24px); /* heading: 18px on phones, ~20px tablets, 24px from ~1000px wide */
   --md-sub: 12px;           /* subtitle */
@@ -25,12 +25,12 @@
   --md-btn-h: 48px;         /* primary / secondary action height */
   /* Buttons take the Generate button's corner (--btn-r); small square ones
      (the close icon) 0.3 x their size. */
-  --md-btn-r: var(--btn-r);
+  --md-btn-r: var(--ui-r);
   --md-ctl-h: 46px;         /* text inputs in forms */
   /* fluid: the close icon and the space above the heading shrink on small screens */
   --md-close: clamp(32px, 28px + 1vw, 36px);       /* close-button hit area */
   --md-close-inset: clamp(6px, 4px + .5vw, 8px);   /* close icon distance from the top + right edges */
-  --md-close-r: calc(var(--md-close) * var(--ui-ratio-sm));
+  --md-close-r: var(--ui-r);
   --md-head-top: clamp(30px, 24px + 1vw, 36px);    /* heading top, measured from the modal top */
   --md-head-drop: calc(var(--md-head-top) - var(--md-pad));
   --md-line: #e8ebf6;       /* existing hairline used across the light modals */
@@ -45,6 +45,11 @@
   }
 }
 
+/* Popups use the app's green theme from the root tokens (layout.css
+   --shell-blue / --shell-navy / --shell-ink, enhancements.css --hover-*), so
+   nothing is redefined here: the dark theme (scripts/vite-dark-theme.js) only
+   maps a colour token that is set in one place. */
+
 /* ---------- 1. Shell: identical outer dimensions, centred ------------------ */
 html body .overlay { padding: 20px; }
 @media (max-width: 640px) { html body .overlay { padding: 16px; } }
@@ -55,7 +60,7 @@ html body .overlay > :is(.profile-modal, .confirm-dialog, .auth-modal, .coherenc
   height: auto; /* grows with its content, like the original site... */
   min-height: min(var(--md-h), var(--md-max-h)); /* ...from a shared 460x470 base... */
   max-height: var(--md-max-h); /* ...up to 85vh, then the content area scrolls */
-  border-radius: var(--md-r);
+  border-radius: var(--ui-r);
   position: relative;
   zoom: 1; /* the app shrinks dialogs with zoom:.88 under 768px; sizes below are exact */
   overscroll-behavior: contain;
@@ -111,7 +116,7 @@ html body .overlay .modal-head > button {
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: var(--md-close-r);
+  border-radius: var(--ui-r);
   transform: none;
 }
 /* Press: shrink in place. Beats the old centred-header rule
@@ -132,7 +137,7 @@ html body .overlay .coherence-close {
   display: grid;
   place-items: center;
   padding: 0;
-  border-radius: var(--md-close-r);
+  border-radius: var(--ui-r);
 }
 html body .overlay :is(.modal-head > button, .coherence-close, .profile-close) svg { width: 18px; height: 18px; }
 html body .overlay > .profile-modal { position: relative; }
@@ -142,7 +147,7 @@ html body .overlay .profile-close {
   right: var(--md-close-inset);
   width: var(--md-close);
   height: var(--md-close);
-  border-radius: var(--md-close-r);
+  border-radius: var(--ui-r);
 }
 html body .overlay .usage-head { padding-right: calc(var(--md-pad) + var(--md-close)); }
 html body .overlay .usage-modal .usage-close { position: absolute; margin: 0; align-self: auto; }
@@ -195,7 +200,7 @@ html body .overlay .tour-copy > .tour-sample { font-size: var(--md-body); }
 html body .overlay .tour-copy > p:not(.tour-sample) { font-size: 14px; line-height: 1.45; }
 /* Phones: a touch smaller, so every step's description stays on two lines. */
 @media (max-width: 480px) {
-  html body .overlay .tour-copy > p:not(.tour-sample) { font-size: 13px; }
+  html body .overlay .tour-copy > p:not(.tour-sample) { font-size: 14px; }
 }
 
 /* Every popup's description is set like the tour's: 14px, tight tracking, in a
@@ -218,13 +223,13 @@ html body .overlay :is(.hook-brief, .research-field textarea, .coherence-prompt)
   line-height: var(--md-body-lh);
   letter-spacing: var(--md-body-ls);
 }
-html body .overlay .auth-field input { height: var(--md-btn-h); border-radius: var(--md-btn-r); font-size: var(--md-body); }
+html body .overlay .auth-field input { height: var(--md-btn-h); border-radius: var(--ui-r); font-size: var(--md-body); }
 /* Auth inputs: a white field with a visible outline, so they read as inputs
    at rest (the faint tint alone vanished against the dialog). */
 html body .overlay .auth-field input { background: #fff; border: 1.5px solid #d5dbf0; }
 html body .overlay .auth-field input:hover:not(:focus) { border-color: #b7c1e6; }
-html body .overlay .auth-field input:focus { border-color: #8fa0ff; }
-html body .overlay .profile-input { height: var(--md-ctl-h); border-radius: calc(var(--md-ctl-h) * var(--ui-ratio)); font-size: var(--md-body); }
+html body .overlay .auth-field input:focus { border-color: #74d4b8; }
+html body .overlay .profile-input { height: var(--md-ctl-h); border-radius: var(--ui-r); font-size: var(--md-body); }
 html body .overlay .profile-input-icon .profile-input { padding-left: 44px; }
 html body .overlay .profile-row { padding: 12px 0; }
 html body .overlay .profile-banner { height: 88px; }
@@ -242,7 +247,7 @@ html body .overlay :is(
 ) {
   height: var(--md-btn-h);
   min-height: var(--md-btn-h);
-  border-radius: var(--md-btn-r);
+  border-radius: var(--ui-r);
   font-size: var(--md-btn-fs);
   font-weight: 600;
   letter-spacing: normal;
@@ -508,12 +513,12 @@ html body .overlay .profile-modal:not(.usage-modal) .profile-input {
   color: var(--shell-ink);
   background: #fff;
   border: 1px solid #e3e8fb;
-  border-radius: calc(44px * var(--ui-ratio));
-  font-size: 13px;
+  border-radius: var(--ui-r);
+  font-size: 14px;
   font-weight: 500;
 }
 html body .overlay .profile-modal:not(.usage-modal) .profile-input::placeholder { color: #a9aec9; font-weight: 400; }
-html body .overlay .profile-modal:not(.usage-modal) .profile-input:focus { border-color: #c9d2ff; }
+html body .overlay .profile-modal:not(.usage-modal) .profile-input:focus { border-color: #bfe9dc; }
 html body .overlay .profile-modal:not(.usage-modal) .profile-input[readonly] { color: #8a8fa8; background: var(--shell-tint); }
 html body .overlay .profile-modal:not(.usage-modal) .profile-input-icon .profile-input { padding-left: 42px; }
 @media (max-width: 519.98px) {
@@ -535,14 +540,14 @@ html body .overlay .profile-modal:not(.usage-modal) .plugin-access { margin-top:
 .pl-acct-row:last-child { border-bottom: 0; }
 .pl-acct-copy { min-width: 0; }
 .pl-acct-copy strong { display: block; color: var(--shell-ink); font-size: 14px; font-weight: 500; letter-spacing: -.02em; line-height: 1.3; }
-.pl-acct-copy p { margin: 4px 0 0; color: #8a8fa8; font-size: 11.5px; line-height: 1.4; }
+.pl-acct-copy p { margin: 4px 0 0; color: #8a8fa8; font-size: 12px; line-height: 1.4; }
 html body .overlay .pl-acct-row :is(.profile-pill, .profile-delete) {
   flex: none;
   width: auto;
   height: var(--md-btn-h);
   padding: 0 18px;
   gap: 8px;
-  border-radius: var(--btn-r);
+  border-radius: var(--ui-r);
   font-size: 14px;
   font-weight: 600;
 }
@@ -561,16 +566,16 @@ html body .overlay .pl-acct-row :is(.profile-pill, .profile-delete) svg { width:
   padding: 4px;
   box-sizing: border-box;
   background: var(--shell-tint);
-  border-radius: var(--btn-r);
+  border-radius: var(--ui-r);
 }
 .appearance-seg button {
   min-width: 0;
   padding: 0 10px;
   border: 0;
-  border-radius: calc(var(--btn-r) - 4px);
+  border-radius: var(--ui-r);
   background: transparent;
   color: #70748d;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: -.01em;
   cursor: pointer;
@@ -619,7 +624,7 @@ html body .overlay .usage-modal .uc-legend-item:last-child,
 html body .overlay .usage-modal .uc-legend-item:nth-child(2n) { text-align: center; justify-items: center; gap: 4px; }
 @media (max-width: 519.98px) {
   html body .overlay .usage-modal .uc-legend { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-  html body .overlay .usage-modal .uc-legend-item span { font-size: 11px; }
+  html body .overlay .usage-modal .uc-legend-item span { font-size: 12px; }
 }
 
 /* Model cards: soft lavender-to-white surface, badge pill, selection circle */
@@ -633,22 +638,22 @@ html body .overlay .usage-modal .usage-model {
   border-radius: var(--ui-r);
   background:
     radial-gradient(120% 90% at 0% 0%, #fff 0%, transparent 60%),
-    linear-gradient(160deg, #f7f9ff 0%, #eaf0ff 100%);
+    linear-gradient(160deg, #f7f9ff 0%, #e3f6f0 100%);
   transition: border-color var(--pl-d-2) var(--pl-ease-out), background-color var(--pl-d-2) var(--pl-ease-out), translate var(--pl-d-2) var(--pl-ease-out);
 }
 html body .overlay .usage-modal .usage-model.is-on {
   border-color: var(--shell-blue);
   background:
     radial-gradient(120% 90% at 0% 0%, #fff 0%, transparent 55%),
-    linear-gradient(160deg, #eef2ff 0%, #d9e3ff 100%);
+    linear-gradient(160deg, #e3f6f0 0%, #d3efe5 100%);
 }
 html body .overlay .usage-modal .usage-model-tag {
   margin: 0 0 auto;
   padding: 3px 7px;
   color: var(--shell-blue);
   background: #fff;
-  border-radius: 999px;
-  font-size: 9.5px;
+  border-radius: var(--ui-r);
+  font-size: 10px;
   letter-spacing: -.01em;
   font-weight: 600;
   line-height: 1.3;
@@ -656,7 +661,7 @@ html body .overlay .usage-modal .usage-model-tag {
 html body .overlay .usage-modal .usage-model.is-on .usage-model-tag { color: #fff; background: var(--shell-blue); }
 html body .overlay .usage-modal .usage-model-name {
   margin-top: 22px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -.02em;
   line-height: 1.25;
@@ -664,7 +669,7 @@ html body .overlay .usage-modal .usage-model-name {
 html body .overlay .usage-modal .usage-model-desc {
   margin-top: 4px;
   color: #6f7694;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.4;
   text-wrap: pretty;
 }
@@ -707,7 +712,7 @@ html body .overlay .usage-modal .uc-section-label {
 }
 html body .overlay .usage-modal .uc-section-label span + span {
   color: #8a8fa8;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 400;
 }
 /* the credits card loses its box: just content on the sheet */
@@ -729,7 +734,7 @@ html body .overlay .usage-modal .uc-row {
   font-weight: 500;
   letter-spacing: -.02em;
 }
-html body .overlay .usage-modal .uc-row span + span { color: #8a8fa8; font-size: 13px; font-weight: 400; letter-spacing: 0; }
+html body .overlay .usage-modal .uc-row span + span { color: #8a8fa8; font-size: 14px; font-weight: 400; letter-spacing: 0; }
 /* Model section */
 html body .overlay .usage-modal .usage-section { margin-top: 0; padding-top: 18px; }
 html body .overlay .usage-modal .usage-section-head { align-items: center; margin-bottom: 0; }
@@ -752,11 +757,11 @@ html body .overlay .usage-section-toggle {
   text-align: left;
   background: none;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--ui-r);
   font: inherit;
   cursor: pointer;
 }
-html body .overlay .usage-section-toggle:focus-visible { outline: 2px solid #8fa0ff; outline-offset: 4px; }
+html body .overlay .usage-section-toggle:focus-visible { outline: 2px solid #74d4b8; outline-offset: 4px; }
 html body .overlay .usage-section-text { min-width: 0; }
 html body .overlay .usage-section-name { display: block; }
 html body .overlay .usage-section-chevron {
@@ -767,7 +772,7 @@ html body .overlay .usage-section-chevron {
   place-items: center;
   color: var(--shell-ink);
   background: var(--shell-tint);
-  border-radius: calc(30px * var(--ui-ratio-sm));
+  border-radius: var(--ui-r);
   transition: transform var(--pl-d-3) var(--pl-ease-out), background-color var(--pl-d-2) var(--pl-ease-out);
 }
 html body .overlay .usage-section-chevron svg { width: 16px; height: 16px; }
@@ -793,7 +798,7 @@ html body .overlay .usage-modal .usage-section-desc {
   display: block;
   margin: 4px 0 0;
   color: #8a8fa8;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 400;
   letter-spacing: 0;
 }
@@ -822,9 +827,9 @@ html body .overlay .usage-modal .usage-model {
 html body .overlay .usage-modal .usage-model.is-on {
   background:
     radial-gradient(120% 90% at 0% 0%, #fff 0%, transparent 60%),
-    linear-gradient(160deg, #f6f8ff 0%, #e8eeff 100%);
+    linear-gradient(160deg, #f0faf6 0%, #dff3ec 100%);
 }
-html body .overlay .usage-modal .usage-model-desc { font-size: 10.5px; line-height: 1.4; }
+html body .overlay .usage-modal .usage-model-desc { font-size: 10px; line-height: 1.4; }
 
 /* Every other text button in the popups (Edit profile, Done, the plugin key
    actions): the CTAs' height and the Generate button's corner, so all of them
@@ -832,7 +837,7 @@ html body .overlay .usage-modal .usage-model-desc { font-size: 10.5px; line-heig
 html body .overlay :is(.profile-pill, .profile-save, .profile-cancel, .profile-delete) {
   height: var(--md-btn-h);
   min-height: var(--md-btn-h);
-  border-radius: var(--btn-r);
+  border-radius: var(--ui-r);
 }
 
 /* ==========================================================================
@@ -852,7 +857,7 @@ html body .overlay .tour .tour-close {
   color: var(--shell-ink);
   background: transparent;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--ui-r);
   cursor: pointer;
   transition: background-color var(--hover-dur) ease;
 }
@@ -897,7 +902,7 @@ html body .overlay .tour .tour-dots button {
   padding: 0;
   background: none;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--ui-r);
   cursor: pointer;
   transition: width var(--pl-d-3) var(--pl-ease-out);
 }
@@ -906,7 +911,7 @@ html body .overlay .tour .tour-dots button::before {
   display: block;
   height: 4px;
   background: #cfd2df;
-  border-radius: 2px;
+  border-radius: var(--ui-r);
   transition: background-color var(--pl-d-2) var(--pl-ease-out);
 }
 html body .overlay .tour .tour-dots button.is-on { width: 32px; }
@@ -923,8 +928,8 @@ html body .overlay .tour .tour-actions button {
   height: 44px;
   min-height: 44px;
   padding: 0 22px;
-  border-radius: 999px;
-  font-size: 15px;
+  border-radius: var(--ui-r);
+  font-size: 16px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -947,13 +952,13 @@ html body .overlay > .auth-modal {
   --md-pad: 20px;
   --md-btn-h: 42px;
   --md-btn-fs: 14px;
-  --md-btn-r: calc(var(--md-btn-h) * var(--ui-ratio));
+  --md-btn-r: var(--ui-r);
   --md-head-top: 26px;
 }
-html body .overlay .auth-modal .modal-head h3 { font-size: 21px; }
+html body .overlay .auth-modal .modal-head h3 { font-size: 22px; }
 html body .overlay .auth-modal .modal-head { margin-bottom: 8px; }
 html body .overlay .auth-card { gap: 10px; }
 html body .overlay .auth-form { gap: 10px; }
-html body .overlay .auth-field label { margin-bottom: 5px; font-size: 12.5px; }
+html body .overlay .auth-field label { margin-bottom: 5px; font-size: 12px; }
 html body .overlay .auth-google svg { width: 18px; height: 18px; }
 html body .overlay .auth-divider { font-size: 12px; }

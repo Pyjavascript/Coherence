@@ -235,6 +235,7 @@ export const brandPanelCopy = {
     saveUnavailable: { type: "error", message: "Saving isn't available here yet" },
     saveLimit: { type: "error", message: "You've reached your limit of {n} brands" },
     saveSuccess: { type: "success", message: "Your brand is saved" },
+    fieldsNotSaved: { type: "error", message: "Brand saved, but some fields can't be saved yet: the database needs updating" },
     saveFailed: { type: "error", message: "We couldn't save that. Please try again" },
 
     deleteUnsaved: { type: "warning", message: "This brand isn't saved yet, so there's nothing to delete" },

@@ -1,0 +1,431 @@
+/* ==========================================================================
+   Node Studio cards (NodeStudio.jsx StudioNode) and the target-words slider
+   (components/WordsRange.jsx, used in Node Studio and the Grid's settings).
+
+   A card: [dot][name][pencil] … [regenerate][×] on top, then one soft panel:
+   the generated copy (a heading, then the body), or, with the pencil on,
+   the node's settings. Under the copy: Copy on the left; Regenerate and the
+   blue Generate arrow on the right. Small square buttons take the app's small
+   corner ratio (--ui-ratio-sm); the panel's corner is the card's minus its
+   padding, so the two run parallel.
+   ========================================================================== */
+
+.ws-view-nodes .sn-card {
+  --snc-pad: 14px;
+  --snc-btn: 36px;
+  --snc-cta: 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--snc-pad);
+}
+
+/* ---------- Header ---------------------------------------------------------- */
+.sn-card-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 6px;
+}
+
+.sn-card-dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: var(--ui-r);
+  background: var(--cat);
+}
+
+/* As wide as the name (its size attribute), so the pencil follows it. */
+.ws-view-nodes .sn-card .sn-card-title {
+  width: auto;
+  field-sizing: content;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+  height: auto;
+  margin: 0;
+  padding: 2px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--shell-ink);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.sn-card-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Pencil, regenerate, ×: light tiles. */
+.sn-card-btn {
+  width: var(--snc-btn);
+  height: var(--snc-btn);
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border: 0;
+  border-radius: var(--ws-switch-r); /* the view switch's corner (tokens.css) */
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.sn-card-btn svg {
+  width: 46%;
+  height: 46%;
+}
+
+.sn-card-btn:hover:not(:disabled) {
+  background: var(--shell-tint-2);
+}
+
+/* Regenerate: the theme's darker green on hover, not the blue tint. */
+.sn-card-btn.sn-card-regen:hover:not(:disabled) {
+  color: var(--shell-green-hover);
+  background: rgb(23 179 139 / 0.16);
+}
+
+.sn-card-btn.sn-card-regen:active:not(:disabled) {
+  background: rgb(23 179 139 / 0.24);
+}
+
+.sn-card-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Settings showing: the pencil stays lit. */
+/* (light green, as Regenerate's hover and the Grid card's pencil; hovered too) */
+.sn-card-btn.sn-card-edit.is-on,
+.sn-card-btn.sn-card-edit.is-on:hover:not(:disabled) {
+  color: var(--shell-green-hover);
+  background: rgb(23 179 139 / 0.16);
+}
+
+.sn-card-close:hover:not(:disabled) {
+  color: #d13a3f;
+  background: #fdecec;
+}
+
+.sn-card-btn.is-spinning svg {
+  animation: ring-spin-turn 0.9s linear infinite;
+}
+
+.sn-card-btn:focus-visible,
+.sn-card-copy:focus-visible,
+.sn-card-go:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 2px;
+}
+
+/* ---------- The panel: copy or settings -------------------------------------- */
+.sn-card-panel {
+  min-height: 170px;
+  padding: 18px;
+  color: var(--shell-ink);
+  background: var(--shell-tint);
+  border-radius: var(--ui-r);
+}
+
+.sn-card-out {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-wrap: anywhere;
+  user-select: text;
+  cursor: auto;
+}
+
+.sn-card-heading {
+  margin: 0;
+  color: var(--shell-ink);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.sn-card-text {
+  margin: 0;
+  color: var(--shell-ink);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.sn-card-out .pointer-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* The word count sits at the panel's bottom-left, small and quiet. */
+.sn-card-meta {
+  margin-top: auto;
+  padding-top: 6px;
+  color: var(--shell-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.sn-card-tabs {
+  margin-top: 2px;
+}
+
+.sn-card-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Fields sit white on the soft panel. */
+.ws-view-nodes .sn-card-settings .sn-field input:not([type="range"]),
+.ws-view-nodes .sn-card-settings .sn-field textarea,
+.ws-view-nodes .sn-card-settings .sn-field .bp-dd-trigger {
+  background: #fff;
+}
+
+/* ---------- Footer: Copy | regenerate, Generate --------------------------- */
+.sn-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sn-card-copy {
+  height: var(--snc-cta);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 24px;
+  color: var(--shell-indigo);
+  background: var(--shell-tint);
+  border: 0;
+  border-radius: var(--ui-r);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.sn-card-copy svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sn-card-copy:hover:not(:disabled) {
+  background: var(--shell-tint-2);
+}
+
+.sn-card-copy:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.sn-card-copy.is-copied {
+  color: #13856b;
+}
+
+/* The foot's regenerate: as tall as the arrow beside it, but light. */
+.sn-card-foot .sn-card-btn {
+  --snc-btn: var(--snc-cta);
+}
+
+.sn-card-go {
+  width: var(--snc-cta);
+  height: var(--snc-cta);
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #fff;
+  background: var(--shell-green);
+  border: 0;
+  border-radius: var(--ws-switch-r);
+  cursor: pointer;
+  transition: background-color 150ms ease, scale 120ms ease;
+}
+
+
+
+.sn-card-go svg {
+  width: 46%;
+  height: 46%;
+}
+
+/* Hover: the same green, darker (as the message box's arrow), never blue. */
+.sn-card-go:hover:not(:disabled) {
+  background: var(--shell-green-hover);
+}
+
+.sn-card-go:active:not(:disabled) {
+  scale: var(--pl-press-scale);
+}
+
+.sn-card-go:disabled {
+  cursor: progress;
+}
+
+.sn-card-spin {
+  width: 40%;
+  height: 40%;
+  border: 2.5px solid rgb(255 255 255 / 0.35);
+  border-top-color: #fff;
+  border-radius: var(--ui-r);
+  animation: ring-spin-turn 0.8s linear infinite;
+}
+
+/* ==========================================================================
+   Target-words slider
+   ========================================================================== */
+.words-range {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.words-range-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.words-range-head label {
+  margin: 0;
+}
+
+.words-range-value {
+  margin-left: auto;
+  color: var(--shell-ink);
+  font-size: 14px;
+  font-weight: 700;
+  /* Proportional digits: tabular ones give a "1" a full digit's width, which
+     left a wide gap after it ("1 42"). A touch tighter overall. */
+  font-variant-numeric: proportional-nums;
+  font-feature-settings: "pnum" 1, "tnum" 0;
+  letter-spacing: -0.02em;
+}
+
+.words-range-value span {
+  color: var(--shell-muted);
+  font-weight: 500;
+}
+
+/* A thick track with one fixed gradient (pale on the left, teal on the right)
+   and a white round thumb with a thick ring in the theme colour. No outline,
+   ring or shadow on hover or focus. The selector outranks the fields' shared
+   input rules (layout.css .sn-field input). Used everywhere WordsRange.jsx is:
+   Node Studio cards, Grid card settings and the settings menu. */
+.words-range input.words-range-input[type="range"] {
+  --track: 10px;
+  --thumb: 26px;
+  --wr-from: #eef1fb;          /* track, left end */
+  --wr-to: #45a593;            /* track, right end */
+  --wr-ring: var(--shell-frame); /* thumb ring: the theme colour, #113c49 */
+  width: 100%;
+  height: var(--thumb);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.words-range input.words-range-input[type="range"]:hover,
+.words-range input.words-range-input[type="range"]:focus,
+.words-range input.words-range-input[type="range"]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.words-range input.words-range-input[type="range"]::-webkit-slider-runnable-track {
+  height: var(--track);
+  border-radius: var(--track);
+  background: linear-gradient(to right, var(--wr-from), var(--wr-to));
+}
+
+.words-range input.words-range-input[type="range"]::-moz-range-track {
+  height: var(--track);
+  border-radius: var(--track);
+  background: linear-gradient(to right, var(--wr-from), var(--wr-to));
+}
+
+/* Firefox would paint the filled part separately: keep the one gradient. */
+.words-range input.words-range-input[type="range"]::-moz-range-progress {
+  background: transparent;
+}
+
+.words-range input.words-range-input[type="range"]::-webkit-slider-thumb {
+  box-sizing: border-box;
+  width: var(--thumb);
+  height: var(--thumb);
+  margin-top: calc((var(--track) - var(--thumb)) / 2);
+  border: 4px solid var(--wr-ring);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: none;
+  -webkit-appearance: none;
+  transition: scale 120ms ease;
+}
+
+.words-range input.words-range-input[type="range"]::-moz-range-thumb {
+  box-sizing: border-box;
+  width: var(--thumb);
+  height: var(--thumb);
+  border: 4px solid var(--wr-ring);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: none;
+  transition: scale 120ms ease;
+}
+
+/* Dragging, or moving it with the keyboard: the thumb grows a little instead
+   of showing a ring, so keyboard users still see which control they're on. */
+.words-range input.words-range-input[type="range"]:active::-webkit-slider-thumb,
+.words-range input.words-range-input[type="range"]:focus-visible::-webkit-slider-thumb {
+  scale: 1.12;
+}
+
+.words-range input.words-range-input[type="range"]:active::-moz-range-thumb,
+.words-range input.words-range-input[type="range"]:focus-visible::-moz-range-thumb {
+  scale: 1.12;
+}
+
+/* In the Grid card's settings menu: a little padding around it. */
+.ncard-sheet-edit .words-range {
+  padding: 6px 4px 2px;
+}
+
+/* ---------- Empty copy panel (nothing generated yet) ---------------------- */
+/* Styled like a Quick Grid card's empty text (.ncard-body in layout.css /
+   polish/grid.css): Manrope, 14px medium, the muted grey, top-left. */
+#root .app .sn-card-empty-title {
+  margin: 0;
+  color: var(--shell-muted);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.42;
+  user-select: none;
+}

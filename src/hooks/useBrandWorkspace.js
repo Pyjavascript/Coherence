@@ -10,6 +10,7 @@ import {
   deleteBrand,
   clearPendingGenerations,
   flushPendingGenerations,
+  canSaveGroup,
 } from "../services/brands";
 import {
   getResearchNotes,
@@ -23,8 +24,13 @@ const untitled = (scope) =>
 // The persisted brand fields, trimmed the same way services/brands does,
 // for unsaved-change detection.
 const SAVED_KEYS = Object.keys(DEFAULT_BRAND);
-const snapshot = (b) =>
-  JSON.stringify(SAVED_KEYS.map((k) => (typeof b[k] === "string" ? b[k].trim() : b[k] ?? "")));
+// Pillars count as saved without their empty cards.
+const normal = (v) => {
+  if (typeof v === "string") return v.trim();
+  if (Array.isArray(v)) return v.map(normal).filter(Boolean);
+  return v ?? "";
+};
+const snapshot = (b) => JSON.stringify(SAVED_KEYS.map((k) => normal(b[k])));
 
 // Owns brand list, the active brand's form state, and its research notes.
 // The list follows the signed-in user: it reloads on sign-in, sign-out and
@@ -145,12 +151,22 @@ export function useBrandWorkspace(setStatus, userId) {
       // Copy generated before the first save becomes this brand's history.
       if (!currentId) await flushPendingGenerations(saved.id);
       setCurrentId(saved.id);
-      setBrand((prev) => ({ ...prev, ...saved }));
+      // Fields whose columns the database doesn't have yet (migration not
+      // run) can't be kept: leave them in the form (still unsaved) and say
+      // so, instead of clearing them with the saved row's defaults.
+      const kept = {};
+      if (!canSaveGroup("pillars") && (brand.pillars || []).some((p) => p.trim())) kept.pillars = brand.pillars;
+      if (!canSaveGroup("voice")) {
+        for (const k of ["personality", "rules", "voice", "warmth"])
+          if (normal(brand[k]) !== normal(DEFAULT_BRAND[k])) kept[k] = brand[k];
+      }
+      const dropped = Object.keys(kept).length > 0;
+      setBrand((prev) => ({ ...prev, ...saved, ...kept }));
       setSavedSnap(snapshot({ ...DEFAULT_BRAND, ...saved }));
       await refresh();
       if (pending.length) setNotes(await getResearchNotes(saved.id));
       setFileLabel(saved.name);
-      setStatus(...toast("saveSuccess"));
+      setStatus(...toast(dropped ? "fieldsNotSaved" : "saveSuccess"));
     } catch {
       if (!currentId && brands.length >= LIMITS.brands)
         return setStatus(...toast("saveLimit", { n: LIMITS.brands }));

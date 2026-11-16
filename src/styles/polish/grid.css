@@ -74,7 +74,7 @@
 
 
 /* Copy: spring pop on click is played by NodeActions (Web Animations). */
-#root .ncard-action.is-copied { box-shadow: 0 4px 12px -4px rgb(12 23 79 / .25) !important; }
+#root .ncard-action.is-copied { box-shadow: 0 4px 12px -4px rgb(17 60 73 / .25) !important; }
 
 /* Card overflow menu: spring-y pop + layered shadow */
 .ncard-menu {
@@ -200,15 +200,15 @@
 #root .ws-topbar .toolbar-generate {
   box-shadow:
     var(--pl-inset-hi),
-    0 1px 2px rgb(23 60 245 / .20),
-    0 6px 16px -6px rgb(23 60 245 / .45) !important;
+    0 1px 2px rgb(23 179 139 / .20),
+    0 6px 16px -6px rgb(23 179 139 / .45) !important;
 }
 @media (hover: hover) {
   #root .ws-topbar .toolbar-generate:hover:not(:disabled) {
     box-shadow:
       var(--pl-inset-hi),
-      0 2px 4px rgb(23 60 245 / .22),
-      0 12px 24px -8px rgb(23 60 245 / .55) !important;
+      0 2px 4px rgb(23 179 139 / .22),
+      0 12px 24px -8px rgb(23 179 139 / .55) !important;
   }
 }
 .ws-topbar .toolbar-generate:active:not(:disabled) {
@@ -217,7 +217,7 @@
   scale: var(--pl-press-scale);
 }
 #root .ws-topbar .toolbar-generate:active:not(:disabled) {
-  box-shadow: var(--pl-inset-hi), 0 1px 2px rgb(23 60 245 / .25) !important;
+  box-shadow: var(--pl-inset-hi), 0 1px 2px rgb(23 179 139 / .25) !important;
 }
 #root .ws-topbar .toolbar-generate:disabled:not(.is-busy) { box-shadow: none !important; }
 
@@ -233,11 +233,11 @@
 /* Navy icon buttons. The white panel and nav toggles are left out: they take
    the white controls' shadow (model selector block below). */
 #root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn, .toolbar-nav-btn) {
-  box-shadow: 0 1px 2px rgb(12 23 79 / .14), 0 6px 14px -6px rgb(12 23 79 / .40) !important;
+  box-shadow: 0 1px 2px rgb(17 60 73 / .14), 0 6px 14px -6px rgb(17 60 73 / .40) !important;
 }
 @media (hover: hover) {
   #root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn, .toolbar-nav-btn):hover:not(:disabled) {
-    box-shadow: 0 2px 4px rgb(12 23 79 / .16), 0 12px 22px -8px rgb(12 23 79 / .50) !important;
+    box-shadow: 0 2px 4px rgb(17 60 73 / .16), 0 12px 22px -8px rgb(17 60 73 / .50) !important;
   }
 }
 .ws-topbar .toolbar-icon-btn:active:not(:disabled) {
@@ -246,7 +246,7 @@
 }
 #root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn, .toolbar-nav-btn):active:not(:disabled),
 #root .ws-topbar .toolbar-icon-btn:not(.toolbar-panel-btn, .toolbar-nav-btn)[aria-expanded=true] {
-  box-shadow: 0 1px 2px rgb(12 23 79 / .18) !important;
+  box-shadow: 0 1px 2px rgb(17 60 73 / .18) !important;
 }
 #root .ws-topbar .toolbar-icon-btn:disabled { box-shadow: none !important; }
 
@@ -360,13 +360,13 @@ html body .model-selector-menu {
 html body .model-selector-option {
   gap: 12px;
   padding: 11px 14px 11px 11px;
-  border-radius: calc(var(--ui-r) - 6px);
+  border-radius: var(--ui-r);
 }
 html body .model-selector-option-icon { width: 34px; height: 34px; flex-basis: 34px; }
 html body .model-selector-option-text { gap: 3px; }
-html body .model-selector-option-name { font-size: 13px; letter-spacing: -.01em; }
+html body .model-selector-option-name { font-size: 14px; letter-spacing: -.01em; }
 html body .model-selector-option-description {
-  font-size: 10.5px;
+  font-size: 10px;
   line-height: 1.3;
   letter-spacing: 0;
 }
@@ -385,8 +385,7 @@ html body .model-selector-check { width: 14px; height: 14px; }
 @property --pl-cardw { syntax: "<length>"; inherits: true; initial-value: 320px; }
 .qg-grid { --pl-cardw: 96cqw; }                                   /* 1 column */
 @container ws (min-width: 640px)  { .qg-grid { --pl-cardw: calc(96cqw / 2); } }
-@container ws (min-width: 1200px) { .qg-grid { --pl-cardw: calc(96cqw / 3); } }
-@container ws (min-width: 1800px) { .qg-grid { --pl-cardw: calc(96cqw / 4); } }
+@container ws (min-width: 900px)  { .qg-grid { --pl-cardw: calc(96cqw / 3); } }
 
 .qg-grid {
   --pl-u: calc(var(--pl-cardw) / 100);   /* 1% of a column */
@@ -395,7 +394,7 @@ html body .model-selector-check { width: 14px; height: 14px; }
 .qg { padding-left: var(--ws-gutter); padding-right: var(--ws-gutter); }
 
 html body .ncard-head { --ncard-head-gap: clamp(8px, calc(var(--pl-u) * 3), 20px); gap: var(--ncard-head-gap); padding-left: clamp(2px, calc(var(--pl-u) * 1.4), 6px); }
-html body .ncard-pill { font-size: clamp(13px, calc(var(--pl-u) * 3.7), 18px); gap: clamp(7px, calc(var(--pl-u) * 2.2), 12px); }
+html body .ncard-pill { font-size: clamp(14px, calc(var(--pl-u) * 3.7), 18px); gap: clamp(7px, calc(var(--pl-u) * 2.2), 12px); }
 html body .ncard-dot { width: clamp(8px, calc(var(--pl-u) * 2.2), 11px); height: clamp(8px, calc(var(--pl-u) * 2.2), 11px); }
 html body .ncard-actions { gap: clamp(5px, calc(var(--pl-u) * 1.6), 10px); }
 /* --ncard-act / --ncard-ctl: the sizes radius.css scales the corners from. */
@@ -404,7 +403,7 @@ html body .ncard-action { --ncard-act: clamp(30px, calc(var(--pl-u) * 8.4), 40px
 html body .ncard-select-trigger {
   --ncard-ctl: clamp(28px, calc(var(--pl-u) * 7.4), 36px);
   height: var(--ncard-ctl);
-  font-size: clamp(10.5px, calc(var(--pl-u) * 2.9), 13px);
+  font-size: clamp(10px, calc(var(--pl-u) * 2.9), 14px);
   padding: 0 clamp(9px, calc(var(--pl-u) * 2.6), 12px) 0 clamp(10px, calc(var(--pl-u) * 3), 14px);
 }
 html body .ncard-select-chevron { width: clamp(11px, calc(var(--pl-u) * 3), 13px); height: clamp(11px, calc(var(--pl-u) * 3), 13px); }
@@ -414,16 +413,16 @@ html body .ncard-body {
   --ncard-pad-y: clamp(12px, calc(var(--pl-u) * 4.4), 26px);
   --ncard-pad-x: clamp(12px, calc(var(--pl-u) * 4.2), 24px);
   padding: var(--ncard-pad-y) var(--ncard-pad-x);
-  font-size: clamp(12.5px, calc(var(--pl-u) * 3.3), 16px);
+  font-size: clamp(12px, calc(var(--pl-u) * 3.3), 16px);
   line-height: 1.42;
 }
 html body #root .app .ncard-headline { font-size: clamp(18px, calc(var(--pl-u) * 6.4), 30px); }
-html body .ncard-sub { font-size: clamp(12px, calc(var(--pl-u) * 3.1), 15px); }
+html body .ncard-sub { font-size: clamp(12px, calc(var(--pl-u) * 3.1), 16px); }
 html body .ncard-skel { height: clamp(11px, calc(var(--pl-u) * 3.2), 14px); }
-html body .ncard-retry { height: clamp(34px, calc(var(--pl-u) * 9), 38px); font-size: clamp(12px, calc(var(--pl-u) * 3), 13px); }
-html body .ncard-vtab { width: clamp(26px, calc(var(--pl-u) * 7), 30px); height: clamp(26px, calc(var(--pl-u) * 7), 30px); font-size: clamp(11px, calc(var(--pl-u) * 2.8), 12px); }
-html body .ncard-fav { height: clamp(26px, calc(var(--pl-u) * 7), 30px); font-size: clamp(11px, calc(var(--pl-u) * 2.8), 12px); }
-html body .ncard-meter { font-size: clamp(10.5px, calc(var(--pl-u) * 2.8), 13px); }
+html body .ncard-retry { height: clamp(34px, calc(var(--pl-u) * 9), 38px); font-size: clamp(12px, calc(var(--pl-u) * 3), 14px); }
+html body .ncard-vtab { width: clamp(26px, calc(var(--pl-u) * 7), 30px); height: clamp(26px, calc(var(--pl-u) * 7), 30px); font-size: clamp(12px, calc(var(--pl-u) * 2.8), 12px); }
+html body .ncard-fav { height: clamp(26px, calc(var(--pl-u) * 7), 30px); font-size: clamp(12px, calc(var(--pl-u) * 2.8), 12px); }
+html body .ncard-meter { font-size: clamp(10px, calc(var(--pl-u) * 2.8), 14px); }
 
 /* Very narrow cards (one column on a phone, or a half-width tile beside the open
    brand panel): keep the header on one line, drop the optional meter label first. */

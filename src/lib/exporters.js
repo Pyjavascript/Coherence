@@ -6,9 +6,14 @@ import { toDisplay } from "./copyItems";
 export function brandSettings({ brand, notes = [], stylePack }) {
   const rows = [
     ["Brand Name", brand.name],
-    ["Core Belief", brand.belief],
-    ["Brand message", brand.message],
-    ["Industry Category", INDUSTRY_LAYERS[brand.industry]?.label || brand.industry],
+    ["Industry", INDUSTRY_LAYERS[brand.industry]?.label || brand.industry],
+    ["Core promise / values / principles", brand.belief],
+    ...(brand.pillars || []).map((pillar, i) => [`Pillar ${i + 1}`, pillar]),
+    ["Content job", brand.message],
+    ["Personality", brand.personality],
+    ["Writing rules", brand.rules],
+    ["Voice / tone sample", brand.voice],
+    ["Warmth (cold 0 – warm 100)", brand.warmth ?? ""],
     ["Funnel Stage", brand.stage],
     ["Language", brand.mode],
     ["Audience Posture", brand.audience],

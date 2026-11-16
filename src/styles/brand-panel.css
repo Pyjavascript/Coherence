@@ -1,0 +1,674 @@
+/* ==========================================================================
+   Brand panel (BrandPanel.jsx): title + download / close, the Brand /
+   Language / Customer tabs, then the Brand tab: one light card holding the
+   fields (name, industry, core promise, pillars, content job) and, under it
+   at the bottom of the panel, Copy AI Prompt · delete · save.
+   Scoped to #root .bpx so it outranks the older .rsb / .bp-* layers.
+   Corners follow the app's rule (polish/tokens.css): ~0.42 × height for
+   fields and buttons, the inset tab = box radius minus its inset.
+   Dark mode is generated from these colours (scripts/vite-dark-theme.js).
+   ========================================================================== */
+
+#root .bpx {
+  --bpx-card: #f3f6ff;                   /* the card and the tab strip */
+  --bpx-field: #fff;                     /* inputs and pillar cards on it */
+  --bpx-field-hover: #f7f8fc;
+  --bpx-surface: var(--shell-tint);      /* buttons on the teal panel */
+  --bpx-surface-hover: var(--shell-tint-2);
+  --bpx-ink: var(--shell-ink);
+  --bpx-muted: #7d84a3;
+  --bpx-gap: clamp(12px, 0.95vw, 14px);  /* between fields */
+  --bpx-tab-inset: 6px;
+  /* Sizes follow the window's height, so a taller screen gets bigger fields
+     instead of bigger gaps: one-line inputs (and the tabs) 52px on a
+     900px-tall laptop, ~58px at 1000px, 64px max. */
+  --bp-field-h: clamp(46px, 5.8vh, 64px);
+  /* Core promise + content job: ~85px at 900px tall, ~94px at 1000px. */
+  --bpx-tall: clamp(72px, 9.4vh, 110px);
+  --bpx-pillar-h: clamp(104px, 13.5vh, 156px);
+  /* Buttons (close, download, Copy AI Prompt, delete, save) are the top bar's
+     controls: the Grid switch / Add / send-arrow height, corner and type. */
+  --bpx-btn: var(--ui-icon);
+  --bpx-btn-r: var(--ws-switch-r);
+  display: flex;
+  flex-direction: column;
+}
+
+#root .bpx > * {
+  flex: none;
+}
+
+/* ---------- Title row ---------- */
+#root .bpx .bpx-head {
+  gap: 10px;
+  margin-bottom: clamp(10px, 1vw, 14px);
+}
+
+#root .bpx .bpx-head h2 {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: clamp(22px, 1.9vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#root .bpx .bpx-head .bpx-head-btn {
+  width: var(--bpx-btn);
+  height: var(--bpx-btn);
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--bpx-ink);
+  background: var(--bpx-surface);
+  border: 0;
+  border-radius: var(--bpx-btn-r);
+  cursor: pointer;
+  opacity: 1;
+}
+
+#root .bpx .bpx-head .bpx-head-btn svg {
+  width: 45%;
+  height: 45%;
+}
+
+/* The close ✕ fills its whole box (two full diagonals), so at the same size
+   as the save arrow it reads bigger and heavier: a step smaller (~9px of ink
+   on a 49px button) looks the same size as the arrow. */
+#root .bpx .bpx-head .bpx-close svg {
+  width: 38%;
+  height: 38%;
+}
+
+#root .bpx .bpx-head .bpx-head-btn:not(:disabled):hover {
+  background: var(--bpx-surface-hover);
+}
+
+#root .bpx .bpx-head .bpx-head-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+#root .bpx .bpx-head .bpx-head-btn:disabled:hover {
+  background: var(--bpx-surface);
+}
+
+/* ---------- Tabs ---------- */
+#root .bpx .bpx-tabs {
+  --bpx-tabs-h: calc(var(--bp-field-h) + 2 * var(--bpx-tab-inset));
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 15px;
+  padding: var(--bpx-tab-inset);
+  background: var(--bpx-card);
+  border-radius: calc(var(--bpx-tabs-h) * var(--ui-ratio));
+}
+
+#root .bpx .bpx-tab {
+  height: var(--bp-field-h);
+  min-width: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  color: var(--bpx-ink);
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--bpx-tabs-h) * var(--ui-ratio) - var(--bpx-tab-inset));
+  font-size: clamp(14px, 1.15vw, 16px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out), color var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-tab:not(.is-active):hover {
+  background: rgb(17 60 73 / 0.06);
+}
+
+#root .bpx .bpx-tab.is-active {
+  color: #fff;
+  background: var(--shell-frame);
+}
+
+#root .bpx .bpx-tab:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 1px;
+}
+
+/* ---------- Tab body: the card grows to fill the panel, so the button row
+   under it always sits at the bottom. ---------- */
+#root .bpx .bpx-body {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* On tall screens the card is taller than its fields: they spread out
+   evenly (the gap is the minimum) so Content Job ends at the card's bottom,
+   just above the buttons. */
+#root .bpx .bpx-card {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bpx-gap);
+  padding: clamp(14px, 1.1vw, 16px) clamp(12px, 1.1vw, 16px);
+  color: var(--bpx-ink);
+  background: var(--bpx-card);
+  border-radius: var(--ui-r);
+}
+
+#root .bpx .bpx-card > .bp-field {
+  flex: none;
+  margin: 0;
+}
+
+/* Core promise, pillars and content job share whatever height the card has
+   left on a tall screen (equally), so the card fills down to the buttons
+   with the gaps unchanged. */
+#root .bpx .bpx-card > .bpx-flex {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+#root .bpx .bpx-label {
+  display: block;
+  margin: 0 0 6px 4px;
+  color: var(--bpx-ink);
+  font-size: clamp(14px, 1.15vw, 16px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+#root .bpx .bp-input,
+#root .bpx .bp-textarea,
+#root .bpx .bp-dd-trigger {
+  color: var(--bpx-ink);
+  background: var(--bpx-field);
+  font-size: clamp(14px, 1.15vw, 16px);
+  font-weight: 500;
+}
+
+/* Dropdown options read like the field they open from: same size and
+   weight as the inputs (they were 14px semibold on laptops, 16px on phones). */
+#root .bpx .bp-dd-opt {
+  font-size: clamp(14px, 1.15vw, 16px);
+  font-weight: 500;
+}
+
+#root .bpx .bp-dd:not(.open) .bp-dd-trigger:hover {
+  background: var(--bpx-field-hover);
+}
+
+#root .bpx .bp-name-input .bp-addimg:not(.has-logo) {
+  color: var(--bpx-ink);
+  background: var(--shell-tint);
+}
+
+#root .bpx .bp-name-input .bp-addimg:not(.has-logo):hover {
+  background: var(--shell-tint-2);
+}
+
+/* Core promise + content job: at least --bpx-tall, plus their share of the
+   spare height; text starts at the top, where a one-line input's text sits
+   (the .rsb .bp-textarea padding), and longer text scrolls. */
+#root .bpx .bp-textarea.bpx-tall {
+  flex: 1 0 var(--bpx-tall);
+  height: auto;
+  min-height: var(--bpx-tall);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* ---------- Brand pillars ---------- */
+#root .bpx .bpx-pillars {
+  flex: 1 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(8px, 0.8vw, 10px);
+}
+
+#root .bpx .bpx-pillar {
+  position: relative;
+  min-width: 0;
+  min-height: var(--bpx-pillar-h);
+  display: flex;
+  flex-direction: column;
+  color: var(--bpx-ink);
+  background: var(--bpx-field);
+  border: 0;
+  border-radius: var(--ui-r);
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out), outline-color var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-pillar.is-editing {
+  outline-color: var(--shell-green);
+}
+
+/* The written pillar: the whole card is a button that opens the editor. */
+#root .bpx .bpx-pillar-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Title and text sit together in the middle of the card, a clear gap
+     between them. */
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 6px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+#root .bpx .bpx-pillar:hover {
+  background: var(--bpx-field-hover);
+}
+
+#root .bpx .bpx-pillar-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+#root .bpx .bpx-pillar-text {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  /* Longer pillars end in "…" after three lines (hover shows the full
+     text; clicking opens it in the editor). */
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+#root .bpx .bpx-pillar-body:focus-visible,
+#root .bpx .bpx-pillar-add:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 1px;
+}
+
+/* Remove: a small square in the corner, shown on hover / focus (always on touch). */
+#root .bpx .bpx-pillar-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--bpx-muted);
+  background: transparent;
+  border: 0;
+  border-radius: calc(24px * var(--ui-ratio-sm));
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--pl-d-2) var(--pl-ease-out), background-color var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-pillar-remove svg {
+  width: 14px;
+  height: 14px;
+}
+
+#root .bpx .bpx-pillar:hover .bpx-pillar-remove,
+#root .bpx .bpx-pillar:focus-within .bpx-pillar-remove {
+  opacity: 1;
+}
+
+#root .bpx .bpx-pillar-remove:hover {
+  color: var(--bpx-ink);
+  background: var(--shell-tint);
+}
+
+@media (hover: none) {
+  #root .bpx .bpx-pillar-remove {
+    opacity: 1;
+  }
+}
+
+#root .bpx .bpx-pillar-add {
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+}
+
+#root .bpx .bpx-pillar-add span {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* The input under the cards that adds / edits a pillar, with a green tick
+   inside it (placed like the brand name's logo button). */
+#root .bpx .bpx-pillar-editor {
+  --ok-sz: clamp(32px, 2.8vw, 40px);
+  --ok-inset: calc((var(--bp-field-h) - var(--ok-sz)) / 2);
+  position: relative;
+  margin-top: 10px;
+  animation: bpx-rise var(--pl-d-2) var(--pl-ease-out) both;
+}
+
+#root .bpx .bpx-pillar-editor .bp-input {
+  padding-right: calc(var(--ok-sz) + var(--ok-inset) + 10px);
+}
+
+#root .bpx .bpx-pillar-ok {
+  position: absolute;
+  top: var(--ok-inset);
+  right: var(--ok-inset);
+  width: var(--ok-sz);
+  height: var(--ok-sz);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #fff;
+  background: var(--shell-green);
+  border: 0;
+  border-radius: var(--ui-r);
+  cursor: pointer;
+}
+
+#root .bpx .bpx-pillar-ok:hover {
+  background: var(--shell-green-hover);
+}
+
+#root .bpx .bpx-pillar-ok svg {
+  width: 55%;
+  height: 55%;
+}
+
+#root .bpx .bpx-pillar-ok:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 2px;
+}
+
+@keyframes bpx-rise {
+  from { opacity: 0; translate: 0 -4px; }
+}
+
+/* ---------- Bottom bar ---------- */
+#root .bpx .bpx-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+#root .bpx .bpx-bar-end {
+  display: flex;
+  gap: 10px;
+}
+
+#root .bpx .bpx-btn {
+  height: var(--bpx-btn);
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 20px;
+  color: var(--bpx-ink);
+  background: var(--bpx-surface);
+  border: 0;
+  border-radius: var(--bpx-btn-r);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out), scale var(--pl-d-1) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-btn:hover:not(:disabled) {
+  background: var(--bpx-surface-hover);
+}
+
+#root .bpx .bpx-btn:active:not(:disabled) {
+  scale: var(--pl-press-scale);
+}
+
+#root .bpx .bpx-btn:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 2px;
+}
+
+#root .bpx .bpx-icon {
+  width: var(--bpx-btn);
+  padding: 0;
+}
+
+/* The send arrow's icon size: 22px on a 48px button. */
+#root .bpx .bpx-icon svg {
+  width: 45%;
+  height: 45%;
+}
+
+#root .bpx .bpx-delete {
+  color: #e5484d;
+}
+
+#root .bpx .bpx-delete:hover {
+  background: #ffe6e6;
+}
+
+#root .bpx .bpx-save {
+  color: #fff;
+  background: var(--shell-green);
+}
+
+#root .bpx .bpx-save:hover:not(:disabled) {
+  background: var(--shell-green-hover);
+}
+
+#root .bpx .bpx-save:disabled {
+  cursor: progress;
+}
+
+#root .bpx .bpx-spin {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgb(255 255 255 / 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: bpx-spin 0.8s linear infinite;
+}
+
+@keyframes bpx-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Language tab ---------- */
+/* Personality: one row of chips that scrolls sideways (trackpad, Shift +
+   wheel, or the wheel, BrandPanel.jsx). Chosen: the theme colour, like the
+   active tab. The row runs to the card's edges so chips scroll under them. */
+#root .bpx .bpx-chips {
+  --chip-h: clamp(36px, 4.4vh, 44px);
+  display: flex;
+  gap: 8px;
+  margin: 0 calc(-1 * clamp(12px, 1.1vw, 16px));
+  padding: 2px clamp(12px, 1.1vw, 16px);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: clamp(12px, 1.1vw, 16px);
+  scrollbar-width: none;
+}
+
+#root .bpx .bpx-chips::-webkit-scrollbar {
+  display: none;
+}
+
+#root .bpx .bpx-chip {
+  height: var(--chip-h);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 0 14px;
+  color: var(--bpx-ink);
+  background: var(--bpx-field);
+  border: 0;
+  border-radius: calc(var(--chip-h) * var(--ui-ratio));
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out), color var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-chip-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+#root .bpx .bpx-chip:not(.is-on):hover {
+  background: var(--bpx-field-hover);
+}
+
+#root .bpx .bpx-chip.is-on {
+  color: #fff;
+  background: var(--shell-frame);
+}
+
+#root .bpx .bpx-chip:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 1px;
+}
+
+/* Cold / Neutral / Warm: the labels over a cool-to-warm track, white thumb. */
+#root .bpx .bpx-warmth-scale {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 2px 10px;
+  color: var(--bpx-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+#root .bpx .bpx-warmth {
+  --thumb: 26px;
+  width: 100%;
+  height: var(--thumb);
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+#root .bpx .bpx-warmth::-webkit-slider-runnable-track {
+  height: 8px;
+  background: linear-gradient(90deg, #8ec5ff 0%, #f4f6fb 50%, #ff7a7a 100%);
+  border-radius: 999px;
+}
+
+#root .bpx .bpx-warmth::-moz-range-track {
+  height: 8px;
+  background: linear-gradient(90deg, #8ec5ff 0%, #f4f6fb 50%, #ff7a7a 100%);
+  border-radius: 999px;
+}
+
+#root .bpx .bpx-warmth::-webkit-slider-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  margin-top: calc((8px - var(--thumb)) / 2);
+  background: #fff;
+  border: 1px solid rgb(17 60 73 / 0.14);
+  border-radius: 50%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+#root .bpx .bpx-warmth::-moz-range-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  background: #fff;
+  border: 1px solid rgb(17 60 73 / 0.14);
+  border-radius: 50%;
+}
+
+#root .bpx .bpx-warmth:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+/* ---------- Customer (not built yet) ---------- */
+#root .bpx .bpx-soon {
+  flex: 1 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 24px 12px;
+  color: rgb(255 255 255 / 0.7);
+  border: 1px dashed rgb(255 255 255 / 0.2);
+  border-radius: var(--ui-r);
+  font-size: 15px;
+  text-align: center;
+}
+
+#root .bpx .bpx-soon p {
+  margin: 0;
+}
+
+/* ---------- Phones ---------- */
+#root .app-shell[data-bp="mobile"] .bpx .bpx-label {
+  font-size: 16px;
+}
+
+/* Narrow phones: tighter pillar cards so three still fit a row. */
+@media (max-width: 380px) {
+  #root .bpx .bpx-pillar-body {
+    gap: 8px;
+    padding: 12px 4px;
+  }
+
+  #root .bpx .bpx-pillar-text,
+  #root .bpx .bpx-pillar-title {
+    font-size: 13px;
+  }
+
+  #root .bpx .bpx-btn:not(.bpx-icon) {
+    padding: 0 14px;
+  }
+
+  #root .bpx .bpx-bar,
+  #root .bpx .bpx-bar-end {
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root .bpx .bpx-spin {
+    animation-duration: 2s;
+  }
+
+  #root .bpx .bpx-pillar-editor {
+    animation: none;
+  }
+}

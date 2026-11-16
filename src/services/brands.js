@@ -1,5 +1,6 @@
 import { requireSupabase } from "../lib/supabase";
 import { callFunction, usesPluginKey } from "./ai";
+import { MAX_PILLARS, MAX_PILLAR_CHARS, PERSONALITIES, WARMTH_DEFAULT } from "../lib/constants";
 
 // The Figma plugin has no Supabase session, so row-level security would hide
 // the user's brands. With a plugin key, brand reads and writes go through the
@@ -7,33 +8,56 @@ import { callFunction, usesPluginKey } from "./ai";
 
 const BASE_COLS =
   "id,name,logo,scope,belief,message,industry,stage,mode,audience,pain,emo,formality,objection,cta,banned,must_include";
-// Added by the 20261012 migration. Until it has run on a database, brands load
-// and save without them (location / language fall back to their defaults).
-const LOCALE_COLS = ["location", "language"];
-let hasLocaleCols = true;
-const cols = () => (hasLocaleCols ? `${BASE_COLS},${LOCALE_COLS.join(",")}` : BASE_COLS);
+// Added by later migrations: location / language (20261012), pillars
+// (20261116) and the Language tab's fields (20261117). Until one has run on a
+// database, brands load and save without those columns (they fall back to
+// their defaults).
+const OPTIONAL_COLS = {
+  locale: { cols: ["location", "language"], migration: "20261012000000_brand_location_language.sql" },
+  pillars: { cols: ["pillars"], migration: "20261116000000_brand_pillars.sql" },
+  voice: { cols: ["personality", "writing_rules", "voice_sample", "warmth"], migration: "20261117000000_brand_language.sql" },
+};
+const missingGroups = new Set();
+// False once a save or load found that group's columns missing (its
+// migration hasn't run), so those fields were left out.
+export const canSaveGroup = (group) => !missingGroups.has(group);
+const cols = () => [
+  BASE_COLS,
+  ...Object.entries(OPTIONAL_COLS).filter(([g]) => !missingGroups.has(g)).flatMap(([, o]) => o.cols),
+].join(",");
 
-// Postgres "undefined column" (select) or PostgREST "column not in schema cache" (insert/update).
-const isMissingLocaleCol = (error) =>
-  hasLocaleCols &&
-  (error?.code === "42703" || error?.code === "PGRST204") &&
-  LOCALE_COLS.some((c) => (error.message || "").includes(c));
+// Postgres "undefined column" (select) or PostgREST "column not in schema
+// cache" (insert/update): the optional column group it names, if any.
+const missingGroup = (error) => {
+  if (error?.code !== "42703" && error?.code !== "PGRST204") return null;
+  const message = error.message || "";
+  return Object.keys(OPTIONAL_COLS).find((g) => !missingGroups.has(g) && OPTIONAL_COLS[g].cols.some((c) => message.includes(c))) || null;
+};
 
-// Runs a query built from the current columns; if the locale columns are
-// missing, remembers that and runs it once more without them.
+// Runs a query built from the current columns; while a column group is
+// missing, remembers that and runs it again without it.
 async function withCols(run) {
-  const result = await run(cols());
-  if (!isMissingLocaleCol(result.error)) return result;
-  hasLocaleCols = false;
-  console.warn("brands.location / brands.language are missing: run supabase/migrations/20261012000000_brand_location_language.sql");
-  return run(cols());
+  let result = await run(cols());
+  for (let group = missingGroup(result.error); group; group = missingGroup(result.error)) {
+    missingGroups.add(group);
+    console.warn(`brands.${OPTIONAL_COLS[group].cols.join(" / brands.")} missing: run supabase/migrations/${OPTIONAL_COLS[group].migration}`);
+    result = await run(cols());
+  }
+  return result;
 }
 
 const rowFor = (b) => {
   const row = toRow(b);
-  if (!hasLocaleCols) LOCALE_COLS.forEach((c) => delete row[c]);
+  missingGroups.forEach((g) => OPTIONAL_COLS[g].cols.forEach((c) => delete row[c]));
   return row;
 };
+
+// Saved pillars: trimmed, no empty ones, at most MAX_PILLARS.
+const cleanPillars = (list) =>
+  (Array.isArray(list) ? list : [])
+    .map((p) => (typeof p === "string" ? p.trim().slice(0, MAX_PILLAR_CHARS) : ""))
+    .filter(Boolean)
+    .slice(0, MAX_PILLARS);
 
 function fromRow(r) {
   return {
@@ -42,6 +66,7 @@ function fromRow(r) {
     logo: r.logo || "",
     scope: r.scope,
     belief: r.belief || "",
+    pillars: cleanPillars(r.pillars),
     message: r.message || "",
     industry: r.industry,
     stage: r.stage,
@@ -56,6 +81,10 @@ function fromRow(r) {
     must: r.must_include || "",
     location: r.location || "",
     language: r.language || "English",
+    personality: PERSONALITIES.includes(r.personality) ? r.personality : "",
+    rules: r.writing_rules || "",
+    voice: r.voice_sample || "",
+    warmth: Number.isFinite(r.warmth) ? r.warmth : WARMTH_DEFAULT,
   };
 }
 
@@ -66,6 +95,7 @@ function toRow(b) {
     logo: b.logo || "",
     scope: b.scope || "regular",
     belief: t(b.belief),
+    pillars: cleanPillars(b.pillars),
     message: t(b.message),
     industry: b.industry,
     stage: t(b.stage),
@@ -80,6 +110,10 @@ function toRow(b) {
     must_include: t(b.must),
     location: t(b.location),
     language: t(b.language) || "English",
+    personality: PERSONALITIES.includes(b.personality) ? b.personality : "",
+    writing_rules: t(b.rules),
+    voice_sample: t(b.voice),
+    warmth: Number.isFinite(Number(b.warmth)) ? Math.min(100, Math.max(0, Math.round(Number(b.warmth)))) : WARMTH_DEFAULT,
   };
   // user_id is left unset: the column default (auth.uid()) applies in the web
   // app, and the Edge Function sets it from the plugin key in Figma.

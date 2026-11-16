@@ -6,7 +6,6 @@ import BrandPanel from "./components/BrandPanel";
 import NodeStudio from "./components/NodeStudio";
 import QuickGrid, { useQuickGrid } from "./components/QuickGrid";
 import ResearchNotes from "./components/ResearchNotes";
-import HistoryModal from "./components/HistoryModal";
 import { CoherenceModal, ConfirmModal, HookModal } from "./components/Modal";
 import AuthModal from "./components/AuthModal";
 import ProfileModal from "./components/ProfileModal";
@@ -14,7 +13,7 @@ import UsageModal from "./components/UsageModal";
 import TourModal from "./components/TourModal";
 import PlansModal, { PlanProButton } from "./components/PlansModal";
 import CanvasViewport from "./components/CanvasViewport";
-import GenerateButton from "./components/GenerateDock";
+import MessageComposer, { COMPOSER_INPUT_ID } from "./components/GenerateDock";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightSidebar from "./components/layout/RightSidebar";
 import MainWorkspace from "./components/layout/MainWorkspace";
@@ -128,12 +127,16 @@ export default function App() {
     if (layout.rightOpen) setPanelFocus({ target });
   }, [layout.rightOpen]);
 
-  // The message to adapt is in the brand panel: open it there, focus the
-  // field and flag it as missing.
+  // The message to adapt is in the bottom composer (GenerateDock.jsx): focus
+  // it and flag it as missing until something is written.
+  const [messageFlagged, setMessageFlagged] = useState(false);
   const focusMessage = useCallback(() => {
-    layout.open("right");
-    setPanelFocus({ target: "bp-message" });
-  }, [layout.open]);
+    setMessageFlagged(true);
+    document.getElementById(COMPOSER_INPUT_ID)?.focus();
+  }, []);
+  useEffect(() => {
+    if (ws.brand.message?.trim()) setMessageFlagged(false);
+  }, [ws.brand.message]);
 
   // Whether the Quick Grid's copy was made for the brand that's open now. The
   // grid keeps its cards when another brand is picked, so Export (brand
@@ -150,11 +153,13 @@ export default function App() {
   // new one already started); generating also needs its name and message to
   // adapt. Returns false after a toast says what's missing; only a missing
   // message opens the brand panel (it is the one field Generate needs).
-  const ensureBrand = ({ generate = false } = {}) => {
+  // needMessage = false: the copy has a job of its own (a Node Studio node's
+  // job requirement), so the message to adapt is optional.
+  const ensureBrand = ({ generate = false, needMessage = true } = {}) => {
     const name = ws.brand.name.trim();
     const message = ws.brand.message.trim();
     // Generating with no message to adapt always goes to the message field first.
-    if (generate && !message) {
+    if (generate && needMessage && !message) {
       setStatus("Add a message to adapt first.", "err");
       focusMessage();
       return false;
@@ -306,25 +311,6 @@ export default function App() {
     }
   };
 
-  // Quick Grid entries go back on the grid; Node Studio ones ("node-email", ...)
-  // back on the canvas. input = the entry's input_context.
-  const handleRestore = (medium, items, input) => {
-    const category = String(medium).startsWith("node-") ? medium.slice(5) : null;
-    if (category) {
-      // Phones have no Node Studio to bring it back to.
-      if (layout.bp === "mobile") return setStatus(...toast("restoreStudioMobile"));
-      if (!nodeStudioRef.current?.restore(category, items, input)) return setStatus(...toast("restoreStudioFailed"));
-      layout.setView("nodes");
-      setModal(null);
-      return setStatus(...toast("restoreStudio", { category: NODE_CATS[category]?.label || "Copy" }));
-    }
-    if (!quick.restore(medium, items)) return setStatus(...toast("restoreGridFailed"));
-    setGridCopyIsCurrent(true); // history lists the open brand's own copy
-    layout.setView("quick");
-    setModal(null);
-    setStatus(...toast("restoreGrid", { medium: MEDIA_BY_KEY[medium]?.label || "Copy" }));
-  };
-
   // Credits and the free hook reset at UTC midnight; reload usage then and
   // whenever the tab regains focus.
   useEffect(() => {
@@ -443,8 +429,6 @@ export default function App() {
             brands={ws.brands}
             brandsLoaded={ws.brandsLoaded}
             currentId={ws.currentId}
-            onHook={openHook}
-            hooksLeft={premium ? null : hookQuota.left}
             onSelect={handleSelectBrand}
             onNew={handleNewBrand}
             user={user}
@@ -462,7 +446,10 @@ export default function App() {
           views={views}
           onHelp={() => setShowTour(true)}
           tray={
-            <GenerateButton
+            <MessageComposer
+              message={ws.brand.message ?? ""}
+              onMessage={(text) => ws.setField("message", text)}
+              invalid={messageFlagged && !ws.brand.message?.trim()}
               onGenerate={triggerGenerate}
               generating={isGeneratingAll || quick.busy}
               generatingDetail={generatingDetail}
@@ -492,26 +479,23 @@ export default function App() {
         <RightSidebar open={layout.rightOpen}>
           <BrandPanel
             brand={ws.brand} onField={ws.setField}
-            stylePack={stylePack} onStylePack={onStylePack} variantCount={variantCount} onVariantCount={onVariantCount}
-            premium={premium}
-            researchCount={ws.notes.length}
             isSaved={Boolean(ws.currentId)}
-            dirty={ws.dirty}
             saving={ws.saving}
             focusRequest={panelFocus}
-            hookQuota={premium ? null : hookQuota}
             canExport={quick.hasCopy && gridCopyIsCurrent}
-            onExport={handleExport}
+            onDownload={() => handleExport("txt")}
             onSave={requireLogin(handleSaveBrand)}
             onDelete={requireLogin(handleDeleteBrand)}
-            onResearch={() => setModal("research")} onCoherence={() => setModal("coherence")} onHook={openHook}
-            onHistory={() => setModal("history")}
+            onCopyPrompt={() => setModal("coherence")}
             onStatus={setStatus}
             onClose={() => layout.close("right")}
           />
         </RightSidebar>
 
         <div className="shell-scrim" data-visible={Boolean(layout.drawer)} onClick={layout.closeDrawer} aria-hidden="true" />
+
+        {/* Sits in the navy band under the workspace (layout.css). */}
+        <p className="shell-credit">Built by Pixels Creative Technologies</p>
       </div>
 
       {showTour && (
@@ -557,15 +541,6 @@ export default function App() {
 
       {modal === "research" && (
         <ResearchNotes notes={ws.notes} onAdd={ws.addNote} onDelete={ws.removeNote} onClose={() => setModal(null)} />
-      )}
-
-      {modal === "history" && (
-        <HistoryModal
-          brandId={ws.currentId}
-          onCopy={(t) => copy(t, toast("historyCopied")[0])}
-          onRestore={handleRestore}
-          onClose={() => setModal(null)}
-        />
       )}
 
       {modal === "coherence" && (

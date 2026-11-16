@@ -3,10 +3,10 @@
 // always built here, so the endpoint can't be used as a general-purpose
 // chatbot. Every field is type-checked and length-capped first.
 import {
-  AI_MODELS, DEFAULT_TIER, DEFAULT_BRAND, STYLE_PACKS, NODE_CATS, PLATFORMS,
+  AI_MODELS, DEFAULT_TIER, DEFAULT_BRAND, MAX_PILLARS, MAX_PILLAR_CHARS, PERSONALITIES, WARMTH_DEFAULT, STYLE_PACKS, NODE_CATS, PLATFORMS,
   WEBSITE_COMPONENTS, GRID_WEBSITE_COMPONENTS, GEN_PLATFORMS, GEN_PLATFORMS_BY_KEY,
 } from "./constants.js";
-import { MAX_WORDS, countWords, wordRange } from "./copyItems.js";
+import { MAX_WORDS, countWords, trimToWords, wordRange } from "./copyItems.js";
 import {
   GRID_MEDIA, buildQuickGridPrompt, buildNodePrompt, buildHookPrompt, buildCoherencePrompt,
 } from "./prompts.js";
@@ -35,6 +35,7 @@ const int = (v, min, max, fallback) => {
 const BRAND_TEXT = {
   name: 200, belief: 2000, message: 2000, pain: 1000, objection: 1000,
   banned: 1000, must: 1000, location: 200, language: 60,
+  rules: 1000, voice: 1000,
 };
 const BRAND_CHOICE = ["industry", "stage", "mode", "audience", "emo", "formality", "cta"];
 
@@ -43,6 +44,13 @@ function cleanCtx(body) {
   const brand = { ...DEFAULT_BRAND, logo: "" };
   for (const [key, max] of Object.entries(BRAND_TEXT)) brand[key] = str(src[key], max);
   for (const key of BRAND_CHOICE) brand[key] = str(src[key], 120).trim() || DEFAULT_BRAND[key];
+  brand.personality = PERSONALITIES.includes(src.personality) ? src.personality : "";
+  brand.warmth = int(src.warmth, 0, 100, WARMTH_DEFAULT);
+  // Drop blanks first, then keep the first MAX_PILLARS.
+  brand.pillars = list(src.pillars, 20)
+    .map((p) => str(p, MAX_PILLAR_CHARS).trim())
+    .filter(Boolean)
+    .slice(0, MAX_PILLARS);
   const notes = list(body.notes, 8)
     .map((n) => ({ type: str(obj(n).type, 60), text: str(obj(n).text, 1000) }))
     .filter((n) => n.text.trim());
@@ -55,7 +63,6 @@ function cleanGridSettings(input, medium) {
   return {
     words: s.words == null || s.words === "" ? null : int(s.words, 1, MAX_WORDS, null),
     brief: str(s.brief, 1000),
-    requirements: str(s.requirements, 1000),
     component: medium === "website" && GRID_WEBSITE_COMPONENTS[s.component] ? s.component : "hero",
     pointerCount: int(s.pointerCount, 2, 6, 3),
   };
@@ -90,7 +97,6 @@ function cleanNode(input) {
     label: str(n.label, 120).trim() || cat.label,
     brief: str(n.brief, 2000),
     words: int(n.words, 4, 600, 60),
-    requirements: str(n.requirements, 2000),
     platform: n.category === "social" && PLATFORMS.includes(n.platform) ? n.platform : null,
     component: WEBSITE_COMPONENTS[n.component] ? n.component : "hero",
     pointerCount: int(n.pointerCount, 2, 6, 3),
@@ -153,10 +159,52 @@ const gridLengthIssues = (cards) => (data) =>
       target: c.settings.words,
     }))));
 
-// Returns { prompt, credits, ctx, lengthIssues? } for a generation type, or
-// throws RequestError. credits = what the call costs: one per Quick Grid card,
-// one for anything else. lengthIssues(data) lists the pieces of an answer that
-// miss a user-set word count, so the server can ask for a rewrite.
+// The last guard on a user-set word count, after the rewrites: anything still
+// over its limit is cut back to it (copyItems.js trimToWords). Never lengthens.
+// Node Studio: each variant's body.
+const clampNode = (node) => (data) => {
+  const d = obj(data);
+  if (!Array.isArray(d.variants)) return data;
+  return {
+    ...d,
+    variants: d.variants.map((v) => {
+      const o = obj(v);
+      return typeof o.body === "string" ? { ...o, body: trimToWords(o.body, node.words) } : v;
+    }),
+  };
+};
+
+// Quick Grid: an item's text fields together; the supporting line (sub /
+// preview) gives way first, then the headline.
+function clampItem(item, max) {
+  if (typeof item === "string") return trimToWords(item, max);
+  const o = obj(item);
+  const keys = Object.keys(o).filter((k) => typeof o[k] === "string");
+  let over = countWords(keys.map((k) => o[k]).join(" ")) - max;
+  if (over <= 0) return item;
+  const next = { ...o };
+  for (const k of [...keys].reverse()) {
+    if (over <= 0) break;
+    const had = countWords(next[k]);
+    next[k] = trimToWords(next[k], Math.max(1, had - over));
+    over -= had - countWords(next[k]);
+  }
+  return next;
+}
+
+const clampGrid = (cards) => (data) => {
+  const d = { ...obj(data) };
+  for (const c of cards) {
+    if (c.settings.words && Array.isArray(d[c.key])) d[c.key] = d[c.key].map((item) => clampItem(item, c.settings.words));
+  }
+  return d;
+};
+
+// Returns { prompt, credits, ctx, lengthIssues?, clampLength? } for a
+// generation type, or throws RequestError. credits = what the call costs: one
+// per Quick Grid card, one for anything else. lengthIssues(data) lists the
+// pieces of an answer that miss a user-set word count, so the server can ask
+// for a rewrite; clampLength(data) then cuts anything still over the limit.
 export function buildGeneration(type, body = {}) {
   const ctx = cleanCtx(body);
   const platforms = cleanPlatforms(body.platforms);
@@ -167,6 +215,7 @@ export function buildGeneration(type, body = {}) {
       const n = int(body.variantCount, 1, MAX_GRID_VARIANTS, 1);
       return {
         ctx, credits: cards.length, prompt: buildQuickGridPrompt(ctx, n, cards, platforms), lengthIssues: gridLengthIssues(cards),
+        clampLength: clampGrid(cards),
       };
     }
     case "regenerate": {
@@ -176,6 +225,7 @@ export function buildGeneration(type, body = {}) {
       const n = int(body.variantCount, 1, MAX_GRID_VARIANTS, 1);
       return {
         ctx, credits: 1, prompt: buildQuickGridPrompt(ctx, n, [card], platforms), lengthIssues: gridLengthIssues([card]),
+        clampLength: clampGrid([card]),
       };
     }
     case "node": {
@@ -187,6 +237,7 @@ export function buildGeneration(type, body = {}) {
       return {
         ctx, credits: 1, prompt: buildNodePrompt(ctx, node, n, linked, cleanSource(body.source), platforms),
         lengthIssues: nodeLengthIssues(node),
+        clampLength: clampNode(node),
       };
     }
     case "hook":

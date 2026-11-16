@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Plans: the gold lock in the bottom row and the plans dialog
+   Plans: the "Pro" button in the bottom row and the plans dialog
    (components/PlansModal.jsx, plan data in lib/plans.js).
    Gold is Premium's colour (the brand panel's upsell uses the same
    gradient). Corners follow the app's ratios: ~0.3 x height for small
@@ -16,30 +16,34 @@
 }
 
 /* ---------- "Pro" button (bottom-left corner) ------------------------------ */
-/* The "?"'s 40px height and corner, filled gold, with a white "Pro". */
+/* A square orange tile with a white italic "PRO", as tall as the message
+   box beside it (--cmp-h, composer.css): light orange at the top deepening
+   to a warm burnt orange, a soft top highlight and an orange glow. */
 .plan-pro {
+  --pro-size: var(--cmp-h, 48px);
   flex: none;
-  height: 40px;
+  box-sizing: border-box;
+  width: var(--pro-size);
+  height: var(--pro-size);
   display: grid;
   place-items: center;
-  padding: 0 16px;
+  padding: 0;
   color: #fff;
-  background: linear-gradient(135deg, var(--gold-1), var(--gold-2));
+  background: linear-gradient(180deg, #f9b47a 0%, #f59a4e 45%, #e56a1b 100%);
   border: 0;
-  border-radius: calc(40px * var(--ui-ratio-sm, 0.3));
+  border-radius: var(--ws-switch-r);
   font-family: "Manrope", system-ui, sans-serif;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: calc(var(--pro-size) * 0.32);
+  font-style: italic;
+  font-weight: 800;
   line-height: 1;
-  letter-spacing: 0.01em;
-  text-shadow: 0 1px 1px rgb(122 83 19 / .25);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgb(150 60 0 / .35);
   cursor: pointer;
   transition: filter 180ms ease, translate 160ms ease, scale 120ms ease;
 }
 
-#root .plan-pro {
-  box-shadow: 0 1px 2px rgb(122 83 19 / .18), 0 6px 16px -6px rgb(201 138 26 / .6) !important;
-}
 
 .plan-pro:hover {
   filter: brightness(1.06) saturate(1.05);
@@ -51,7 +55,7 @@
 }
 
 .plan-pro:focus-visible {
-  outline: 2px solid var(--gold-2);
+  outline: 2px solid #e56a1b;
   outline-offset: 2px;
 }
 
@@ -61,188 +65,130 @@
   }
 }
 
-/* ---------- Dialog shell: a light-blue tray --------------------------------- */
-/* The cards sit --pi in from the tray's edge. Cards keep the app's card
-   corner (--ui-r), so the tray's corner is that plus the inset and the two
-   curves stay concentric. */
+/* ---------- Dialog: "Flexible Plans" ----------------------------------------- */
+/* A clean white sheet (no wash at the top). Inside: the heading, the body
+   copy, a green tray with the two plans side by side
+   (the featured one on a white card, inset in the tray), then the annual
+   saving and the Monthly | Yearly switch. Sized to sit with the other popups:
+   ~720px wide, compact padding and type. Theme colours only: the light green
+   tray / chips / switch track, the dark green (#113c49) heading, cents, "/Mo",
+   active switch label and buttons. Corners: the app's --ui-r. */
 html body .overlay > .plans-modal {
-  --pi: 10px;
+  --pm-card: #c1e8d9;              /* green: the tray holding both plans, and the Starter plan */
+  --pm-tray: var(--shell-tint);    /* soft grey, as the Node Studio card's copy panel: chip on the white card, switch track, close hover */
+  --pm-theme: var(--shell-frame);  /* dark green #113c49 */
+  --pm-ink: #14181a;               /* plan names and prices */
+  --pm-muted: #6b7275;             /* taglines, "20% on annual plan", the off switch label */
   position: relative;
   box-sizing: border-box;
   width: 100%;
-  max-width: 980px;
-  max-height: min(92vh, 900px);
+  max-width: 720px;
+  max-height: min(92vh, 760px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: #c5cff0 transparent;
-  padding: var(--pi);
-  color: var(--shell-ink);
-  background: #e3eafd;
+  scrollbar-color: #bcd9cf transparent;
+  padding: clamp(26px, 3.6vw, 36px) clamp(14px, 3vw, 28px) clamp(20px, 2.8vw, 28px);
+  color: var(--pm-ink);
+  background: #fff;
   border: 0;
-  border-radius: calc(var(--ui-r) + var(--pi));
+  border-radius: var(--ui-r);
   animation: confirm-in 260ms var(--shell-ease) both;
 }
 
 #root .plans-modal {
-  box-shadow: 0 24px 70px rgba(5, 12, 48, 0.35) !important;
+  box-shadow: 0 24px 70px rgba(17, 60, 73, 0.35) !important;
 }
 
-/* Heading and close: the shared header (polish/modals.css) centres the
-   heading and pins the close icon to the corner. */
-html body .overlay .plans-modal .modal-head {
-  margin: clamp(16px, 2.4vw, 26px) 0 6px;
-}
-
-.plans-modal .modal-head h3 {
-  font-size: clamp(22px, 8px + 1.9vw, 30px);
-  font-weight: 500;
-  letter-spacing: -.03em;
-}
-
-html body .overlay .plans-modal .modal-head > button {
-  top: calc(var(--pi) + 6px);
-  right: calc(var(--pi) + 6px);
-  color: var(--shell-ink);
+/* Close: a quiet icon in the corner (Esc and a click outside close it too). */
+.plans-close {
+  position: absolute;
+  top: clamp(8px, 1.2vw, 12px);
+  right: clamp(8px, 1.2vw, 12px);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--pm-theme);
   background: transparent;
+  border: 0;
+  border-radius: var(--ws-switch-r);
+  cursor: pointer;
   transition: background-color 160ms ease;
 }
 
-html body .overlay .plans-modal .modal-head > button:hover {
-  background: rgb(12 23 79 / .07);
+.plans-close:hover {
+  background: var(--pm-tray);
 }
 
-.plans-modal .modal-head > button svg {
-  width: 18px;
-  height: 18px;
+.plans-close:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 2px;
 }
 
-.plans-subtitle {
-  max-width: 540px;
-  margin: 0 auto;
-  padding: 0 12px;
-  color: #5a5f7d;
-  font-size: 14px;
-  line-height: 1.45;
+.plans-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.plans-title {
+  margin: 0;
+  color: var(--pm-theme);
+  font-size: clamp(24px, 6px + 2.4vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
   text-align: center;
 }
 
-/* ---------- Monthly | Yearly switch ---------------------------------------- */
-/* Two equal halves and a white thumb that slides between them, so the switch
-   never changes width. */
-.plans-billing {
-  --pb-h: 42px;
-  --pb-pad: 4px;
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  width: 260px;
-  max-width: calc(100% - 24px);
-  height: var(--pb-h);
-  box-sizing: border-box;
-  margin: 18px auto 22px;
-  padding: var(--pb-pad);
-  background: rgb(12 23 79 / .06);
-  border-radius: calc(var(--pb-h) * var(--ui-ratio-sm, 0.3));
-}
-
-.plans-billing-thumb {
-  position: absolute;
-  top: var(--pb-pad);
-  bottom: var(--pb-pad);
-  left: var(--pb-pad);
-  width: calc(50% - var(--pb-pad));
-  background: #fff;
-  border-radius: calc(var(--pb-h) * var(--ui-ratio-sm, 0.3) - var(--pb-pad));
-  transition: translate 280ms var(--shell-ease);
-}
-
-#root .plans-billing-thumb {
-  box-shadow: 0 1px 2px rgb(12 23 79 / .1), 0 4px 10px -4px rgb(12 23 79 / .18) !important;
-}
-
-.plans-billing[data-billing="yearly"] .plans-billing-thumb {
-  translate: 100% 0;
-}
-
-.plans-billing button {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0;
-  color: #6b7091;
-  background: none;
-  border: 0;
-  font: inherit;
+/* One or two short lines under the heading, then the tray. */
+.plans-lede {
+  max-width: 400px;
+  margin: 10px auto clamp(18px, 2.6vw, 26px);
+  padding: 0 8px;
+  color: var(--pm-muted);
   font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 180ms ease;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  text-align: center;
+  text-wrap: balance;
 }
 
-.plans-billing button[aria-checked="true"] {
-  color: var(--shell-ink);
-}
-
-.plans-billing button:focus-visible {
-  outline: 2px solid var(--shell-blue);
-  outline-offset: 1px;
-  border-radius: calc(var(--pb-h) * var(--ui-ratio-sm, 0.3) - var(--pb-pad));
-}
-
-.plans-billing-save {
-  padding: 2px 6px;
-  color: #0b7a43;
-  background: #dcf7e8;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: -.01em;
-}
-
-/* ---------- Plan cards ------------------------------------------------------ */
+/* ---------- The tray and the two plans --------------------------------------- */
+/* Soft, large corners: the cards take --pm-card-r and the tray that plus its
+   inset, so the two curves run parallel. */
 .plans-grid {
+  --pi: clamp(8px, 1.2vw, 12px);  /* the featured card's inset in the tray */
+  --pm-card-r: clamp(22px, 3.2vw, 32px);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: stretch;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--pi);
   margin: 0;
-  padding: 0;
+  padding: var(--pi);
   list-style: none;
+  background: var(--pm-card);
+  border-radius: calc(var(--pm-card-r) + var(--pi));
 }
 
-/* Side cards are a shade lighter than the tray with a white hairline; the
-   featured card is white. */
+/* Both plans have the same box, so their contents line up: Starter in the
+   tray's own green (#b7dbce, so it reads as part of the tray), the featured
+   one (Growth) white, inset in the tray. */
 .plan-card {
-  --card-pad: clamp(18px, 2.2vw, 26px);
-  position: relative;
+  --card-pad: clamp(16px, 2.2vw, 22px);
   display: flex;
   flex-direction: column;
   min-width: 0;
   padding: var(--card-pad);
-  background: #ebf0fe;
-  border: 1px solid rgb(255 255 255 / .85);
-  border-radius: var(--ui-r);
-  transition: translate 220ms var(--shell-ease);
+  background: var(--pm-card);
+  border-radius: var(--pm-card-r);
   animation: plan-rise 420ms var(--shell-ease) both;
   animation-delay: calc(80ms + var(--plan-i, 0) * 60ms);
 }
 
-.plan-card:hover {
-  translate: 0 -3px;
-}
-
 .plan-card.is-featured {
   background: #fff;
-  border-color: #fff;
-}
-
-#root .plan-card.is-featured {
-  box-shadow: 0 1px 2px rgb(12 23 79 / .04), 0 18px 40px -22px rgb(23 60 245 / .45) !important;
 }
 
 @keyframes plan-rise {
@@ -252,111 +198,98 @@ html body .overlay .plans-modal .modal-head > button:hover {
   }
 }
 
-/* Icon tile (left) and chip (right). */
+/* Icon (left) and chip (right). */
 .plan-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 
+/* Starter: a grey rounded tile with a soft white light in the middle. */
 .plan-icon {
-  --sz: 46px;
+  --sz: clamp(36px, 4vw, 44px);
   flex: none;
   width: var(--sz);
   height: var(--sz);
-  border-radius: calc(var(--sz) * var(--ui-ratio-sm, 0.3));
-  /* Plus: a dark tile with a soft light in the middle. */
-  background:
-    radial-gradient(closest-side, rgb(255 255 255 / .95), rgb(214 219 232 / .7) 38%, transparent 100%),
-    linear-gradient(145deg, #3a3e4c, #14161d);
+  border-radius: calc(var(--sz) * 0.3);
+  background: radial-gradient(circle, #fff 0%, #f1f2f2 12%, #a8aaaa 40%, #6f7171 72%, #565858 100%);
 }
 
-#root .plan-icon {
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .14), 0 6px 14px -8px rgb(12 23 79 / .6) !important;
-}
-
-/* Studio: the frame's navy with a gold light. */
-[data-plan="studio"] .plan-icon {
-  background:
-    radial-gradient(closest-side, #ffe7b0, rgb(240 182 74 / .75) 40%, transparent 100%),
-    linear-gradient(145deg, #1d2a78, var(--shell-navy));
-}
-
-/* Pro (featured): no tile, just a soft colour bloom. */
+/* Growth (featured): no tile, a soft colour bloom. */
 .is-featured .plan-icon {
-  background: radial-gradient(closest-side, #fff 0%, #ffe3ef 16%, #f6a9d4 40%, #a99dff 64%, #8cc0ff 82%, transparent 100%);
-  filter: blur(2px) saturate(1.15);
-}
-
-#root .is-featured .plan-icon {
-  box-shadow: none !important;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #8fc6ff 0%, #a9b7ff 28%, #f2a8d6 56%, #ffe6b3 80%, transparent 100%);
+  filter: blur(2px) saturate(1.1);
 }
 
 .plan-chip {
-  --h: 28px;
+  --h: clamp(26px, 2.8vw, 30px);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: var(--h);
   box-sizing: border-box;
-  padding: 0 11px 0 9px;
-  color: var(--shell-ink);
+  padding: 0 11px 0 8px;
+  color: #4d5356;
   background: #fff;
-  border-radius: calc(var(--h) * var(--ui-ratio-sm, 0.3));
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: -.005em;
+  border-radius: var(--ui-r);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
 .is-featured .plan-chip {
-  background: #eef2ff;
+  background: var(--pm-tray);
 }
 
 .plan-chip-icon {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   flex: none;
 }
 
-.plan-chip-icon.is-drop { color: #2f6bff; }
-.plan-chip-icon.is-flame { color: #ff6a1f; }
-.plan-chip-icon.is-spark { color: #d39a24; }
+.plan-chip-icon.is-green { color: var(--shell-green); }
+.plan-chip-icon.is-orange { color: #ff6a1f; }
 
 /* Two-line title, light and large. */
 .plan-name {
-  margin: 26px 0 0;
-  font-size: clamp(24px, 12px + 1.5vw, 30px);
+  margin: clamp(16px, 2.2vw, 22px) 0 0;
+  color: var(--pm-ink);
+  font-size: clamp(20px, 6px + 1.7vw, 26px);
   font-weight: 400;
-  letter-spacing: -.03em;
-  line-height: 1.1;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
 }
 
 .plan-tagline {
-  min-height: 2.8em; /* two lines, so the prices line up across the cards */
-  margin: 10px 0 0;
-  color: #6b7091;
+  margin: 6px 0 0;
+  color: var(--pm-muted);
   font-size: 13px;
   line-height: 1.4;
 }
 
+/* "$499" dark, ".00" and "/Mo" in the theme's dark green. */
 .plan-price {
   display: flex;
   align-items: baseline;
-  gap: 2px;
-  margin-top: 22px;
+  gap: 3px;
+  margin: clamp(16px, 2.2vw, 22px) 0 0;
 }
 
-/* The number drops in when the billing switch changes it. */
 .plan-price-amount {
   display: inline-block;
-  font-size: clamp(36px, 20px + 2vw, 46px);
-  font-weight: 500;
-  letter-spacing: -.045em;
+  color: var(--pm-ink);
+  font-size: clamp(30px, 10px + 2.6vw, 40px);
+  font-weight: 400;
+  letter-spacing: -0.05em;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
   animation: plan-price-in 300ms var(--shell-ease) both;
+}
+
+.plan-price-cents {
+  color: var(--pm-theme);
 }
 
 @keyframes plan-price-in {
@@ -367,142 +300,118 @@ html body .overlay .plans-modal .modal-head > button:hover {
 }
 
 .plan-price-period {
-  color: var(--shell-ink);
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--pm-theme);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 
-.plan-billed {
-  margin: 8px 0 0;
-  color: #8a8fac;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-/* Full-width navy button (the frame's navy); the Generate blue on hover. */
+/* Full-width button in the theme's dark green; a step lighter on hover. */
 .plan-cta {
-  height: 48px;
-  margin-top: 18px;
+  width: 100%;
+  height: clamp(42px, 4.6vw, 46px);
+  margin-top: clamp(16px, 2.2vw, 20px);
   padding: 0 16px;
   color: #fff;
-  background: var(--shell-navy);
+  background: var(--pm-theme);
   border: 0;
-  border-radius: var(--btn-r);
+  border-radius: var(--ui-r);
   font: inherit;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: background-color 180ms ease, scale 120ms ease;
 }
 
+#root .plan-cta {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .08), 0 1px 2px rgb(17 60 73 / .2) !important;
+}
+
 .plan-cta:hover {
-  background: var(--shell-blue);
+  background: #1b5566;
 }
 
 .plan-cta:active {
-  scale: .97;
+  scale: 0.98;
 }
 
 .plan-cta:focus-visible {
-  outline: 2px solid var(--shell-blue);
+  outline: 2px solid #74d4b8;
   outline-offset: 2px;
 }
 
-.plan-features {
-  display: grid;
-  gap: 10px;
-  margin: 20px 0 0;
-  padding: 18px 0 0;
-  border-top: 1px solid rgb(12 23 79 / .08);
-  list-style: none;
-  font-size: 13.5px;
-  line-height: 1.35;
-}
-
-.plan-features li {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.plan-check {
-  --sz: 18px;
-  flex: none;
-  width: var(--sz);
-  height: var(--sz);
-  display: grid;
-  place-items: center;
-  color: var(--shell-navy);
-  background: rgb(12 23 79 / .08);
-  border-radius: calc(var(--sz) * var(--ui-ratio-sm, 0.3));
-}
-
-.is-featured .plan-check {
-  color: #fff;
-  background: var(--shell-navy);
-}
-
-.plan-check svg {
-  width: 12px;
-  height: 12px;
-}
-
-/* ---------- Footer ---------------------------------------------------------- */
-.plans-foot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 0;
-  padding: 16px 12px 8px;
-  color: #6b7091;
+/* ---------- Annual saving + Monthly | Yearly switch --------------------------- */
+.plans-save {
+  margin: clamp(16px, 2.4vw, 22px) 0 8px;
+  color: var(--pm-muted);
   font-size: 13px;
-  line-height: 1.45;
   text-align: center;
 }
 
-.plans-foot b {
-  color: var(--shell-ink);
-  font-weight: 700;
+/* Two equal halves and a white thumb that slides between them, on the tray's
+   green. */
+.plans-billing {
+  --pb-h: 40px;
+  --pb-pad: 4px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 164px;
+  height: var(--pb-h);
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: var(--pb-pad);
+  background: var(--pm-card);
+  border-radius: var(--ui-r);
 }
 
-.plans-foot-lock {
-  --sz: 20px;
-  flex: none;
-  width: var(--sz);
-  height: var(--sz);
-  display: inline-grid;
-  place-items: center;
-  color: #fff;
-  background: linear-gradient(135deg, var(--gold-1), var(--gold-2));
-  border-radius: calc(var(--sz) * var(--ui-ratio-sm, 0.3));
+.plans-billing-thumb {
+  position: absolute;
+  top: var(--pb-pad);
+  bottom: var(--pb-pad);
+  left: var(--pb-pad);
+  width: calc(50% - var(--pb-pad));
+  background: #fff;
+  border-radius: calc(var(--ui-r) - var(--pb-pad));
+  transition: translate 280ms var(--shell-ease);
 }
 
-.plans-foot-lock svg {
-  width: 13px;
-  height: 13px;
+#root .plans-billing-thumb {
+  box-shadow: 0 1px 2px rgb(17 60 73 / .1), 0 4px 10px -4px rgb(17 60 73 / .18) !important;
 }
 
-.plans-foot-lock .plan-lock-hole {
-  stroke: var(--gold-2);
+.plans-billing[data-billing="yearly"] .plans-billing-thumb {
+  translate: 100% 0;
 }
 
-/* ---------- Narrow screens: the cards stack --------------------------------- */
-@media (max-width: 760px) {
-  html body .overlay > .plans-modal {
-    --pi: 8px;
-  }
+.plans-billing button {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  color: var(--pm-muted);
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
 
+.plans-billing button[aria-checked="true"] {
+  color: var(--pm-theme);
+}
+
+.plans-billing button:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 1px;
+  border-radius: var(--ui-r);
+}
+
+/* ---------- Narrow screens: the plans stack ----------------------------------- */
+@media (max-width: 700px) {
   .plans-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .plan-tagline {
-    min-height: 0;
-  }
-
-  .plans-billing {
-    margin: 14px auto 16px;
   }
 }
 
@@ -513,8 +422,7 @@ html body .overlay .plans-modal .modal-head > button:hover {
     animation: none;
   }
 
-  .plans-billing-thumb,
-  .plan-card {
+  .plans-billing-thumb {
     transition: none;
   }
 }

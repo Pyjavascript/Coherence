@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
+// The dot grid's gap at 100% zoom: the same as Quick Grid's (layout.css --dot-gap).
+const DOT_GAP = 50;
 const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 // On a phone, the share of the screen's width the first card opens at.
 const PHONE_CARD_SHARE = 0.72;
@@ -45,7 +47,9 @@ export default function CanvasViewport({ children }) {
     let top = Infinity;
     items.forEach((item) => { top = Math.min(top, (item.getBoundingClientRect().top - w.top) / scale); });
     const barBottom = Math.max(0, -parseFloat(getComputedStyle(el).top) || 0);
-    return Math.round((barBottom ? barBottom + 16 : 24) - top * zoom);
+    // The first row sits 24px below the bar (the canvas reaches up under the
+    // bar, workspace-theme.css), or 24px from the top without one.
+    return Math.round(barBottom + 24 - top * zoom);
   }, []);
 
   // On a phone, keep the first column fitted until the user pans or zooms.
@@ -252,7 +256,7 @@ export default function CanvasViewport({ children }) {
       onPointerUp={stopDragging}
       onPointerCancel={stopDragging}
       style={{
-        "--canvas-dot-size": `${18 * view.zoom}px`,
+        "--canvas-dot-size": `${DOT_GAP * view.zoom}px`,
         "--canvas-dot-x": `${view.x}px`,
         "--canvas-dot-y": `${view.y}px`,
       }}

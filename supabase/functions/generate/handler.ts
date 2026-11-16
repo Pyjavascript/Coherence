@@ -3,6 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildGeneration, buildLengthFixPrompt, modelFor, RequestError } from "../_shared/generation.js";
 import { findBanned } from "../_shared/banned.js";
+import { MAX_PILLARS, MAX_PILLAR_CHARS } from "../_shared/constants.js";
 
 const MAX_GENERATIONS = 40; // keep in sync with LIMITS.generations in src/lib/clientId.js
 const FREE_HOOKS_PER_DAY = 5; // keep in sync with src/lib/hookQuota.js
@@ -79,31 +80,60 @@ const MAX_BRANDS = 2; // keep in sync with LIMITS.brands in src/lib/clientId.js
 const BRAND_COLS = [
   "name", "logo", "scope", "belief", "message", "industry", "stage", "mode", "audience",
   "pain", "emo", "formality", "objection", "cta", "banned", "must_include", "location", "language",
+  "personality", "writing_rules", "voice_sample",
 ];
-// Added by the 20261012 migration; written only if the database has them.
-const LOCALE_COLS = ["location", "language"];
+// Added by later migrations, each written only if the database has it. Columns
+// that came in one migration are dropped together.
+const COL_GROUPS = [
+  ["location", "language"], // 20261012
+  ["pillars"], // 20261116
+  ["personality", "writing_rules", "voice_sample", "warmth"], // 20261117
+];
+const OPTIONAL_COLS = COL_GROUPS.flat();
 
 type Admin = ReturnType<typeof createClient>;
 type DbResult = { data: any; error: any };
 
-// Only known text columns, so a request can never set user_id or id.
-function brandRow(input: unknown, withLocale = true): Record<string, string> {
+// Only known columns, so a request can never set user_id or id. Text columns
+// take strings; pillars takes up to MAX_PILLARS short strings.
+function brandRow(input: unknown, skip: Set<string>): Record<string, unknown> {
   const src = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
-  const row: Record<string, string> = {};
+  const row: Record<string, unknown> = {};
   for (const col of BRAND_COLS) {
-    if (!withLocale && LOCALE_COLS.includes(col)) continue;
+    if (skip.has(col)) continue;
     if (typeof src[col] === "string") row[col] = src[col] as string;
+  }
+  if (!skip.has("warmth") && Number.isFinite(Number(src.warmth)) && src.warmth !== null && src.warmth !== "") {
+    row.warmth = Math.min(100, Math.max(0, Math.round(Number(src.warmth))));
+  }
+  if (!skip.has("pillars") && Array.isArray(src.pillars)) {
+    row.pillars = src.pillars
+      .filter((p): p is string => typeof p === "string")
+      .map((p) => p.trim().slice(0, MAX_PILLAR_CHARS))
+      .filter(Boolean)
+      .slice(0, MAX_PILLARS);
   }
   return row;
 }
 
-const isMissingLocaleCol = (error: any) =>
-  (error?.code === "42703" || error?.code === "PGRST204") &&
-  LOCALE_COLS.some((c) => (error.message || "").includes(c));
+// Postgres "undefined column" (select) or PostgREST "column not in schema
+// cache" (insert/update): the optional columns the error names.
+const missingCols = (error: any): string[] =>
+  error?.code === "42703" || error?.code === "PGRST204"
+    ? OPTIONAL_COLS.filter((c) => (error.message || "").includes(c))
+    : [];
 
-async function writeBrand(input: unknown, run: (row: Record<string, string>) => PromiseLike<DbResult>) {
-  const result = await run(brandRow(input));
-  return isMissingLocaleCol(result.error) ? run(brandRow(input, false)) : result;
+// Writes the row; if the database lacks optional columns, retries without them.
+async function writeBrand(input: unknown, run: (row: Record<string, unknown>) => PromiseLike<DbResult>) {
+  const skip = new Set<string>();
+  let result = await run(brandRow(input, skip));
+  for (let i = 0; i < COL_GROUPS.length; i++) {
+    const missing = missingCols(result.error).filter((c) => !skip.has(c));
+    if (!missing.length) break;
+    missing.forEach((c) => (COL_GROUPS.find((g) => g.includes(c)) ?? [c]).forEach((x) => skip.add(x)));
+    result = await run(brandRow(input, skip));
+  }
+  return result;
 }
 
 async function ownsBrand(admin: Admin, userId: string, brandId: unknown): Promise<boolean> {
@@ -214,6 +244,7 @@ Deno.serve(async (req) => {
   type LengthIssue = { label: string; words: number; min: number; max: number; target: number };
   let generation: {
     prompt: string; credits: number; ctx: any; lengthIssues?: (data: unknown) => LengthIssue[];
+    clampLength?: (data: unknown) => unknown;
   } | null = null;
   if (type !== "ping" && !isData) {
     try {
@@ -294,7 +325,7 @@ Deno.serve(async (req) => {
   if (isData) return handleData(admin, userId, type, body);
   // ==========================================
 
-  const { prompt, credits, ctx, lengthIssues } = generation!;
+  const { prompt, credits, ctx, lengthIssues, clampLength } = generation!;
 
   // Reserve the credits first (one usage_events row each, written under a
   // per-user lock, so parallel requests can't overshoot the daily limit).
@@ -440,6 +471,10 @@ Deno.serve(async (req) => {
       findBanned(rewritten, ctx.brand.banned).length < banned.length
     ) data = rewritten;
   }
+
+  // A user-set word count is a limit: anything still over it after the
+  // rewrites is cut back (whole sentences first), so copy never exceeds it.
+  if (clampLength) data = clampLength(data) as Record<string, unknown>;
 
   return reply({ success: true, data });
 });

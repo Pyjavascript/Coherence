@@ -135,7 +135,7 @@ export default function NodeActions({
       )}
       <button
         type="button"
-        className={"ncard-action" + (busy ? " is-spinning" : "")}
+        className={"ncard-action ncard-regen" + (busy ? " is-spinning" : "")}
         title={regenTitle || (canRegenerate ? `Regenerate ${label}` : "Generate copy first to regenerate it")}
         aria-label={`Regenerate ${label}`}
         disabled={busy || !canRegenerate}

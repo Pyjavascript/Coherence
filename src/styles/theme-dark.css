@@ -37,19 +37,12 @@
 }
 
 /* ---------- Canvas ---------------------------------------------------------- */
-/* The near-white-to-periwinkle board becomes near-black with a faint blue
-   haze at the bottom, darker than the cards so they lift off it. */
+/* The light board becomes near-black with a faint haze of the theme colour
+   (#113C49, deep teal) at the bottom, darker than the cards so they lift off
+   it. */
 :root[data-theme="dark"] .workspace {
-  background: linear-gradient(180deg, #121215 0%, #131317 40%, #15172a 80%, #191d38 100%);
+  background: linear-gradient(180deg, #111415 0%, #121617 40%, #0f2228 80%, #112f37 100%);
   --dot-color: rgb(255 255 255 / .09);
-}
-/* Desktop + tablet: the bar sits on the frame and the board is the stage
-   (workspace-theme.css), so the board's gradient moves with it. */
-:root[data-theme="dark"] .app-shell[data-bp] .workspace {
-  background: none;
-}
-:root[data-theme="dark"] .app-shell[data-bp] .ws-stage {
-  background: linear-gradient(180deg, #121215 0%, #131317 40%, #15172a 80%, #191d38 100%);
 }
 :root[data-theme="dark"] .ws-view-nodes .canvas-surface,
 :root[data-theme="dark"] .qg {
@@ -197,9 +190,9 @@ html[data-theme="dark"] body .overlay .tour .tour-dots button.is-on::before {
 }
 
 /* ---------- Usage ring ------------------------------------------------------ */
-/* Light progress on a faint track, so the share used reads on the dark rail. */
+/* The theme green for the share used, on a faint track, as in light mode. */
 :root[data-theme="dark"] .lnav .rail-credits-meter::before {
-  background: conic-gradient(#ececf0 var(--credits-progress), rgb(255 255 255 / .1) 0);
+  background: conic-gradient(var(--shell-green) var(--credits-progress), rgb(255 255 255 / .1) 0);
 }
 
 /* ---------- Top-bar logo (phones) ------------------------------------------ */
@@ -238,19 +231,11 @@ html[data-theme="dark"] body .overlay .tour .tour-dots button.is-on::before {
 }
 
 :root[data-theme="dark"] .plan-icon {
-  background:
-    radial-gradient(closest-side, rgb(255 255 255 / .95), rgb(214 219 232 / .7) 38%, transparent 100%),
-    linear-gradient(145deg, #3a3e4c, #14161d);
-}
-
-:root[data-theme="dark"] [data-plan="studio"] .plan-icon {
-  background:
-    radial-gradient(closest-side, #ffe7b0, rgb(240 182 74 / .75) 40%, transparent 100%),
-    linear-gradient(145deg, #1d2a78, #0c174f);
+  background: radial-gradient(circle, #fff 0%, #f1f2f2 12%, #a8aaaa 40%, #6f7171 72%, #565858 100%);
 }
 
 :root[data-theme="dark"] .is-featured .plan-icon {
-  background: radial-gradient(closest-side, #fff 0%, #ffe3ef 16%, #f6a9d4 40%, #a99dff 64%, #8cc0ff 82%, transparent 100%);
+  background: radial-gradient(closest-side, #8fc6ff 0%, #a9b7ff 28%, #f2a8d6 56%, #ffe6b3 80%, transparent 100%);
 }
 
 :root[data-theme="dark"] .plan-cta {
@@ -260,10 +245,23 @@ html[data-theme="dark"] body .overlay .tour .tour-dots button.is-on::before {
 
 :root[data-theme="dark"] .plan-cta:hover {
   color: #fff;
-  background: var(--shell-blue);
+  background: var(--shell-green);
 }
 
-:root[data-theme="dark"] .is-featured .plan-check {
-  color: #14161d;
-  background: #fff;
+/* ---------- Product tour (tour-cards.css) ----------------------------------- */
+/* The generated twins turn every step tile the same grey: the active one
+   keeps the theme green with a white icon, the others sit dark with a soft
+   grey icon, all with a rim that matches the card. */
+:root[data-theme="dark"] .tc-step {
+  color: #9aa3a8;
+  background: #1f1f23;
+  border-color: #2a2a2f;
+}
+:root[data-theme="dark"] .tc-step:hover:not([aria-current]) {
+  background: #26262b;
+}
+:root[data-theme="dark"] .tc-step[aria-current="step"] {
+  color: #fff;
+  background: #113c49;
+  border-color: #2a2a2f;
 }

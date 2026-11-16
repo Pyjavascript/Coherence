@@ -107,7 +107,6 @@ export default function GenerateTab(props: Props) {
       label: draft.label.trim() || catLabel,
       brief: draft.brief,
       words: draft.words,
-      requirements: "",
       platform: category === "social" ? draft.platform : null,
       component: category === "website" ? draft.component : "hero",
       pointerCount: draft.pointerCount,

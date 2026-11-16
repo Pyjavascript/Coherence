@@ -10,6 +10,8 @@ import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { reducedMotion, tokenMs } from "../lib/motion";
 import BannedCheck from "./nodes/BannedCheck";
 import Select from "./Select";
+import WordsRange from "./WordsRange";
+import AutoTextarea from "./AutoTextarea";
 import { fieldPlaceholders } from "../lib/placeholders";
 import { shortcut } from "../lib/shortcuts";
 
@@ -56,20 +58,8 @@ const XIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
 );
 
-// Textarea that grows with its content instead of scrolling inside the node.
-function AutoTextarea({ value, ...props }) {
-  const ref = useRef(null);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value]);
-  return <textarea ref={ref} rows={1} value={value} {...props} />;
-}
-
 const baseNode = (o) => ({
-  id: uid(), category: "email", label: "", brief: "", words: 60, requirements: "",
+  id: uid(), category: "email", label: "", brief: "", words: 60,
   platform: undefined, component: "hero", pointerCount: 3, connections: [], variants: [], activeIdx: 0, generating: false,
   x: o.x ?? 0, y: o.y ?? 0, z: o.z ?? 10,
   ...o,
@@ -127,20 +117,33 @@ const NODE_MARK = (
 
 const CAT_ICONS = Object.fromEntries(Object.keys(NODE_CATS).map((key) => [key, NODE_MARK]));
 
-const Chevron = () => svg(<path d="m6 9 6 6 6-6" />);
-const CopyIcon = () => svg(<><rect x="8.5" y="8.5" width="11" height="11" rx="3" /><path d="M15.5 5.6c0-1.3-.9-2.1-2.1-2.1H6.1C4.8 3.5 4 4.4 4 5.6v7.3c0 1.2.8 2.1 2 2.1h.5" /></>);
 const CheckIcon = () => svg(<path d="m4.5 12.5 5 5L19.5 7" />);
-const TrashIcon = () => svg(<path d="M4 7h16M9 7V4.5h6V7m3 0-.8 12.5H6.8L6 7m4 4v5m4-5v5" />);
+
+const PencilIcon = () => svg(<path d="M14.5 5.5l4 4M4.5 19.5l1-4.5L16 4.5a2.1 2.1 0 0 1 3 0l.5.5a2.1 2.1 0 0 1 0 3L9 18.5z" />);
+const RegenIcon = () => svg(<><path d="M12 4.5a7.5 7.5 0 1 0 7.5 7.5" /><path d="M12 1.5v6l4.2-3z" fill="currentColor" stroke="none" /><path d="M12 4.5h2.2" /></>);
+const ArrowIcon = () => svg(<path d="M5 12h14M13 6l6 6-6 6" />);
+
+// Node Studio's word range (the Grid's cards use their own, per medium).
+const NODE_MIN_WORDS = 4;
+const NODE_MAX_WORDS = 600;
 
 /* ---------- node pieces ---------- */
+// Before anything is generated: a quiet hint at the top-left, styled like a
+// Quick Grid card's empty text (.ncard-body).
+const EmptyOutput = () => (
+  <p className="sn-card-empty-title">Generated copy appears here</p>
+);
+
+// The generated copy: the headline as the heading, the body under it, then a
+// small word count. A placeholder until something has been generated.
 function NodeOutput({ node, banned, onVariant }) {
   if (node.generating) return <Skeleton />;
-  if (!node.variants.length) return <p className="sn-out-empty">No output yet.</p>;
+  if (!node.variants.length) return <EmptyOutput />;
   const idx = node.activeIdx || 0;
   const v = node.variants[idx] || node.variants[0];
 
   const tabs = node.variants.length > 1 && (
-    <div className="sn-vtabs">
+    <div className="sn-vtabs sn-card-tabs">
       {node.variants.map((_, i) => (
         <button key={i} type="button" className={"sn-vtab" + (i === idx ? " on" : "")} aria-pressed={i === idx} onClick={() => onVariant(i)}>{i + 1}</button>
       ))}
@@ -153,7 +156,7 @@ function NodeOutput({ node, banned, onVariant }) {
         <ul className="pointer-list">
           {v.pointers.map((p, i) => <li key={i}><b>{p.title}</b> — {p.detail}</li>)}
         </ul>
-        <div className="sn-out-meta">{v.pointers.length} pointers</div>
+        <div className="sn-card-meta">{v.pointers.length} pointers</div>
         <BannedCheck copy={v} banned={banned} />
         {tabs}
       </>
@@ -161,15 +164,20 @@ function NodeOutput({ node, banned, onVariant }) {
   }
   return (
     <>
-      <p className="sn-out-headline">{v.headline}</p>
-      <p className="sn-out-body">{v.body}</p>
-      <div className="sn-out-meta">{wordCount(v)} / {node.words} words target</div>
+      {v.headline && <h3 className="sn-card-heading">{v.headline}</h3>}
+      {v.body && <p className="sn-card-text">{v.body}</p>}
+      <div className="sn-card-meta">{wordCount(v)} / {node.words} words</div>
       <BannedCheck copy={v} banned={banned} />
       {tabs}
     </>
   );
 }
 
+// A node card. The pencil beside the title swaps the card between its copy
+// (default) and its settings. Copy view: the generated copy in a soft panel,
+// then Copy, Regenerate and the blue Generate arrow. Settings view: the job,
+// target words (a slider) and any medium options, with
+// Regenerate and × in the header.
 // linkEnd: "src" / "tgt" while a link touching this node is hovered or selected.
 // drop: "ok" / "no" while a new link is dragged over this node.
 function StudioNode({
@@ -180,92 +188,127 @@ function StudioNode({
   const [leaving, setLeaving] = useState(false);
   const [copied, flashCopied] = useCopyFeedback();
   const bodyId = `${node.id}-body`;
-  const canCopy = node.variants.length > 0 && !node.generating;
+  const hasCopy = node.variants.length > 0;
+  const canCopy = hasCopy && !node.generating;
   const copy = async () => { if (await onCopy()) flashCopied(); };
+  const settingsOpen = expanded;
+
+  const regenButton = (
+    <button
+      type="button"
+      className={"sn-card-btn sn-card-regen" + (node.generating ? " is-spinning" : "")}
+      title={hasCopy ? "Regenerate" : "Generate copy first to regenerate it"}
+      aria-label={`Regenerate ${node.label}`}
+      disabled={node.generating || !hasCopy}
+      onClick={onGenerate}
+    >
+      <RegenIcon />
+    </button>
+  );
 
   return (
     <article
-      className={"node sn-node" + (expanded ? " is-open" : "") + (picked ? " is-picked" : "") + (leaving ? " is-leaving" : "")}
+      className={"node sn-node sn-card" + (settingsOpen ? " is-open" : "") + (picked ? " is-picked" : "") + (leaving ? " is-leaving" : "")}
       data-id={node.id}
       data-pl-link-end={linkEnd || undefined}
       data-pl-drop={drop || undefined}
       style={{ "--cat": cat.color }}
       onAnimationEnd={(e) => { if (leaving && e.animationName === "studio-node-out") onDelete(); }}
     >
-      <header className="sn-head">
-        <span className="sn-icon">{CAT_ICONS[node.category]}</span>
-        <input className="sn-title" type="text" aria-label="Node name" value={node.label} onChange={(e) => onField("label", e.target.value)} />
-        <div className="sn-head-actions">
-          {/* Minimised, the Copy button beside Generate is hidden, so it moves up here. */}
-          {!expanded && canCopy && (
+      <header className="sn-card-head">
+        <span className="sn-card-dot" aria-hidden="true" />
+        <input
+          className="sn-title sn-card-title"
+          type="text"
+          aria-label="Node name"
+          value={node.label}
+          size={Math.max(4, node.label.length + 1)}
+          onChange={(e) => onField("label", e.target.value)}
+        />
+        <button
+          type="button"
+          className={"sn-card-btn sn-card-edit" + (settingsOpen ? " is-on" : "")}
+          aria-pressed={settingsOpen}
+          aria-controls={bodyId}
+          aria-label={settingsOpen ? "Hide settings" : "Show settings"}
+          title={settingsOpen ? "Hide settings" : "Settings"}
+          onClick={onToggle}
+        >
+          <PencilIcon />
+        </button>
+        <div className="sn-card-actions">
+          {settingsOpen && regenButton}
+          <button type="button" className="sn-card-btn sn-card-close" title="Delete node" aria-label="Delete node" onClick={() => setLeaving(true)}>
+            <XIcon />
+          </button>
+        </div>
+      </header>
+
+      {settingsOpen ? (
+        <div className="sn-card-panel sn-card-settings" id={bodyId}>
+          <div className="sn-field"><label>Job Requirement</label>
+            <AutoTextarea placeholder={fieldPlaceholders(node.category).job} value={node.brief} onChange={(e) => onField("brief", e.target.value)} />
+          </div>
+          {node.category === "social" && (
+            <div className="sn-field"><label>Platform</label>
+              <Select label="Platform" value={node.platform} options={PLATFORM_OPTIONS} onChange={(value) => onField("platform", value)} />
+            </div>
+          )}
+          {node.category === "website" && (
+            <>
+              <div className="sn-field"><label>Component</label>
+                <Select label="Component" value={comp} options={COMPONENT_OPTIONS} onChange={(value) => onField("component", value)} />
+              </div>
+              {comp === "pointers" && (
+                <div className="sn-field"><label>How many pointers</label>
+                  <input type="number" min="2" max="6" value={node.pointerCount || 3}
+                    onChange={(e) => onField("pointerCount", Math.max(2, Math.min(6, parseInt(e.target.value, 10) || 3)))} />
+                </div>
+              )}
+            </>
+          )}
+          <div className="sn-field">
+            <WordsRange
+              value={node.words || NODE_DEFAULT_WORDS[node.category] || 60}
+              min={NODE_MIN_WORDS}
+              max={NODE_MAX_WORDS}
+              onChange={(value) => onField("words", value)}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className={"sn-card-panel sn-card-out" + (hasCopy || node.generating ? " has-copy" : "")} id={bodyId} aria-live="polite">
+            <NodeOutput node={node} banned={banned} onVariant={onVariant} />
+          </div>
+          <div className="sn-card-foot">
             <button
               type="button"
-              className={"sn-mini" + (copied ? " is-copied" : "")}
-              title={copied ? "Copied" : "Copy output"}
+              className={"sn-card-copy" + (copied ? " is-copied" : "")}
               aria-label={copied ? "Output copied" : "Copy output"}
+              title={canCopy ? undefined : "Generate copy first"}
+              disabled={!canCopy}
               onClick={copy}
             >
-              {copied ? <CheckIcon /> : <CopyIcon />}
+              {copied && <CheckIcon />}
+              {copied ? "Copied" : "Copy"}
             </button>
-          )}
-          <button type="button" className="sn-mini danger" title="Delete node" aria-label="Delete node" onClick={() => setLeaving(true)}><TrashIcon /></button>
-        </div>
-        <button type="button" className="sn-toggle" aria-expanded={expanded} aria-controls={bodyId} aria-label={expanded ? "Collapse node" : "Expand node"} onClick={onToggle}>
-          <Chevron />
-        </button>
-      </header>
-      <div className="sn-collapse" id={bodyId} data-open={expanded} inert={expanded ? undefined : ""}>
-        <div className="sn-collapse-inner">
-          <div className="sn-body">
-            <div className="sn-field"><label>Job Requirement</label>
-              <AutoTextarea placeholder={fieldPlaceholders(node.category).job} value={node.brief} onChange={(e) => onField("brief", e.target.value)} />
-            </div>
-            {node.category === "social" && (
-              <div className="sn-field"><label>Platform</label>
-                <Select label="Platform" value={node.platform} options={PLATFORM_OPTIONS} onChange={(value) => onField("platform", value)} />
-              </div>
-            )}
-            {node.category === "website" && (
-              <>
-                <div className="sn-field"><label>Component</label>
-                  <Select label="Component" value={comp} options={COMPONENT_OPTIONS} onChange={(value) => onField("component", value)} />
-                </div>
-                {comp === "pointers" && (
-                  <div className="sn-field"><label>How many pointers</label>
-                    <input type="number" min="2" max="6" value={node.pointerCount || 3}
-                      onChange={(e) => onField("pointerCount", Math.max(2, Math.min(6, parseInt(e.target.value, 10) || 3)))} />
-                  </div>
-                )}
-              </>
-            )}
-            <div className="sn-field"><label>Target Words</label>
-              <input type="number" min="4" max="600" value={node.words}
-                onChange={(e) => onField("words", e.target.value === "" ? "" : parseInt(e.target.value, 10) || 0)} />
-            </div>
-            <div className="sn-field"><label>Specific Requirements</label>
-              <AutoTextarea placeholder={fieldPlaceholders(node.category).req} value={node.requirements} onChange={(e) => onField("requirements", e.target.value)} />
-            </div>
-            <div className="sn-actions">
+            <div className="sn-card-actions">
+              {regenButton}
               <button
                 type="button"
-                className={"sn-round" + (copied ? " is-copied" : "")}
-                title={copied ? "Copied" : "Copy output"}
-                aria-label={copied ? "Output copied" : "Copy output"}
-                disabled={!canCopy}
-                onClick={copy}
+                className="sn-card-go"
+                aria-label={node.generating ? "Generating" : hasCopy ? "Generate again" : "Generate"}
+                title={node.generating ? "Generating…" : "Generate"}
+                aria-busy={node.generating || undefined}
+                disabled={node.generating}
+                onClick={onGenerate}
               >
-                {copied ? <CheckIcon /> : <CopyIcon />}
-              </button>
-              <button type="button" className="sn-gen" disabled={node.generating} onClick={onGenerate}>
-                {node.generating ? "Generating..." : node.variants.length ? "Regenerate" : "Generate"}
+                {node.generating ? <span className="sn-card-spin" aria-hidden="true" /> : <ArrowIcon />}
               </button>
             </div>
           </div>
-        </div>
-      </div>
-      {/* Output stays visible when the node is minimised. */}
-      {(node.generating || node.variants.length > 0) && (
-        <div className="sn-out" aria-live="polite"><NodeOutput node={node} banned={banned} onVariant={onVariant} /></div>
+        </>
       )}
     </article>
   );
@@ -377,7 +420,8 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   const platformsRef = useRef(platforms);
   platformsRef.current = platforms;
 
-  const [expanded, setExpanded] = useState(() => new Set(nodesRef.current.slice(0, 1).map((n) => n.id)));
+  // Nodes whose settings are showing (the pencil); every node starts on its copy.
+  const [expanded, setExpanded] = useState(() => new Set());
 
   const setOpen = useCallback((id, open) => setExpanded((prev) => {
     if (prev.has(id) === open) return prev;
@@ -476,7 +520,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     if (e.pointerType === "mouse" && e.button !== 0) return;
     // A second finger is the start of a pinch, which the canvas handles.
     if (!e.isPrimary) return;
-    if (e.target.closest("input, textarea, select, button, .bp-dd, .sn-out, .sn-vtabs, .sn-head-actions")) return;
+    if (e.target.closest("input, textarea, select, button, .bp-dd, .sn-out, .sn-card-out, .sn-vtabs, .sn-head-actions, .sn-card-actions")) return;
     e.stopPropagation();
 
     const pointerId = e.pointerId;
@@ -1016,23 +1060,29 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     if (v) onGenerated({ type: "node", label: n.label, variant: v });
   };
 
-  const canGenerate = () => {
+  // A node's own job: its job requirement. A node with one generates from
+  // it; the message to adapt isn't needed.
+  const ownJob = (n) => Boolean(n.brief.trim());
+
+  // Copy is written for the brand, so it needs one (with a name). The message
+  // to adapt is only asked for when none of the nodes has a job of its own.
+  const canGenerate = (nodes) => {
     if (!aiAvailable) { setStatus("AI generation isn't available here.", "err"); return false; }
     if (ensureAuth && !ensureAuth()) return false;
-    // Copy is written for the brand: its name and message to adapt come first.
-    return !ensureBrand || ensureBrand({ generate: true });
+    return !ensureBrand || ensureBrand({ generate: true, needMessage: !nodes.some(ownJob) });
   };
-  // ...then a job: the node's own requirement, or else the brand message
-  // (the prompt falls back to it).
-  const hasJob = (n) => Boolean(n.brief.trim() || ctxRef.current.brand.message.trim());
+  // ...then a job: the node's own, or else the brand message (the prompt
+  // falls back to it).
+  const hasJob = (n) => Boolean(ownJob(n) || ctxRef.current.brand.message.trim());
 
   // Writes one node's copy. Throws the AI error so callers can report it.
   const runNode = async (id, { sourceId } = {}) => {
     const n = nodesRef.current.find((x) => x.id === id);
     if (!n) return false;
     patch(id, { generating: true });
-    // Open it while it writes so the skeleton (or a failure) is visible.
-    setOpen(id, true);
+    // Show the copy side while it writes, so the skeleton (or a failure) is
+    // visible: never the settings ("open" is the settings view).
+    setOpen(id, false);
 
     try {
       const linkedNodes = n.connections
@@ -1066,8 +1116,12 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
 
   const generateNode = async (id, opts) => {
     const n = nodesRef.current.find((x) => x.id === id);
-    if (!n || !canGenerate()) return;
-    if (!hasJob(n)) return setStatus("Add a job requirement (or a brand message) first.", "err");
+    if (!n || !canGenerate([n])) return;
+    // Nothing to write from: open its settings so the requirement can be added.
+    if (!hasJob(n)) {
+      setOpen(id, true);
+      return setStatus("Add a job requirement (or a brand message) first.", "err");
+    }
     try {
       await runNode(id, opts);
       if (refreshUsage) refreshUsage();
@@ -1081,14 +1135,16 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   // daily limit and reports how many nodes made it. Picked platforms limit it
   // to the nodes they write for.
   const generateAllNodes = async () => {
-    if (!canGenerate()) return;
     const idle = nodesRef.current.filter((n) => !n.generating);
     const picked = idle.filter((n) => inPlatforms(n, platformsRef.current));
+    if (!canGenerate(picked)) return;
     if (idle.length && !picked.length) {
       return setStatus("None of the picked platforms has a node on the canvas — add one, or change the platforms.", "err");
     }
     const targets = picked.filter(hasJob);
     const skipped = picked.length - targets.length;
+    // The ones with nothing to write from open their settings for the requirement.
+    picked.filter((n) => !hasJob(n)).forEach((n) => setOpen(n.id, true));
     if (!targets.length) return setStatus("Add a job requirement (or a brand message) first.", "err");
 
     const total = targets.length;
@@ -1201,10 +1257,10 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
             const drawAttrs = (ms) => (draws ? { "data-pl-draw": "", style: { "--pl-draw-delay": `${ms}ms` } } : {});
             return (
               <g key={l.key}>
-                <path d={l.d} fill="none" stroke="#1A1F36" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round"
+                <path d={l.d} fill="none" stroke="#113c49" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round"
                   pathLength={draws ? 1 : undefined} {...drawAttrs(delay)} />
-                <circle cx={l.x1} cy={l.y1} r="4" fill="#1A1F36" {...drawAttrs(delay + dotLag)} />
-                <circle cx={l.x2} cy={l.y2} r="4" fill="#1A1F36" {...drawAttrs(delay + dotLag)}
+                <circle cx={l.x1} cy={l.y1} r="4" fill="#113c49" {...drawAttrs(delay + dotLag)} />
+                <circle cx={l.x2} cy={l.y2} r="4" fill="#113c49" {...drawAttrs(delay + dotLag)}
                   onAnimationEnd={draws ? () => doneDrawing(l.key) : undefined} />
               </g>
             );

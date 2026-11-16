@@ -132,7 +132,8 @@
 .sn-field input, .sn-field textarea, .sn-field select {
   transition: box-shadow var(--pl-d-2) var(--pl-ease-out), background-color var(--pl-d-2) var(--pl-ease-out);
 }
-#root .sn-field input:hover, #root .sn-field textarea:hover, #root .sn-field select:hover { box-shadow: var(--pl-shadow-0) !important; }
+/* Not the word-limit slider: on it this ring showed as a line round the track. */
+#root .sn-field input:not([type="range"]):hover, #root .sn-field textarea:hover, #root .sn-field select:hover { box-shadow: var(--pl-shadow-0) !important; }
 
 /* "+" add buttons: on hover they only fade a little (enhancements.css), so no
    extra elevation here. */
@@ -206,7 +207,7 @@ html body .ws-view-nodes .sn-node.is-picked { outline-color: var(--shell-blue); 
   position: absolute;
   z-index: 60;
   border: calc(1.5px * var(--pl-inv, 1)) solid var(--shell-blue);
-  border-radius: 6px;
-  background: rgb(23 60 245 / 0.08);
+  border-radius: var(--ui-r);
+  background: rgb(23 179 139 / 0.08);
   pointer-events: none;
 }

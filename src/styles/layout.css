@@ -13,24 +13,32 @@
    ========================================================================== */
 
 :root {
-  --shell-navy: #0c174f;
-  --shell-indigo: #2b2f8c;
-  --shell-ink: #0d1445;
+  --shell-navy: #113c49;
+  /* The frame round the workspace (top/bottom bands, rail, page behind). */
+  --shell-frame: #113c49;
+  /* The accent shared by the composer's send arrow and the top bar's active view. */
+  --shell-green: #17b38b;
+  --shell-green-hover: #129a77;
+  --shell-indigo: var(--shell-frame);
+  --shell-ink: #113c49;
   --shell-tint: #f3f6ff;
   --shell-tint-2: #e6ecff;
   --shell-line: #eef0f7;
   --shell-muted: #a2a4ae;
   --shell-hint: #b6b9c8;
-  --shell-blue: #173cf5;
-  --shell-blue-hover: #0f31d8;
+  --shell-blue: var(--shell-green);
+  --shell-blue-hover: var(--shell-green-hover);
   --shell-ease: cubic-bezier(0.2, 0.75, 0.2, 1);
   --shell-dur: 300ms;
-  --r: 24px;
-  --shell-radius: var(--r);
+  --r: var(--ui-r);
+  --shell-radius: var(--ui-r);
 
   --gap: clamp(8px, 0.75vw, 12px);
   --ui-icon: clamp(45px, 3.4vw, 50px);
   --shell-pad: 20px;
+  /* The navy bands above and below the workspace: the same height, so the
+     frame is even top and bottom; the bottom one holds the credit line. */
+  --shell-band: 32px;
   --lnav-pad: clamp(12px, 1.35vw, 20px);
   /* The rail's inset on each side of its content. The shell's left padding
      (this, not --shell-pad) sits before the icons, so the rail only adds the
@@ -64,7 +72,7 @@
    --shell-radius and the dialogs / toasts outside the shell follow too. */
 @media (max-width: 767.98px) {
   :root {
-    --r: 18px;
+    --r: var(--ui-r);
   }
 }
 
@@ -77,7 +85,7 @@ body,
 body {
   margin: 0;
   overflow: hidden;
-  background: var(--shell-navy);
+  background: var(--shell-frame);
 }
 
 .app {
@@ -85,7 +93,7 @@ body {
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--shell-navy);
+  background: var(--shell-frame);
   overflow: hidden;
 }
 
@@ -95,7 +103,7 @@ body {
   display: grid;
   place-items: center;
   color: rgba(255, 255, 255, 0.72);
-  background: var(--shell-navy);
+  background: var(--shell-frame);
   font-size: 14px;
 }
 
@@ -104,9 +112,65 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
-  padding: var(--shell-pad) var(--shell-pad) var(--shell-pad) 0;
-  background: var(--shell-navy);
+  padding: var(--shell-band) var(--shell-pad) var(--shell-band) 0;
+  background: var(--shell-frame);
   overflow: hidden;
+}
+
+/* "Built by …": quiet white text (medium weight), centred in the bottom
+   band. 14px on laptops; it scales down on tablets and phones (below). */
+.shell-credit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  height: var(--shell-band);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Laptops: a slightly taller band, so the line has air around it (the top
+   band matches). */
+.app-shell[data-bp="desktop"] {
+  --shell-band: 30px;
+}
+
+.app-shell[data-bp="tablet"] {
+  --shell-band: 34px;
+}
+
+.app-shell[data-bp="tablet"] .shell-credit {
+  font-size: 14px;
+}
+
+/* Laptops: centred under the workspace (the canvas), not the window: in
+   from the rail on the left, and on the right from the shell's padding plus
+   the brand panel's column while it's open (workspace-theme.css). */
+.app-shell[data-bp="desktop"] .shell-credit {
+  left: var(--lnav-closed);
+  right: var(--shell-pad);
+  /* Moves with the panels, on their timing (polish/tokens.css). */
+  transition:
+    left var(--pl-panel-open) var(--pl-panel-ease),
+    right var(--pl-panel-open) var(--pl-panel-ease);
+}
+
+.app-shell[data-bp="desktop"][data-left="open"] .shell-credit {
+  left: var(--lnav-open);
+}
+
+.app-shell[data-bp="desktop"][data-right="open"] .shell-credit {
+  right: calc(var(--shell-pad) + var(--rsb-w) + var(--gap));
 }
 
 /* ==========================================================================
@@ -131,16 +195,20 @@ body {
 
 .lnav {
   position: absolute;
-  top: calc(var(--shell-pad) * -1);
-  bottom: calc(var(--shell-pad) * -1);
+  top: calc(var(--shell-band) * -1);
+  bottom: calc(var(--shell-band) * -1);
   left: 0;
   width: var(--lnav-closed);
-  display: flex;
-  flex-direction: column;
+  /* Three bands: the top group (toggle, profile, credits), Add Brand, and
+     the brands. The outer bands share the free height equally, so Add Brand
+     is always in the middle of the rail; the brands sit at the bottom. */
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(15px, 0.7vw, 10px);
   padding: var(--lnav-side);
   color: #fff;
-  background: var(--shell-navy);
+  background: var(--shell-frame);
   transition:
     width var(--shell-dur) var(--shell-ease),
     transform var(--shell-dur) var(--shell-ease),
@@ -151,20 +219,49 @@ body {
   width: var(--lnav-open);
 }
 
+/* Laptops + tablets: the rail runs the full window height, but its icons sit
+   on the workspace's own lines: the toggle centred on the toolbar row, the
+   last brand centred on the bottom (composer) row. BrandSidebar measures the
+   two rows' centres (--lnav-line-top / --lnav-line-bottom); each icon slot is
+   --ui-icon tall, so the padding is that centre less half a slot. Until it's
+   measured: the toggle glyph's top on the workspace's top edge and the last
+   brand's bottom on its bottom edge. */
+.app-shell:not([data-bp="mobile"]) .lnav {
+  padding-top: calc(var(--lnav-line-top, calc(var(--shell-band) + var(--lnav-glyph) / 2)) - var(--ui-icon) / 2);
+  padding-bottom: calc(var(--lnav-line-bottom, calc(var(--shell-band) + var(--ui-icon) / 2)) - var(--ui-icon) / 2);
+}
+
+/* The brand list's 4px inner padding (room for focus rings) would lift the
+   last brand off the line; cancel it at the bottom. */
+.app-shell:not([data-bp="mobile"]) .lnav-brands {
+  margin-bottom: -4px;
+}
+
 /* Tablet: the rail stays collapsed in flow; expanding it overlays the workspace. */
 .app-shell[data-bp="tablet"] .lnav[data-open="true"] {
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
 }
 
 /* Mobile: off-canvas drawer. */
 /* Phones: an equal navy frame on all four sides (the right panel reuses it). */
 .app-shell[data-bp="mobile"] {
   --mobile-pad: 15px;
+  /* Top and bottom: the same band as larger screens (a touch shorter), so
+     the credit line fits under the workspace. The bottom band is the credit's
+     band PLUS the phone's home-indicator / gesture-bar area (safe-area inset),
+     so the credit sits in the band, above the gesture bar, never over the
+     workspace. */
+  --shell-band: 28px;
   padding:
-    max(var(--mobile-pad), env(safe-area-inset-top))
+    max(var(--shell-band), env(safe-area-inset-top))
     max(var(--mobile-pad), env(safe-area-inset-right))
-    max(var(--mobile-pad), env(safe-area-inset-bottom))
+    calc(var(--shell-band) + env(safe-area-inset-bottom, 0px))
     max(var(--mobile-pad), env(safe-area-inset-left));
+}
+
+.app-shell[data-bp="mobile"] .shell-credit {
+  bottom: env(safe-area-inset-bottom, 0px);
+  font-size: 12px;
 }
 
 .app-shell[data-bp="mobile"] .shell-left {
@@ -177,7 +274,7 @@ body {
   bottom: 0;
   width: min(240px, 68vw);
   padding-inline: var(--lnav-pad);
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   transform: translateX(-100%);
 }
 
@@ -200,9 +297,11 @@ body {
   color: inherit;
   background: transparent;
   border: 0;
-  border-radius: var(--r);
+  /* The view switch's corner (tokens.css --ws-switch-r), same as the icon in
+     the row's slot, so the row's ends follow the icon's curve, not a pill. */
+  border-radius: var(--ws-switch-r);
   font: inherit;
-  font-size: clamp(15px, 1.05vw, 10px);
+  font-size: clamp(16px, 1.05vw, 10px);
   font-weight: 500;
   text-align: left;
   white-space: nowrap;
@@ -255,7 +354,7 @@ body {
 .app-shell[data-bp="mobile"] .lnav-label {
   flex: 1 1 auto;
   width: auto;
-  font-size: clamp(15px, 1.2vw, 18px);
+  font-size: clamp(16px, 1.2vw, 18px);
   font-weight: 500;
 }
 
@@ -263,7 +362,7 @@ body {
    than the labels' font at the same size: 1.5x the label size makes it read
    as the same size (24px beside the 16px labels on desktop). */
 .app-shell[data-bp="mobile"] .lnav .lnav-title {
-  font-size: clamp(22.5px, 1.8vw, 27px);
+  font-size: clamp(22px, 1.8vw, 28px);
   font-weight: 700;
   line-height: 0.9;
 }
@@ -326,18 +425,13 @@ body {
 }
 
 .lnav-toggle:hover .lnav-slot {
-  border-radius: 50%;
+  border-radius: var(--ws-switch-r);
   background: rgba(255, 255, 255, 0.1);
 }
 
 /* A white "+" and label on the navy rail, unfilled. Hover / press: the white
    box fades in with navy "+" and label. */
 .lnav .lnav-add {
-  /* The logo fills its slot but the Minimize and "+" glyphs are centred in
-     theirs, so between those two the slots' empty margins add up. Pulling
-     this row up by one margin makes logo → Minimize and Minimize → "+" the
-     same visible gap. */
-  margin-top: calc((var(--ui-icon) - var(--lnav-glyph)) / -2);
   color: #fff;
   background: transparent;
   font-weight: 500;
@@ -355,9 +449,27 @@ body {
   transform: scale(0.97);
 }
 
-/* Brand list: centred vertically in the free space; scrolls when it doesn't fit. */
+/* Top group: the open/close toggle, profile, credits used and the free-hook
+   bolt, from the top of the rail down. */
+.lnav-top {
+  position: relative;
+  z-index: 2;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 0.8vw, 16px);
+}
+
+/* Add Brand's band (the rail's middle row). */
+.lnav-centre {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Brand list: sits at the bottom of the rail; scrolls when it doesn't fit.
+   (margin-top: auto rather than justify-content: flex-end, so the top of a
+   long list stays reachable by scrolling.) */
 .lnav-brands {
-  flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -368,7 +480,7 @@ body {
 }
 
 .lnav-brand-list {
-  margin-block: auto;
+  margin-top: auto;
   display: flex;
   flex-direction: column;
   gap: clamp(12px, 1vw, 16px);
@@ -386,7 +498,7 @@ body {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border-radius: var(--r);
+  border-radius: var(--ws-switch-r);
   background: #fff;
 }
 
@@ -422,22 +534,12 @@ body {
   display: block;
 }
 
-/* Footer: profile + credits, popovers stay inside the panel. */
-.lnav-footer {
-  position: relative;
-  z-index: 2;
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(12px, 0.8vw, 16px);
-}
-
 .lnav-icon {
   width: var(--ui-icon);
   height: var(--ui-icon);
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: var(--ws-switch-r);
   background: #fff;
 }
 
@@ -470,7 +572,7 @@ body {
   height: var(--ui-icon);
   flex: none;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--ws-switch-r);
   background: transparent;
 }
 
@@ -480,7 +582,7 @@ body {
 .lnav .rail-credits-meter::before {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
+  border-radius: var(--ws-switch-r);
   background: conic-gradient(var(--shell-blue) var(--credits-progress), rgb(255 255 255 / .22) 0);
   content: "";
 }
@@ -490,11 +592,11 @@ body {
   inset: 3px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: calc(var(--ws-switch-r) - 3px);
   color: var(--shell-ink);
   background: #fff;
   content: attr(data-percent);
-  font-size: clamp(9px, 0.75vw, 11px);
+  font-size: clamp(10px, 0.75vw, 12px);
   font-weight: 600;
   opacity: 1;
   transition: color 150ms ease;
@@ -512,12 +614,12 @@ body {
   padding: clamp(14px, 1.3vw, 18px);
   color: var(--shell-ink);
   background: #fff;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   animation: rail-usage-in 180ms ease-out both;
 }
 
 .lnav .rail-card-caption {
-  font-size: clamp(13px, 1.05vw, 16px);
+  font-size: clamp(14px, 1.05vw, 16px);
 }
 
 .lnav .rail-card-email {
@@ -545,7 +647,7 @@ body {
 .lnav .rail-reset-time,
 .lnav .rail-model-usage {
   margin-top: 12px;
-  font-size: clamp(13px, 1vw, 15px);
+  font-size: clamp(14px, 1vw, 16px);
 }
 
 .lnav .rail-reset-time span {
@@ -586,8 +688,10 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--shell-navy);
-  border-radius: var(--r);
+  /* The theme colour, like the frame (desktop sets it transparent over the
+     frame; tablet and mobile drawers show it directly). */
+  background: var(--shell-frame);
+  border-radius: var(--ui-r);
   opacity: 0;
   visibility: hidden;
   transition:
@@ -614,8 +718,8 @@ body {
   left: auto;
   right: var(--gap);
   box-shadow:
-    0 28px 64px -24px rgba(12, 23, 79, 0.6),
-    0 10px 28px rgba(12, 23, 79, 0.2);
+    0 28px 64px -24px rgba(17, 60, 73, 0.6),
+    0 10px 28px rgba(17, 60, 73, 0.2);
 }
 
 /* Tablet + mobile: right drawer over the workspace. */
@@ -635,8 +739,8 @@ body {
   transform: translateX(calc(100% + var(--gap) * 2));
 }
 
-/* Mobile: the panel fills the screen edge to edge, with the shell's navy
-   frame (--mobile-pad) as padding, and the scrim stays clear behind it. Square
+/* Mobile: the panel fills the screen edge to edge, with the shell's
+   theme-colour frame (--mobile-pad) as padding, and the scrim stays clear behind it. Square
    corners on purpose: a rounded panel over the rounded workspace let the
    workspace's corner peek out as a thin curved stroke. */
 .app-shell[data-bp="mobile"] .rsb {
@@ -660,7 +764,7 @@ body {
    the desktop 13-14px. (It used to be zoomed to 0.88, which put labels and
    fields near 11px.) Text inputs keep their desktop 13px. */
 .app-shell[data-bp="mobile"] .rsb .bp-section-title {
-  font-size: 17px;
+  font-size: 18px;
 }
 
 .app-shell[data-bp="mobile"] .rsb .bp-label,
@@ -669,7 +773,7 @@ body {
 .app-shell[data-bp="mobile"] .rsb .bp-dd-opt,
 .app-shell[data-bp="mobile"] .rsb .bp-copy,
 .app-shell[data-bp="mobile"] .rsb .bp-card-hook .bp-gen-top p {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 /* Half-width dropdowns: a step smaller with tighter sides, so values like
@@ -686,7 +790,7 @@ body {
    original 13px and the lock a touch smaller so the word still fits. */
 .app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-locked .bp-dd-trigger,
 .app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-premium .bp-dd-trigger {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-lock {
@@ -701,14 +805,14 @@ body {
   }
 
   .app-shell[data-bp="mobile"] .rsb .bp-row2 .bp-dd-trigger {
-    font-size: 13px;
+    font-size: 14px;
   }
 }
 
 .app-shell[data-bp="mobile"] .rsb .bp-premium-note,
 .app-shell[data-bp="mobile"] .rsb .bp-export-opt-hint,
 .app-shell[data-bp="mobile"] .rsb .bp-field-error {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .app-shell:not([data-bp="desktop"])[data-right="open"] .rsb {
@@ -744,7 +848,7 @@ body {
   margin: 0;
   overflow: hidden;
   color: #fff;
-  font-size: clamp(22px, 1.8vw, 27px);
+  font-size: clamp(22px, 1.8vw, 28px);
   font-weight: 500;
   letter-spacing: -0.03em;
   text-overflow: ellipsis;
@@ -761,7 +865,7 @@ body {
   color: #fff;
   background: transparent;
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   cursor: pointer;
   transition: background-color 150ms ease;
 }
@@ -793,7 +897,7 @@ body {
   display: block;
   margin: 0 0 clamp(10px, 1vw, 14px) 2px;
   color: #fff;
-  font-size: clamp(15px, 1.3vw, 18px);
+  font-size: clamp(16px, 1.3vw, 18px);
   font-weight: 500;
   letter-spacing: -0.02em;
 }
@@ -803,7 +907,7 @@ body {
   padding: clamp(14px, 1.2vw, 18px) clamp(14px, 1.2vw, 17px) clamp(16px, 1.3vw, 19px);
   color: var(--shell-ink);
   background: var(--shell-tint);
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
 }
 
 .rsb .bp-field {
@@ -821,8 +925,8 @@ body {
   display: block;
   margin: 0 0 8px 2px;
   padding: 0;
-  color: #0A144B;
-  font-size: clamp(13px, 1vw, 14px);
+  color: #113c49;
+  font-size: clamp(14px, 1vw, 14px);
   font-weight: 400;
   letter-spacing: -0.02em;
 }
@@ -842,8 +946,8 @@ body {
 .rsb .bp-tag {
   margin-bottom: 8px;
   padding: 0;
-  color: #0f1ff0;
-  font-size: 13px;
+  color: var(--shell-green-hover);
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -861,9 +965,9 @@ body {
   color: var(--shell-ink);
   background: #fff;
   border: 1px solid transparent;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   outline: none;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   transition: border-color 150ms ease;
 }
@@ -892,7 +996,7 @@ body {
 
 .rsb .bp-input:focus,
 .rsb .bp-textarea:focus {
-  border-color: #c9d2ff;
+  border-color: #bfe9dc;
 }
 
 .rsb .bp-name-input {
@@ -921,7 +1025,7 @@ body {
   color: var(--shell-ink);
   background: var(--shell-tint);
   border: 0;
-  border-radius: calc(var(--addimg-sz) * var(--ui-ratio-sm));
+  border-radius: var(--ui-r);
   cursor: pointer;
 }
 
@@ -955,7 +1059,7 @@ body {
 }
 
 .rsb .bp-name-input .bp-addimg:focus-visible {
-  outline: 2px solid #8fa0ff;
+  outline: 2px solid #74d4b8;
   outline-offset: 2px;
 }
 
@@ -967,7 +1071,7 @@ body {
 
 .rsb .bp-row2 .bp-input {
   padding: 0 16px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* Dropdowns */
@@ -983,7 +1087,7 @@ body {
   color: var(--shell-ink);
   background: #fff;
   border: 1px solid transparent;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font-size: clamp(14px, 1.15vw, 16px);
   font-weight: 700;
   text-align: left;
@@ -1019,13 +1123,13 @@ body {
 }
 
 .rsb .bp-dd-menu {
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
 }
 
 .rsb .bp-dd-opt {
   min-height: 44px;
   padding: 10px 14px;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font-size: 14px;
 }
 
@@ -1040,7 +1144,7 @@ body {
 .rsb .bp-save {
   height: var(--bp-field-h);
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   cursor: pointer;
 }
 
@@ -1117,7 +1221,7 @@ body {
 .rsb .bp-section-toggle:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.7);
   outline-offset: 2px;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
 }
 
 .rsb .bp-section-chevron {
@@ -1144,8 +1248,8 @@ body {
   color: #a9aec9;
   background: #fff;
   border: 0;
-  border-radius: var(--r);
-  font-size: 13px;
+  border-radius: var(--ui-r);
+  font-size: 14px;
   font-weight: 400;
   cursor: pointer;
   transition: background-color 150ms ease;
@@ -1169,7 +1273,7 @@ body {
   gap: 12px;
   padding: clamp(12px, 1.1vw, 16px) clamp(12px, 1.1vw, 16px) clamp(12px, 1.1vw, 16px) clamp(16px, 1.5vw, 22px);
   background: var(--shell-tint);
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
 }
 
 .rsb .bp-external-section .bp-section-title {
@@ -1190,7 +1294,7 @@ body {
   color: #fff;
   background: var(--shell-navy);
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1282,7 +1386,7 @@ body {
 .rsb .bp-field-error {
   margin: 6px 0 0 4px;
   color: #d13a3f;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -1314,8 +1418,8 @@ body {
 .rsb .bp-card-hook {
   padding: clamp(18px, 1.7vw, 26px) clamp(16px, 1.5vw, 22px) clamp(16px, 1.5vw, 22px);
   color: #fff;
-  background: #0f55ff;
-  border-radius: var(--r);
+  background: var(--shell-green);
+  border-radius: var(--ui-r);
 }
 
 .rsb .bp-card-hook .bp-gen-top {
@@ -1340,7 +1444,7 @@ body {
 
 .rsb .bp-card-hook .bp-gen-top p {
   margin: 2px 0 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
 }
 
@@ -1352,7 +1456,7 @@ body {
   color: var(--shell-ink);
   background: #fff;
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font-size: clamp(16px, 1.3vw, 18px);
   font-weight: 500;
   cursor: pointer;
@@ -1364,7 +1468,7 @@ body {
 .rsb .bp-research-field:focus-visible,
 .rsb .bp-dd-trigger:focus-visible,
 .rsb .bp-card-hook .bp-gen-btn:focus-visible {
-  outline: 2px solid #8fa0ff;
+  outline: 2px solid #74d4b8;
   outline-offset: 2px;
 }
 
@@ -1376,7 +1480,7 @@ body {
   position: fixed;
   z-index: 40;
   inset: 0;
-  background: rgba(9, 17, 61, 0.48);
+  background: rgba(17, 60, 73, 0.48);
   opacity: 0;
   pointer-events: none;
   transition: opacity 250ms ease;
@@ -1402,19 +1506,15 @@ body {
   flex-direction: column;
   overflow: hidden;
   overflow: clip;
-  border-radius: var(--r);
-  /* The canvas board: near-white at the top easing down to a soft periwinkle blue. */
-  background: linear-gradient(
-    180deg,
-    #f9faff 0%,
-    #eef2ff 18%,
-    #dde7ff 42%,
-    #c9d9ff 66%,
-    #b2c9ff 85%,
-    #a0bdff 100%
-  );
-  /* The dot grid in Quick Grid and Node Studio (not inside cards). */
-  --dot-color: #fff;
+  border-radius: var(--ui-r);
+  /* The canvas board: src/styles/background.svg (sky blue at the top, through
+     pale cream and mint, to deep teal at the bottom), stretched to the board. */
+  background: #d1e3f1 url("./background.svg") center / 100% 100% no-repeat;
+  /* The dot grid in Quick Grid and Node Studio (not inside cards): faint
+     white dots, --dot-gap apart (Node Studio scales the gap with its zoom,
+     CanvasViewport.jsx DOT_GAP). */
+  --dot-color: rgb(255 255 255 / 0.4);
+  --dot-gap: 50px;
 }
 
 /* A slow drift of soft light over the gradient, so the background feels alive
@@ -1479,7 +1579,7 @@ body {
 .ws-topbar .toolbar-icon-btn,
 .ws-topbar .model-selector-trigger {
   height: var(--tb-h);
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   transition: background-color 180ms ease, opacity 180ms ease, transform 120ms ease, width var(--shell-dur) var(--shell-ease), margin var(--shell-dur) var(--shell-ease);
 }
 
@@ -1521,13 +1621,13 @@ body {
 }
 
 .ws-topbar .toolbar-add-spark {
-  grid-template-columns: repeat(2, 16px);
-  gap: 3px;
+  grid-template-columns: repeat(2, 14px);
+  gap: 2px;
 }
 
 .ws-topbar .toolbar-add-spark i {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   display: block;
   font-style: normal;
 }
@@ -1554,7 +1654,7 @@ body {
   width: 8px;
   height: 2px;
   background: #fff;
-  border-radius: 1px;
+  border-radius: var(--ui-r);
 }
 
 .ws-topbar .toolbar-add-spark i::after,
@@ -1627,7 +1727,7 @@ body {
   flex: none;
   border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   animation: shell-spin 800ms linear infinite;
 }
 
@@ -1651,7 +1751,7 @@ body {
 
 .toolbar-icon-btn:hover,
 .toolbar-icon-btn.is-active {
-  background: #182765;
+  background: #113c49;
 }
 
 /* Panel toggle: a standalone rounded box at the end of the toolbar. */
@@ -1706,7 +1806,7 @@ body {
 .toolbar-icon-btn:focus-visible,
 .ws-topbar .toolbar-add-node:focus-visible,
 .ws-topbar .toolbar-generate:focus-visible {
-  outline: 3px solid rgba(23, 60, 245, 0.35);
+  outline: 3px solid rgba(23, 179, 139, 0.35);
   outline-offset: 2px;
 }
 
@@ -1724,8 +1824,8 @@ body {
   height: 60px;
   gap: 10px;
   padding: 0 15px;
-  border-radius: var(--r);
-  font-size: 15px;
+  border-radius: var(--ui-r);
+  font-size: 16px;
   line-height: 20px;
 }
 
@@ -1836,8 +1936,8 @@ body {
     padding: 6px;
     background: #fff;
     border: 1px solid var(--shell-line);
-    border-radius: var(--r);
-    box-shadow: 0 14px 30px rgba(14, 28, 89, 0.16);
+    border-radius: var(--ui-r);
+    box-shadow: 0 14px 30px rgba(17, 60, 73, 0.16);
     overflow: visible;
   }
 
@@ -1914,7 +2014,7 @@ body {
   align-items: center;
   padding: var(--ws-pad);
   background: #fff;
-  border-radius: var(--r);
+  border-radius: var(--ws-switch-r);
 }
 
 /* "Grid" / "Node", stacked in one cell (only the current one shows) so the
@@ -1955,8 +2055,9 @@ body {
   bottom: 0;
   left: 0;
   width: var(--ws-tab);
-  background: var(--shell-navy);
-  border-radius: var(--r);
+  /* The active view: green, like the composer's send arrow. */
+  background: var(--shell-green);
+  border-radius: var(--ws-switch-tab-r);
   transform: translateX(calc(var(--i) * (100% + var(--ws-gap))));
   transition: transform 280ms var(--shell-ease);
 }
@@ -1968,10 +2069,11 @@ body {
   display: grid;
   place-items: center;
   padding: 0;
-  color: var(--shell-indigo);
+  /* The unselected view's icon: the thumb's grey, so the switch has no navy. */
+  color: #969cb8;
   background: transparent;
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ws-switch-tab-r);
   cursor: pointer;
   transition: color 200ms ease;
 }
@@ -1987,7 +2089,7 @@ body {
 }
 
 .ws-switch-btn:focus-visible {
-  outline: 2px solid #8fa0ff;
+  outline: 2px solid #74d4b8;
   outline-offset: 1px;
 }
 
@@ -2024,10 +2126,13 @@ body {
   overscroll-behavior: contain;
   /* The cards end one grid gap above the Generate tray (--tray-bottom,
      composer.css; --tray-h, MainWorkspace.jsx), so it never covers them.
-     QuickGrid.jsx reads this padding when it fits the rows to the screen. */
-  padding: 0 clamp(12px, 1.6vw, 24px) calc(var(--tray-bottom, 22px) + var(--tray-h, 0px) + clamp(10px, 1.6cqw, 18px));
+     QuickGrid.jsx reads this padding when it fits the rows to the screen.
+     --qg-pb / --qg-pr: the bottom / right padding, also used to place the
+     strip's arrows (workspace-theme.css .qg-arrow). */
+  --qg-pb: calc(var(--tray-bottom, 22px) + var(--tray-h, 0px) + clamp(10px, 1.6cqw, 18px));
+  padding: 0 clamp(12px, 1.6vw, 24px) var(--qg-pb);
   background-image: radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px);
-  background-size: 18px 18px;
+  background-size: var(--dot-gap, 50px) var(--dot-gap, 50px);
   background-attachment: local;
   /* Moves in step with the brand panel (polish/shell.css), on the shared panel
      tokens: closing, the cards widen at the panel's pace and only fill the
@@ -2040,7 +2145,8 @@ body {
    (same column count; QuickGrid.jsx re-measures on the resize). Opening, the
    cards make room on the panel's own timing. */
 .app-shell[data-bp="desktop"][data-right="open"] .qg {
-  padding-right: calc(var(--rsb-w) + var(--gap) + var(--ws-gutter));
+  --qg-pr: calc(var(--rsb-w) + var(--gap) + var(--ws-gutter));
+  padding-right: var(--qg-pr);
   transition: padding-right var(--pl-panel-open) var(--pl-panel-ease);
 }
 
@@ -2066,12 +2172,10 @@ body {
   .qg-grid { --qg-cols: 2; }
 }
 
-@container ws (min-width: 1200px) {
+/* Three across from laptop widths up (never more): rows of three equal
+   cards. polish/grid.css sizes the cards' type on the same breakpoints. */
+@container ws (min-width: 900px) {
   .qg-grid { --qg-cols: 3; }
-}
-
-@container ws (min-width: 1800px) {
-  .qg-grid { --qg-cols: 4; }
 }
 
 /* Mobile: a plain scrolling column (the base padding clears the Generate tray).
@@ -2107,7 +2211,7 @@ body {
   color: var(--shell-ink);
   text-align: center;
   background: #fff;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   animation: ncard-in 260ms var(--shell-ease) both;
 }
 
@@ -2137,7 +2241,7 @@ body {
   color: #fff;
   background: var(--shell-navy);
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
@@ -2155,7 +2259,7 @@ body {
   padding: clamp(10px, 1vw, 16px);
   color: var(--shell-ink);
   background: #fff;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   animation: ncard-in 280ms var(--shell-ease) both;
 }
 
@@ -2180,7 +2284,7 @@ body {
   gap: clamp(8px, 0.8vw, 12px);
   margin: 0;
   color: var(--shell-ink);
-  font-size: clamp(15px, 1.5vw, 20px);
+  font-size: clamp(16px, 1.5vw, 20px);
   font-weight: 500;
   letter-spacing: -0.02em;
 }
@@ -2212,7 +2316,7 @@ body {
   color: inherit;
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--ui-r);
   outline: none;
   font: inherit;
   letter-spacing: inherit;
@@ -2227,7 +2331,7 @@ body {
 .ncard .ncard-pill input.ncard-title:focus {
   outline: none;
   background: var(--shell-tint);
-  box-shadow: inset 0 0 0 1.5px #8fa0ff;
+  box-shadow: inset 0 0 0 1.5px #74d4b8;
 }
 
 .ncard .ncard-pill input.ncard-title::placeholder {
@@ -2238,7 +2342,7 @@ body {
   width: clamp(8px, 0.7vw, 11px);
   height: clamp(8px, 0.7vw, 11px);
   flex: none;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   background: var(--node-color, var(--shell-ink));
 }
 
@@ -2248,7 +2352,7 @@ body {
   min-width: 0;
   overflow: hidden;
   color: var(--shell-hint);
-  font-size: clamp(11px, 0.9vw, 14px);
+  font-size: clamp(12px, 0.9vw, 14px);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
@@ -2271,7 +2375,7 @@ body {
   color: var(--shell-ink);
   background: var(--shell-tint);
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ws-switch-r); /* the view switch's corner (tokens.css) */
   cursor: pointer;
   transition: background-color 150ms ease, opacity 150ms ease;
 }
@@ -2292,11 +2396,11 @@ body {
 }
 
 .ncard-action:active:not(:disabled) {
-  background: #dbe4ff;
+  background: #d3efe5;
 }
 
 .ncard-action:focus-visible {
-  outline: 2px solid #8fa0ff;
+  outline: 2px solid #74d4b8;
   outline-offset: 2px;
 }
 
@@ -2330,7 +2434,7 @@ body {
   padding: 6px;
   background: #fff;
   border: 1px solid var(--shell-line);
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   animation: shell-pop 160ms var(--shell-ease) both;
 }
 
@@ -2341,7 +2445,7 @@ body {
   text-align: left;
   background: transparent;
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
@@ -2365,8 +2469,8 @@ body {
   overflow-y: auto;
   color: var(--shell-muted);
   background: var(--shell-tint);
-  border-radius: var(--r);
-  font-size: clamp(13px, 1.05vw, 16px);
+  border-radius: var(--ui-r);
+  font-size: clamp(14px, 1.05vw, 16px);
   font-weight: 500;
   line-height: 1.42;
   overflow-wrap: anywhere;
@@ -2410,7 +2514,7 @@ body {
   color: #fff;
   background: var(--shell-navy);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1;
 }
@@ -2452,7 +2556,7 @@ body {
 #root .app .ncard-headline {
   color: var(--shell-ink);
   font-family: "Times New Roman", Times, serif !important;
-  font-size: clamp(17px, 1.6vw, 24px);
+  font-size: clamp(18px, 1.6vw, 24px);
   font-style: italic;
   font-weight: 700;
   line-height: 1.22;
@@ -2490,7 +2594,7 @@ body {
   height: 14px;
   margin-bottom: 12px;
   background-color: #e3e8fb;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
 }
 
 .ncard-skel.w70 { width: 70%; }
@@ -2511,9 +2615,9 @@ body {
   color: #fff;
   background: var(--shell-navy);
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -2529,7 +2633,7 @@ body {
   color: var(--shell-ink);
   background: var(--shell-tint);
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -2559,7 +2663,7 @@ body {
   overflow: hidden;
   width: auto;
   height: auto;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   background-color: transparent;
   background-image: radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px);
   background-size: var(--canvas-dot-size) var(--canvas-dot-size);
@@ -2590,7 +2694,7 @@ body {
   .ws-view-nodes .canvas-controls .canvas-zoom-level {
     width: 36px;
     height: 26px;
-    font-size: 10.5px;
+    font-size: 10px;
   }
 }
 
@@ -2612,8 +2716,8 @@ body {
   padding: 8px 16px;
   color: #fff;
   background: var(--shell-indigo);
-  border-radius: var(--r);
-  font-size: 13px;
+  border-radius: var(--ui-r);
+  font-size: 14px;
 }
 
 .ws-view-nodes .nodecanvas {
@@ -2662,13 +2766,13 @@ body {
   width: 10px;
   height: 10px;
   flex: none;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   background: var(--cat);
 }
 
 .sn-col-head h2 {
   margin: 0;
-  font-size: clamp(16px, 1.45vw, 21px);
+  font-size: clamp(16px, 1.45vw, 22px);
   font-weight: 500;
   letter-spacing: -0.02em;
 }
@@ -2679,7 +2783,7 @@ body {
   color: var(--shell-indigo);
   background: rgba(255, 255, 255, 0.7);
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -2699,7 +2803,7 @@ body {
   padding: 0 7px;
   color: #fff;
   background: var(--cat);
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font-size: 12px;
   font-weight: 600;
 }
@@ -2728,7 +2832,7 @@ body {
   left: 50%;
   width: 9px;
   height: 9px;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   background: var(--shell-navy);
   content: "";
   transform: translateX(-50%);
@@ -2745,7 +2849,7 @@ body {
   color: var(--shell-ink);
   background: #fff;
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   outline: 2px solid transparent;
   outline-offset: 2px;
   animation: studio-node-in 260ms var(--shell-ease) both;
@@ -2780,7 +2884,7 @@ body {
   place-items: center;
   color: #fff;
   background: var(--cat);
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
 }
 
 /* The pixel mark fills its whole box, so it's sized to look as big as the "+"
@@ -2800,9 +2904,9 @@ body {
   color: var(--shell-ink);
   background: transparent;
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font: inherit;
-  font-size: clamp(14px, 1vw, 15px);
+  font-size: clamp(14px, 1vw, 16px);
   letter-spacing: -0.02em;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -2814,7 +2918,7 @@ body {
 
 .ws-view-nodes .sn-title:focus {
   background: var(--shell-tint);
-  outline: 2px solid #c9d3ff;
+  outline: 2px solid #bfe9dc;
 }
 
 
@@ -2849,7 +2953,7 @@ body {
   color: var(--shell-ink);
   background: transparent;
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   cursor: pointer;
   transition: background-color 150ms ease, color 150ms ease;
 }
@@ -2917,7 +3021,7 @@ body {
   margin: 2px 12px 12px;
   padding: clamp(12px, 1.3vw, 18px);
   background: var(--shell-tint);
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
 }
 
 .sn-field {
@@ -2929,7 +3033,7 @@ body {
 
 .sn-field label {
   color: #6a7090;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.02em;
 }
@@ -2943,14 +3047,14 @@ body {
   color: var(--shell-ink);
   background-color: #fff;
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font: inherit;
-  font-size: clamp(12px, 0.9vw, 13px);
+  font-size: clamp(12px, 0.9vw, 14px);
   font-weight: 500;
 }
 
 .sn-field input[type="number"] {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   appearance: textfield;
   -moz-appearance: textfield;
@@ -2997,7 +3101,7 @@ body {
 .sn-field input:focus,
 .sn-field textarea:focus,
 .sn-field select:focus {
-  outline: 2px solid #c9d3ff;
+  outline: 2px solid #bfe9dc;
 }
 
 /* The app's dropdown (Select.jsx) in a node: sized and styled like the
@@ -3011,8 +3115,8 @@ body {
   color: var(--shell-ink);
   background: #fff;
   border: 1px solid transparent;
-  border-radius: calc(49px * var(--ui-ratio));
-  font-size: clamp(12px, 0.9vw, 13px);
+  border-radius: var(--ui-r);
+  font-size: clamp(12px, 0.9vw, 14px);
   font-weight: 500;
 }
 
@@ -3021,14 +3125,14 @@ body {
 }
 
 .sn-field .bp-dd-menu {
-  border-radius: calc(49px * var(--ui-ratio));
+  border-radius: var(--ui-r);
 }
 
 .sn-field .bp-dd-opt {
   min-height: 40px;
   padding: 8px 12px;
-  border-radius: calc(40px * var(--ui-ratio));
-  font-size: 13px;
+  border-radius: var(--ui-r);
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -3052,7 +3156,7 @@ body {
   padding: 5px 12px;
   color: var(--shell-indigo);
   background: #fff;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font-size: 12px;
 }
 
@@ -3069,7 +3173,7 @@ body {
   color: #fff;
   background: var(--shell-blue);
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font: inherit;
   font-size: clamp(14px, 1.1vw, 16px);
   cursor: pointer;
@@ -3095,7 +3199,7 @@ body {
   color: var(--shell-indigo);
   background: #fff;
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   cursor: pointer;
   transition: background-color 150ms ease, color 150ms ease;
 }
@@ -3135,7 +3239,7 @@ body {
   z-index: 20;
   right: 0;
   left: auto;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
 }
 
 /* Generated copy sits under the node's fields, in the same tinted box as a
@@ -3145,8 +3249,8 @@ body {
   padding: 16px 18px;
   color: var(--shell-ink);
   background: var(--shell-tint);
-  border-radius: var(--r);
-  font-size: 13px;
+  border-radius: var(--ui-r);
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -3160,7 +3264,7 @@ body {
 
 .sn-out-empty {
   color: var(--shell-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* Same headline face as the Quick Grid cards (.ncard-headline). */
@@ -3209,7 +3313,7 @@ body {
   color: var(--shell-ink);
   background: var(--shell-tint);
   border: 0;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -3255,8 +3359,8 @@ body {
   color: var(--shell-navy);
   background: #fff;
   border: 0;
-  border-radius: var(--r);
-  box-shadow: 0 6px 18px rgba(13, 20, 69, 0.08);
+  border-radius: var(--ui-r);
+  box-shadow: 0 6px 18px rgba(17, 60, 73, 0.08);
   cursor: pointer;
   /* Slow, eased grow on hover; the press shrinks quicker so clicks feel crisp. */
   transition: background-color 260ms ease, scale var(--shell-dur) var(--shell-ease);
@@ -3304,7 +3408,7 @@ body {
 .sn-gen:focus-visible,
 .sn-toggle:focus-visible,
 .sn-mini:focus-visible {
-  outline: 2px solid #8fa0ff;
+  outline: 2px solid #74d4b8;
   outline-offset: 2px;
 }
 
@@ -3315,7 +3419,7 @@ body {
 .sn-soon p {
   margin: 0;
   color: #70748d;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
@@ -3326,7 +3430,7 @@ body {
 .overlay {
   z-index: 80;
   padding: 16px;
-  background: rgba(9, 17, 61, 0.48);
+  background: rgba(6, 26, 32, 0.55);
 }
 
 .modal-head button svg {
@@ -3357,12 +3461,12 @@ body {
   padding: 0;
   color: var(--shell-ink);
   background:
-    radial-gradient(70% 90% at 50% 0%, rgba(23, 60, 245, 0.16) 0%, transparent 70%) top / 100% clamp(170px, 30vh, 214px) no-repeat,
-    linear-gradient(180deg, #dfe5ff 0%, #f3f6ff 58%, #fff 100%) top / 100% clamp(170px, 30vh, 214px) no-repeat,
+    radial-gradient(70% 90% at 50% 0%, rgba(23, 179, 139, 0.16) 0%, transparent 70%) top / 100% clamp(170px, 30vh, 214px) no-repeat,
+    linear-gradient(180deg, #d4f0e6 0%, #f3f6ff 58%, #fff 100%) top / 100% clamp(170px, 30vh, 214px) no-repeat,
     #fff;
   border: 0;
-  border-radius: 24px;
-  box-shadow: 0 24px 70px rgba(5, 12, 48, 0.35);
+  border-radius: var(--ui-r);
+  box-shadow: 0 24px 70px rgba(17, 60, 73, 0.35);
   animation: confirm-in 260ms var(--shell-ease) both;
 }
 
@@ -3394,7 +3498,7 @@ body {
   color: var(--shell-ink);
   background: transparent;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--ui-r);
   cursor: pointer;
   transition: background-color 150ms ease;
 }
@@ -3411,7 +3515,7 @@ body {
 .modal-subtitle {
   margin: 8px clamp(20px, 5vw, 30px) 0;
   color: #5d6280;
-  font-size: 14.5px;
+  font-size: 14px;
   line-height: 1.6;
   text-align: center;
 }
@@ -3441,9 +3545,9 @@ body {
 .auth-submit {
   width: 100%;
   height: 50px;
-  border-radius: var(--r);
+  border-radius: var(--ui-r);
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 /* Google = tour "Back" button. */
@@ -3470,7 +3574,7 @@ body {
   align-items: center;
   gap: 14px;
   color: #70748d;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .auth-divider::before,
@@ -3516,7 +3620,7 @@ body {
 
 .auth-field input:focus {
   background: #fff;
-  border-color: #8fa0ff;
+  border-color: #74d4b8;
   outline: none;
 }
 
@@ -3546,7 +3650,7 @@ body {
   color: #70748d;
   background: transparent;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--ui-r);
   transform: translateY(-50%);
   cursor: pointer;
 }
@@ -3566,9 +3670,9 @@ body {
   isolation: isolate;
   margin-top: 4px;
   color: #fff;
-  background: var(--shell-blue) linear-gradient(135deg, #3a5bff 0%, var(--shell-blue) 100%);
+  background: var(--shell-blue); /* solid green in popups (polish/modals.css) */
   border: 0;
-  box-shadow: 0 8px 20px rgba(23, 60, 245, 0.28);
+  box-shadow: 0 8px 20px rgba(23, 179, 139, 0.28);
   font-weight: 500;
   cursor: pointer;
   transition: transform 120ms ease;
@@ -3606,7 +3710,7 @@ body {
 .auth-google:focus-visible,
 .auth-submit:focus-visible,
 .auth-password button:focus-visible {
-  outline: 2px solid #8fa0ff;
+  outline: 2px solid #74d4b8;
   outline-offset: 2px;
 }
 
@@ -3615,8 +3719,8 @@ body {
   padding: 10px 16px;
   color: #c62f3a;
   background: #fff0f1;
-  border-radius: 14px;
-  font-size: 13px;
+  border-radius: var(--ui-r);
+  font-size: 14px;
 }
 
 .auth-notice {
@@ -3624,8 +3728,8 @@ body {
   padding: 12px 16px;
   color: #1f6b3a;
   background: #eefaf2;
-  border-radius: 14px;
-  font-size: 13px;
+  border-radius: var(--ui-r);
+  font-size: 14px;
   line-height: 1.5;
 }
 

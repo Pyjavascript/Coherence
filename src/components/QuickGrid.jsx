@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import NodeCard from "./nodes/NodeCard";
-import { MEDIA, MEDIA_BY_KEY, GEN_PLATFORMS_BY_KEY } from "../lib/constants";
+import { MEDIA_BY_KEY, GEN_PLATFORMS_BY_KEY } from "../lib/constants";
 import { applyEdit, cardLimits, defaultWords, minWordsFor, MAX_WORDS } from "../lib/copyItems";
 import { generateQuickGrid, regenerateOutput, describeError } from "../services/ai";
 import { saveGeneration } from "../services/brands";
@@ -11,13 +11,13 @@ let seq = 0;
 const uid = () => `q${Date.now().toString(36)}${(seq++).toString(36)}`;
 
 // node = { id, type, width, status: idle|loading|ready|error, items, version, message, fav,
-//          words, brief, requirements, component, pointerCount }
+//          words, brief, component, pointerCount }
 // `fav` is the index of the starred variant (null = none); it resets when new copy lands.
 // The rest are the card's settings, as on a Node Studio node: `words` is the user-set total
 // length (null = the medium's default); `component` / `pointerCount` apply to Website only.
-const DEFAULT_SETTINGS = { words: null, brief: "", requirements: "", component: "hero", pointerCount: 3 };
+const DEFAULT_SETTINGS = { words: null, brief: "", component: "hero", pointerCount: 3 };
 const settingsOf = (n) => ({
-  words: n.words, brief: n.brief, requirements: n.requirements, component: n.component, pointerCount: n.pointerCount,
+  words: n.words, brief: n.brief, component: n.component, pointerCount: n.pointerCount,
 });
 
 // `label` is the card's editable title; it starts as the medium's name.
@@ -34,7 +34,10 @@ const createNode = (type, from) => ({
   ...DEFAULT_SETTINGS,
   ...(from ? settingsOf(from) : {}),
 });
-const seedNodes = () => MEDIA.map((m) => createNode(m.key));
+// The grid starts with three cards, one row across; Add Grid brings the rest.
+// They sit in the same order as the Add Grid menu (MEDIA, Node Studio's order).
+const DEFAULT_MEDIA = ["marketing", "packaging", "advertising"];
+const seedNodes = () => DEFAULT_MEDIA.map((key) => createNode(key));
 const MAX_LABEL = 60;
 
 // A failed request keeps whatever copy the node already had.
@@ -194,13 +197,13 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
     }));
   };
 
-  // One of the card's other settings (brief, requirements, component, pointerCount).
+  // One of the card's other settings (brief, component, pointerCount).
   const setSetting = (id, field, value) => {
     if (!(field in DEFAULT_SETTINGS) || field === "words") return;
     setNodes((list) => list.map((n) => (n.id === id ? { ...n, [field]: value } : n)));
   };
 
-  // Back to the medium's defaults: length, job, requirements and component.
+  // Back to the medium's defaults: length, job and component.
   const resetSettings = (id) => {
     setNodes((list) => list.map((n) => (n.id === id ? { ...n, ...DEFAULT_SETTINGS } : n)));
   };
@@ -248,9 +251,10 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
 // The grid has 12 tracks (layout.css), which divide evenly by 1–4 columns.
 const TRACKS = 12;
 
-// How many columns a card takes at `cols` across: a full-width card spans the
-// whole row, except at three columns where it spans two.
-const weightOf = (full, cols) => Math.min(cols, full ? (cols === 3 ? 2 : cols) : 1);
+// How many columns a card takes at `cols` across: at three across every card
+// is one column (rows of three equal cards); narrower, a full-width card
+// spans the whole row.
+const weightOf = (full, cols) => (full && cols < 3 ? cols : 1);
 
 // Packs cards into rows in order (a full-width card takes its weight's worth
 // of room), keeps at least two cards on the bottom row, then the cards of
@@ -280,7 +284,10 @@ const packRows = (fulls, cols) => {
   return { spans, rows: Math.max(1, rows.length) };
 };
 
-const DEFAULT_FULLS = MEDIA.map((m) => Boolean(m.full));
+// Rows that share one screen: up to two rows of cards fill the stage (three
+// cards make one tall row, six make two); a third row and beyond keep that
+// height and continue below, so the grid scrolls.
+const FIT_ROWS = 2;
 
 // Phones (carousel): the card in view, from the strip's scroll position.
 const slideAt = (strip) => {
@@ -290,16 +297,29 @@ const slideAt = (strip) => {
   return step ? Math.round(strip.scrollLeft / step) : 0;
 };
 
+const ChevronIcon = ({ d }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={d} />
+  </svg>
+);
+
 // carousel (phones): one card at a time. The cards sit in a horizontal strip
 // that snaps card by card, so each thumb swipe moves exactly one card back or
 // forward. The pager under them shows where you are: a dot per card, the
 // current one a wide bar, all in the Generate button's blue (tap a dot to
 // jump to that card).
+// Laptops / tablets (strip): the same idea, as many cards across as fit (3 on
+// laptops, 2 on tablets, layout.css --qg-cols) at the full height. Cards past
+// those sit to the right and the row scrolls sideways (trackpad, wheel with
+// Shift, or the arrows at its edges); a newly added card scrolls into view.
 export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
   const gridRef = useRef(null);
   const [slide, setSlide] = useState(0);
   const count = quick.nodes.length;
   const current = Math.min(slide, Math.max(0, count - 1));
+  const strip = !carousel && count > 0;
+  // Strip: whether there are cards out of view to the left / right (the arrows).
+  const [edges, setEdges] = useState({ prev: false, next: false });
 
   const goTo = (index, smooth = true) => {
     const strip = gridRef.current;
@@ -325,14 +345,51 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
       cancelAnimationFrame(frame);
     };
   }, [carousel]);
+  // Strip: which arrows show, from the row's scroll position and size.
+  useEffect(() => {
+    const row = gridRef.current;
+    if (!strip || !row) {
+      setEdges((e) => (e.prev || e.next ? { prev: false, next: false } : e));
+      return undefined;
+    }
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const max = row.scrollWidth - row.clientWidth;
+        const prev = row.scrollLeft > 2;
+        const next = row.scrollLeft < max - 2;
+        setEdges((e) => (e.prev === prev && e.next === next ? e : { prev, next }));
+      });
+    };
+    row.addEventListener("scroll", update, { passive: true });
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    observer?.observe(row);
+    update();
+    return () => {
+      row.removeEventListener("scroll", update);
+      observer?.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [strip, count]);
+
+  // Strip: one card back or forward (the row snaps to the card).
+  const step = (dir) => {
+    const row = gridRef.current;
+    const first = row?.firstElementChild;
+    if (!first) return;
+    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+    row.scrollBy({ left: dir * (first.offsetWidth + gap), behavior: "smooth" });
+  };
+
   // Cards across (layout.css --qg-cols, from the stage width).
   const [cols, setCols] = useState(1);
   const { spans } = packRows(quick.nodes.map((n) => n.width === "full"), cols);
   useFlip(gridRef, quick.nodes.map((n, i) => `${n.id}:${spans[i]}`).join("|"));
 
-  // The default cards fill one screen. --row-fit is that row height, so cards
-  // added beyond the default set keep it and continue below (the grid scrolls)
-  // instead of every row shrinking to make room.
+  // --row-fit is the height of a row when FIT_ROWS rows share the screen.
+  // Rows never go below it: one row stretches to fill the stage, two share
+  // it, and more continue below (the grid scrolls) instead of shrinking.
   useLayoutEffect(() => {
     const grid = gridRef.current;
     const scroller = grid?.parentElement;
@@ -342,7 +399,7 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
       const scrollStyle = getComputedStyle(scroller);
       const across = parseInt(gridStyle.getPropertyValue("--qg-cols"), 10) || 1;
       setCols(across);
-      const { rows } = packRows(DEFAULT_FULLS, across);
+      const rows = FIT_ROWS;
       const inner = scroller.clientHeight - parseFloat(scrollStyle.paddingTop) - parseFloat(scrollStyle.paddingBottom);
       const gap = parseFloat(gridStyle.rowGap) || 0;
       grid.style.setProperty("--row-fit", `${Math.max(0, Math.floor((inner - gap * (rows - 1)) / rows))}px`);
@@ -364,18 +421,14 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
     const scroller = gridRef.current?.parentElement;
     const el = quick.lastAdded && gridRef.current?.querySelector(`[data-flip-id="${quick.lastAdded}"]`);
     if (!scroller || !el) return;
+    const index = [...gridRef.current.children].indexOf(el);
     // Phones: slide to the new card.
     if (carousel) {
-      goTo([...gridRef.current.children].indexOf(el));
+      goTo(index);
       return;
     }
-    const box = scroller.getBoundingClientRect();
-    const r = el.getBoundingClientRect();
-    // The bottom padding is the room kept clear of the Generate tray.
-    const below = r.bottom - (box.bottom - parseFloat(getComputedStyle(scroller).paddingBottom));
-    const above = r.top - box.top;
-    if (below > 0) scroller.scrollBy({ top: Math.min(below, above), behavior: "smooth" });
-    else if (above < 0) scroller.scrollBy({ top: above - 8, behavior: "smooth" });
+    // Laptops / tablets: scroll the row so the new card is the last one in view.
+    goTo(Math.max(0, index - (cols - 1)));
   }, [quick.lastAdded]);
 
   const copyOutput = async (text) => {
@@ -390,7 +443,7 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
   };
 
   return (
-    <div className={"qg" + (quick.nodes.length ? "" : " is-empty") + (carousel ? " is-carousel" : "")}>
+    <div className={"qg" + (quick.nodes.length ? "" : " is-empty") + (carousel ? " is-carousel" : "") + (strip ? " is-strip" : "")}>
       {!quick.nodes.length && (
         <div className="qg-empty">
           <h2>No cards on the grid</h2>
@@ -424,6 +477,30 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
           />
         ))}
       </div>
+      {strip && (
+        <>
+          <button
+            type="button"
+            className="qg-arrow is-prev"
+            aria-label="Previous cards"
+            title="Previous"
+            hidden={!edges.prev}
+            onClick={() => step(-1)}
+          >
+            <ChevronIcon d="M14.5 5.5 8 12l6.5 6.5" />
+          </button>
+          <button
+            type="button"
+            className="qg-arrow is-next"
+            aria-label="Next cards"
+            title="Next"
+            hidden={!edges.next}
+            onClick={() => step(1)}
+          >
+            <ChevronIcon d="M9.5 5.5 16 12l-6.5 6.5" />
+          </button>
+        </>
+      )}
       {carousel && count > 1 && (
         <div className="qg-pager">
           <div className="qg-pager-dots">

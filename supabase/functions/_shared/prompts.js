@@ -1,6 +1,9 @@
 import {
   STYLE_PACKS,
   INDUSTRY_LAYERS,
+  MAX_PILLARS,
+  PERSONALITIES,
+  WARMTH_DEFAULT,
   SPECS,
   NODE_CATS,
   WEBSITE_COMPONENTS,
@@ -8,7 +11,7 @@ import {
   GEN_PLATFORMS,
   platformsFor,
 } from "./constants.js";
-import { cardLimits, wordRange } from "./copyItems.js";
+import { aimFor, cardLimits, wordRange } from "./copyItems.js";
 
 // ctx = { brand, notes, stylePack }
 const t = (s) => (s || "").trim();
@@ -18,6 +21,7 @@ function clean(ctx) {
   return {
     name: t(b.name),
     belief: t(b.belief),
+    pillars: (Array.isArray(b.pillars) ? b.pillars : []).map(t).filter(Boolean).slice(0, MAX_PILLARS),
     message: t(b.message),
     industry: b.industry,
     stage: b.stage,
@@ -32,8 +36,34 @@ function clean(ctx) {
     must: t(b.must),
     location: t(b.location),
     language: t(b.language) || "English",
+    personality: PERSONALITIES.includes(b.personality) ? b.personality : "",
+    rules: t(b.rules),
+    voice: t(b.voice),
+    warmth: Number.isFinite(Number(b.warmth)) ? Math.min(100, Math.max(0, Math.round(Number(b.warmth)))) : WARMTH_DEFAULT,
   };
 }
+
+// Brand panel → Language: personality, writing rules, a voice sample and the
+// Cold / Neutral / Warm slider. Only what's set is added; the slider only
+// when it's off Neutral, so untouched brands get the same prompt as before.
+const warmthLabel = (w) =>
+  w <= 15 ? "very cool: detached and matter-of-fact, no emotional language"
+    : w <= 40 ? "cool: restrained and factual, light on emotional language"
+      : w <= 60 ? "neutral: balanced, neither cold nor gushing"
+        : w <= 85 ? "warm: friendly, human and caring"
+          : "very warm: affectionate, intimate and emotionally open";
+const languageBlock = (c) =>
+  (c.personality ? `\nBrand personality: ${c.personality}. Every line should sound like this personality.` : "") +
+  (c.warmth !== WARMTH_DEFAULT ? `\nWarmth of the voice (${c.warmth}/100, cold to warm): ${warmthLabel(c.warmth)}.` : "") +
+  (c.rules ? `\nWriting rules (follow every one): ${c.rules}` : "") +
+  (c.voice ? `\nVoice sample (match its rhythm, vocabulary and attitude; never reuse its words): ${c.voice}` : "");
+
+// The brand's pillars (brand panel): what every piece should stand on. "" when none.
+const pillarList = (c) => c.pillars.map((p, i) => `${i + 1}) ${p}`).join("; ");
+const pillarsLine = (c) =>
+  c.pillars.length
+    ? `\nBrand pillars (every piece must reflect at least one of them and never contradict any): ${pillarList(c)}`
+    : "";
 
 // Market + output language. JSON keys stay English so the response still parses.
 const localeBlock = (c) =>
@@ -64,6 +94,7 @@ function sharedExtras(ctx, c) {
   if (c.objection) extra += `\nObjection to pre-empt: ${c.objection}`;
   if (c.banned) extra += `\nNever use these words/claims: ${c.banned}`;
   if (c.must) extra += `\nTry to naturally include: ${c.must}`;
+  extra += languageBlock(c);
   extra += localeBlock(c);
   extra += researchBlock(ctx.notes);
   return extra;
@@ -73,10 +104,10 @@ export function buildBasePrompt(ctx) {
   const c = clean(ctx);
   return `You are a brand language engine that adapts one constant message into channel-correct copy while preserving the brand's core belief.
 Brand: ${c.name || "the brand"}
-Core belief (must stay true across every output): ${c.belief}
+Core belief (must stay true across every output): ${c.belief}${pillarsLine(c)}
 Message to adapt: ${c.message}
 Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience posture = ${c.audience}.${sharedExtras(ctx, c)}
-Never explain your choices. Never use quotation marks in the output text. Keep the core belief's point of view recognisable in every version, even though wording, length and register change per channel.`;
+Never explain your choices. Never use quotation marks in the output text. Keep the core belief's point of view recognisable in every version, even though wording, length and register change per channel.${c.pillars.length ? " Let the brand pillars show through what each version says, without naming them as pillars." : ""}`;
 }
 
 // The website card's component, unless it's the default hero.
@@ -98,17 +129,14 @@ function lengthSpec(medium, s = {}) {
   }
   if (s.words) {
     const { min, max } = wordRange(s.words);
-    spec += ` (user-set length, strict: ${min}-${max} words in total across its fields, aim for exactly ${s.words}; this overrides any default length)`;
+    spec += ` (user-set length, strict: ${min}-${max} words in total across its fields and never more than ${max}; aim for about ${aimFor(s.words)}; this overrides any default length)`;
   }
   return spec;
 }
 
-// The card's job requirement and specific requirements, if any.
+// The card's job requirement, if any.
 function cardBrief(s = {}) {
-  const lines = [];
-  if (t(s.brief)) lines.push(`job requirement: ${t(s.brief)}`);
-  if (t(s.requirements)) lines.push(`specific requirements: ${t(s.requirements)}`);
-  return lines.join("; ");
+  return t(s.brief) ? `job requirement: ${t(s.brief)}` : "";
 }
 
 // How to write for the given platforms, or "" for none. One piece of copy
@@ -131,7 +159,7 @@ const itemShape = (medium) =>
 
 // cards = [{ key, medium, settings }]: one entry per Quick Grid card. `key` names
 // the card's array in the answer ("website", or "website_2" for a second Website
-// card); settings = { words, brief, requirements, component, pointerCount }, with
+// card); settings = { words, brief, component, pointerCount }, with
 // missing fields using the medium's defaults. One card = a regenerate.
 // platforms = the composer's picked platform keys; each card is written for
 // the ones that cover its medium.
@@ -173,7 +201,7 @@ export function buildNodePrompt(ctx, node, vCount, linkedNodes = [], source = nu
   const cat = NODE_CATS[node.category];
   let p = `You are a brand language engine generating one specific content node inside a larger node-based content system. Keep this piece coherent with the brand's constant while doing its own specific job.
 Brand: ${c.name || "the brand"}
-Core belief (constant): ${c.belief}
+Core belief (constant): ${c.belief}${pillarsLine(c)}
 Brand message reference: ${c.message || "(none supplied — infer from the belief)"}
 ${industryLine(c)}
 Style pack — ${packOf(ctx).label}: ${packOf(ctx).rules}
@@ -183,19 +211,18 @@ Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience
   if (c.objection) p += `\nObjection to pre-empt: ${c.objection}`;
   if (c.banned) p += `\nNever use these words/claims: ${c.banned}`;
   if (c.must) p += `\nTry to naturally include: ${c.must}`;
+  p += languageBlock(c);
   p += localeBlock(c);
   p += researchBlock(ctx.notes);
   const words = node.words || 60;
   const range = wordRange(words);
   p += `\n\nThis node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
-Length (set by the user, strict): the body must be ${range.min}-${range.max} words, aim for exactly ${words}. The headline is not counted. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.`;
+Length (set by the user, strict): the body must be ${range.min}-${range.max} words and never more than ${range.max}; aim for about ${aimFor(words)}. The headline is not counted. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.`;
   const rules = platformRules(node.platform
     ? GEN_PLATFORMS.filter((pl) => pl.label === node.platform)
     : platformsFor(platforms, "nodes", node.category));
   if (rules) p += `\nPlatform — write it natively for this: ${rules}`;
-  if (t(node.requirements))
-    p += `\nSpecific requirements for this node: ${t(node.requirements)}`;
 
   if (linkedNodes.length) {
     p +=
@@ -246,7 +273,7 @@ Length (set by the user, strict): the body must be ${range.min}-${range.max} wor
 // issues = [{ label, words, min, max, target }] (see lengthIssues in generation.js).
 export function buildLengthFixPrompt(issues) {
   return `Some pieces miss the word count the user set, and word counts are strict here:
-${issues.map((i) => `- ${i.label}: ${i.words} words now; it must be ${i.min}-${i.max} words (aim for ${i.target}).`).join("\n")}
+${issues.map((i) => `- ${i.label}: ${i.words} words now; it must be ${i.min}-${i.max} words, never more than ${i.max} (aim for about ${aimFor(i.target)}).`).join("\n")}
 Rewrite only those pieces so each lands in its range. To lengthen, develop the same idea with concrete detail, benefits, proof or a clearer call to action, never filler or repetition. To shorten, cut the weakest phrases. Count the words before answering. Keep every other piece exactly as it is, keep each piece's angle and voice, and return the complete JSON in the same shape.`;
 }
 
@@ -285,7 +312,7 @@ export function buildCoherencePrompt(ctx, described) {
   const { sampleCopy, sourceLabel } = described || describeLastGenerated(null);
   return `You are a brand copy QA reviewer checking CTA-to-copy coherence.
 
-Brand core belief: ${c.belief || "(not set)"}
+Brand core belief: ${c.belief || "(not set)"}${pillarsLine(c)}
 CTA intensity setting: ${c.cta}
 Copy under review (from: ${sourceLabel}):
 ${sampleCopy}
@@ -309,7 +336,7 @@ export function buildBrandBriefPrompt(ctx) {
   return `You are a senior brand copywriter for ${c.name || "this brand"}. Use the brand brief below as fixed rules for every piece of copy you write in this chat.
 
 ## Brand core
-${line("Brand name", c.name)}${line("Core belief (must stay true in every piece)", c.belief)}${line("Message to adapt", c.message)}- Industry: ${industryOf(c).label}. ${industryOf(c).rules}
+${line("Brand name", c.name)}${line("Core belief (must stay true in every piece)", c.belief)}${line("Brand pillars (every piece reflects at least one, never contradicts any)", pillarList(c))}${line("Message to adapt", c.message)}- Industry: ${industryOf(c).label}. ${industryOf(c).rules}
 - Style: ${packOf(ctx).label}. ${packOf(ctx).rules}
 
 ## Customer context
@@ -318,7 +345,7 @@ ${line("Brand name", c.name)}${line("Core belief (must stay true in every piece)
 - Audience posture: ${c.audience}
 ${line("Pain point right before this moment", c.pain)}${line("Objection to pre-empt", c.objection)}
 ## Voice and output
-- Desired emotional response: ${c.emo}
+${line("Brand personality", c.personality)}${c.warmth !== WARMTH_DEFAULT ? `- Warmth: ${c.warmth}/100 (${warmthLabel(c.warmth)})\n` : ""}${line("Writing rules (follow every one)", c.rules)}${line("Voice sample (match its rhythm and attitude, never reuse its words)", c.voice)}- Desired emotional response: ${c.emo}
 - Formality: ${c.formality}
 - CTA intensity: ${c.cta}
 ${line("Target market", c.location && `${c.location} (use its spelling, currency, units and cultural cues)`)}- Output language: ${c.language}
@@ -351,10 +378,10 @@ ${brief}
 
 Voice guidance (background only — shape the tone with it, never quote or mention it):
 Brand name: ${c.name || "(not set)"}
-Core belief: ${c.belief || "(not set)"}
+Core belief: ${c.belief || "(not set)"}${pillarsLine(c)}
 ${industryLine(c)}
 Style: ${packOf(ctx).rules}
-Desired emotional response: ${c.emo}. Formality: ${c.formality}.${localeBlock(c)}
+Desired emotional response: ${c.emo}. Formality: ${c.formality}.${languageBlock(c)}${localeBlock(c)}
 
 How to write it:
 - Build the hook from the brief's subject. If the brief and the voice guidance point at different products, follow the brief.

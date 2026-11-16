@@ -87,12 +87,13 @@ var SPECS = {
 };
 var MEDIA = [
   {
-    key: "packaging",
-    label: "Packaging",
-    tag: "2\u20136 words",
-    color: "#2C93D8",
-    placeholder: "What it is, felt instantly.",
-    limits: { headline: { label: "Pack line", words: 6 } }
+    key: "email",
+    label: "Email",
+    tag: "subject + preview",
+    color: "#4653FF",
+    placeholder: "Subject line plus preview text.",
+    full: true,
+    limits: { headline: { label: "Subject", words: 8, chars: 60 }, sub: { label: "Preview", words: 14, chars: 110 } }
   },
   {
     key: "marketing",
@@ -103,14 +104,6 @@ var MEDIA = [
     limits: { headline: { label: "Campaign line", words: 12 } }
   },
   {
-    key: "advertising",
-    label: "Advertising",
-    tag: "headline + subtext",
-    color: "#B04FC7",
-    placeholder: "Headline plus one-line subtext.",
-    limits: { headline: { label: "Headline", words: 8 }, sub: { label: "Subtext", words: 12 } }
-  },
-  {
     key: "website",
     label: "Website",
     tag: "hero + support",
@@ -119,13 +112,20 @@ var MEDIA = [
     limits: { headline: { label: "Hero", words: 10 }, sub: { label: "Support", words: 20 } }
   },
   {
-    key: "email",
-    label: "Email",
-    tag: "subject + preview",
-    color: "#4653FF",
-    placeholder: "Subject line plus preview text.",
-    full: true,
-    limits: { headline: { label: "Subject", words: 8, chars: 60 }, sub: { label: "Preview", words: 14, chars: 110 } }
+    key: "packaging",
+    label: "Packaging",
+    tag: "2\u20136 words",
+    color: "#2C93D8",
+    placeholder: "What it is, felt instantly.",
+    limits: { headline: { label: "Pack line", words: 6 } }
+  },
+  {
+    key: "advertising",
+    label: "Advertising",
+    tag: "headline + subtext",
+    color: "#B04FC7",
+    placeholder: "Headline plus one-line subtext.",
+    limits: { headline: { label: "Headline", words: 8 }, sub: { label: "Subtext", words: 12 } }
   }
 ];
 var MEDIA_BY_KEY = Object.fromEntries(MEDIA.map((m) => [m.key, m]));
@@ -219,17 +219,37 @@ var GRID_WEBSITE_COMPONENTS = {
   testimonial: { fields: ["Quote", "Attribution"], words: [24, 6], guide: "headline is a customer quote in their own voice; sub is the attribution (name and role)" },
   cta: { fields: ["CTA line", "Button"], words: [10, 4], guide: "headline is the call-to-action line; sub is the button text" }
 };
+var PERSONALITIES = [
+  "Emotional",
+  "Premium",
+  "Authoritative",
+  "Warm",
+  "Playful",
+  "Bold",
+  "Minimal",
+  "Rational",
+  "Witty",
+  "Inspiring"
+];
+var WARMTH_DEFAULT = 50;
 var AUDIENCES = [
   "Cold \u2014 scrolling, distracted",
   "Warm \u2014 comparing options",
   "Returning \u2014 already a customer",
   "In-store \u2014 glancing at shelf"
 ];
+var MAX_PILLARS = 3;
+var MAX_PILLAR_CHARS = 200;
 var DEFAULT_BRAND = {
   name: "",
   logo: "",
   belief: "",
+  pillars: [],
   message: "",
+  personality: "",
+  rules: "",
+  voice: "",
+  warmth: WARMTH_DEFAULT,
   industry: "general",
   stage: "Discovery",
   mode: "Emotional",
@@ -247,6 +267,10 @@ var DEFAULT_BRAND = {
 var SAMPLE_BRAND = {
   name: "Ember & Oak",
   belief: "Scent is memory, not marketing \u2014 every candle should feel like a place you've been.",
+  pillars: ["Hand-made in small batches", "Every scent tells a story"],
+  personality: "Warm",
+  rules: "Short sentences, active voice, no exclamation marks",
+  warmth: 70,
   message: "Our autumn candle collection is hand-poured in small batches with natural soy wax.",
   industry: "retail",
   stage: "Discovery",
@@ -264,7 +288,37 @@ var SAMPLE_BRAND = {
 var countWords = (text) => String(text || "").trim().split(/\s+/).filter(Boolean).length;
 function wordRange(target) {
   const slack = Math.max(2, Math.round(target * 0.1));
-  return { min: Math.max(1, target - slack), max: target + slack };
+  return { min: Math.max(1, target - slack), max: target };
+}
+function aimFor(target) {
+  return Math.max(wordRange(target).min, target - Math.max(1, Math.round(target * 0.05)));
+}
+var DANGLING = /* @__PURE__ */ new Set(["a", "an", "the", "of", "to", "for", "with", "and", "or", "but", "in", "on", "at", "by", "from", "your", "our", "its", "their", "that", "this", "is", "are", "be"]);
+function trimToWords(text, max) {
+  const src = String(text || "");
+  if (countWords(src) <= max) return text;
+  const enough = Math.max(1, Math.floor(max * 0.7));
+  const sentences = src.match(/[^.!?…]+(?:[.!?…]+["'”’)\]]*|$)\s*/g) || [src];
+  let out = "";
+  let n = 0;
+  let i = 0;
+  for (; i < sentences.length; i++) {
+    const c = countWords(sentences[i]);
+    if (n + c > max) break;
+    out += sentences[i];
+    n += c;
+  }
+  if (n >= enough) return out.trim();
+  const next = (sentences[i] || "").trim().split(/\s+/).filter(Boolean).slice(0, max - n);
+  for (let k = next.length - 1; k >= 0; k--) {
+    if (n + k + 1 >= enough && /[,;:—–]$/.test(next[k])) {
+      return `${out}${next.slice(0, k + 1).join(" ").replace(/[,;:—–]+$/, "")}.`.trim();
+    }
+  }
+  const words = src.trim().split(/\s+/).slice(0, Math.max(1, max));
+  while (words.length > 1 && DANGLING.has(words[words.length - 1].toLowerCase().replace(/[^a-z']/g, ""))) words.pop();
+  const cut = words.join(" ").replace(/[,;:\-–—]+$/, "");
+  return /[.!?…]["'”’)\]]*$/.test(cut) ? cut : `${cut}\u2026`;
 }
 var MAX_WORDS = 200;
 var defaultWords = (limits) => Object.values(limits || {}).reduce((sum, l) => sum + l.words, 0);
@@ -299,6 +353,7 @@ function clean(ctx) {
   return {
     name: t(b.name),
     belief: t(b.belief),
+    pillars: (Array.isArray(b.pillars) ? b.pillars : []).map(t).filter(Boolean).slice(0, MAX_PILLARS),
     message: t(b.message),
     industry: b.industry,
     stage: b.stage,
@@ -312,9 +367,22 @@ function clean(ctx) {
     banned: t(b.banned),
     must: t(b.must),
     location: t(b.location),
-    language: t(b.language) || "English"
+    language: t(b.language) || "English",
+    personality: PERSONALITIES.includes(b.personality) ? b.personality : "",
+    rules: t(b.rules),
+    voice: t(b.voice),
+    warmth: Number.isFinite(Number(b.warmth)) ? Math.min(100, Math.max(0, Math.round(Number(b.warmth)))) : WARMTH_DEFAULT
   };
 }
+var warmthLabel = (w) => w <= 15 ? "very cool: detached and matter-of-fact, no emotional language" : w <= 40 ? "cool: restrained and factual, light on emotional language" : w <= 60 ? "neutral: balanced, neither cold nor gushing" : w <= 85 ? "warm: friendly, human and caring" : "very warm: affectionate, intimate and emotionally open";
+var languageBlock = (c) => (c.personality ? `
+Brand personality: ${c.personality}. Every line should sound like this personality.` : "") + (c.warmth !== WARMTH_DEFAULT ? `
+Warmth of the voice (${c.warmth}/100, cold to warm): ${warmthLabel(c.warmth)}.` : "") + (c.rules ? `
+Writing rules (follow every one): ${c.rules}` : "") + (c.voice ? `
+Voice sample (match its rhythm, vocabulary and attitude; never reuse its words): ${c.voice}` : "");
+var pillarList = (c) => c.pillars.map((p, i) => `${i + 1}) ${p}`).join("; ");
+var pillarsLine = (c) => c.pillars.length ? `
+Brand pillars (every piece must reflect at least one of them and never contradict any): ${pillarList(c)}` : "";
 var localeBlock = (c) => (c.location ? `
 Target location/market: ${c.location}. Use spelling, currency, units, references and cultural cues natural to this market.` : "") + `
 Write all copy in ${c.language}${c.language === "English" ? "" : " (only the text values; keep every JSON key in English)"}.`;
@@ -339,6 +407,7 @@ Objection to pre-empt: ${c.objection}`;
 Never use these words/claims: ${c.banned}`;
   if (c.must) extra += `
 Try to naturally include: ${c.must}`;
+  extra += languageBlock(c);
   extra += localeBlock(c);
   extra += researchBlock(ctx.notes);
   return extra;
@@ -347,10 +416,10 @@ function buildBasePrompt(ctx) {
   const c = clean(ctx);
   return `You are a brand language engine that adapts one constant message into channel-correct copy while preserving the brand's core belief.
 Brand: ${c.name || "the brand"}
-Core belief (must stay true across every output): ${c.belief}
+Core belief (must stay true across every output): ${c.belief}${pillarsLine(c)}
 Message to adapt: ${c.message}
 Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience posture = ${c.audience}.${sharedExtras(ctx, c)}
-Never explain your choices. Never use quotation marks in the output text. Keep the core belief's point of view recognisable in every version, even though wording, length and register change per channel.`;
+Never explain your choices. Never use quotation marks in the output text. Keep the core belief's point of view recognisable in every version, even though wording, length and register change per channel.${c.pillars.length ? " Let the brand pillars show through what each version says, without naming them as pillars." : ""}`;
 }
 var gridComponent = (medium, s) => medium === "website" && s?.component && s.component !== "hero" ? s.component : null;
 function lengthSpec(medium, s = {}) {
@@ -366,15 +435,12 @@ function lengthSpec(medium, s = {}) {
   }
   if (s.words) {
     const { min, max } = wordRange(s.words);
-    spec += ` (user-set length, strict: ${min}-${max} words in total across its fields, aim for exactly ${s.words}; this overrides any default length)`;
+    spec += ` (user-set length, strict: ${min}-${max} words in total across its fields and never more than ${max}; aim for about ${aimFor(s.words)}; this overrides any default length)`;
   }
   return spec;
 }
 function cardBrief(s = {}) {
-  const lines = [];
-  if (t(s.brief)) lines.push(`job requirement: ${t(s.brief)}`);
-  if (t(s.requirements)) lines.push(`specific requirements: ${t(s.requirements)}`);
-  return lines.join("; ");
+  return t(s.brief) ? `job requirement: ${t(s.brief)}` : "";
 }
 function platformRules(picked) {
   if (!picked.length) return "";
@@ -418,7 +484,7 @@ function buildNodePrompt(ctx, node, vCount, linkedNodes = [], source = null, pla
   const cat = NODE_CATS[node.category];
   let p = `You are a brand language engine generating one specific content node inside a larger node-based content system. Keep this piece coherent with the brand's constant while doing its own specific job.
 Brand: ${c.name || "the brand"}
-Core belief (constant): ${c.belief}
+Core belief (constant): ${c.belief}${pillarsLine(c)}
 Brand message reference: ${c.message || "(none supplied \u2014 infer from the belief)"}
 ${industryLine(c)}
 Style pack \u2014 ${packOf(ctx).label}: ${packOf(ctx).rules}
@@ -433,6 +499,7 @@ Objection to pre-empt: ${c.objection}`;
 Never use these words/claims: ${c.banned}`;
   if (c.must) p += `
 Try to naturally include: ${c.must}`;
+  p += languageBlock(c);
   p += localeBlock(c);
   p += researchBlock(ctx.notes);
   const words = node.words || 60;
@@ -441,13 +508,10 @@ Try to naturally include: ${c.must}`;
 
 This node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
-Length (set by the user, strict): the body must be ${range.min}-${range.max} words, aim for exactly ${words}. The headline is not counted. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.`;
+Length (set by the user, strict): the body must be ${range.min}-${range.max} words and never more than ${range.max}; aim for about ${aimFor(words)}. The headline is not counted. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.`;
   const rules = platformRules(node.platform ? GEN_PLATFORMS.filter((pl) => pl.label === node.platform) : platformsFor(platforms, "nodes", node.category));
   if (rules) p += `
 Platform \u2014 write it natively for this: ${rules}`;
-  if (t(node.requirements))
-    p += `
-Specific requirements for this node: ${t(node.requirements)}`;
   if (linkedNodes.length) {
     p += `
 
@@ -494,7 +558,7 @@ Return ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body
 }
 function buildLengthFixPrompt(issues) {
   return `Some pieces miss the word count the user set, and word counts are strict here:
-${issues.map((i) => `- ${i.label}: ${i.words} words now; it must be ${i.min}-${i.max} words (aim for ${i.target}).`).join("\n")}
+${issues.map((i) => `- ${i.label}: ${i.words} words now; it must be ${i.min}-${i.max} words, never more than ${i.max} (aim for about ${aimFor(i.target)}).`).join("\n")}
 Rewrite only those pieces so each lands in its range. To lengthen, develop the same idea with concrete detail, benefits, proof or a clearer call to action, never filler or repetition. To shorten, cut the weakest phrases. Count the words before answering. Keep every other piece exactly as it is, keep each piece's angle and voice, and return the complete JSON in the same shape.`;
 }
 function describeLastGenerated(last, quickCards) {
@@ -526,7 +590,7 @@ function buildCoherencePrompt(ctx, described) {
   const { sampleCopy, sourceLabel } = described || describeLastGenerated(null);
   return `You are a brand copy QA reviewer checking CTA-to-copy coherence.
 
-Brand core belief: ${c.belief || "(not set)"}
+Brand core belief: ${c.belief || "(not set)"}${pillarsLine(c)}
 CTA intensity setting: ${c.cta}
 Copy under review (from: ${sourceLabel}):
 ${sampleCopy}
@@ -549,10 +613,10 @@ ${brief}
 
 Voice guidance (background only \u2014 shape the tone with it, never quote or mention it):
 Brand name: ${c.name || "(not set)"}
-Core belief: ${c.belief || "(not set)"}
+Core belief: ${c.belief || "(not set)"}${pillarsLine(c)}
 ${industryLine(c)}
 Style: ${packOf(ctx).rules}
-Desired emotional response: ${c.emo}. Formality: ${c.formality}.${localeBlock(c)}
+Desired emotional response: ${c.emo}. Formality: ${c.formality}.${languageBlock(c)}${localeBlock(c)}
 
 How to write it:
 - Build the hook from the brief's subject. If the brief and the voice guidance point at different products, follow the brief.
@@ -590,7 +654,9 @@ var BRAND_TEXT = {
   banned: 1e3,
   must: 1e3,
   location: 200,
-  language: 60
+  language: 60,
+  rules: 1e3,
+  voice: 1e3
 };
 var BRAND_CHOICE = ["industry", "stage", "mode", "audience", "emo", "formality", "cta"];
 function cleanCtx(body) {
@@ -598,6 +664,9 @@ function cleanCtx(body) {
   const brand = { ...DEFAULT_BRAND, logo: "" };
   for (const [key, max] of Object.entries(BRAND_TEXT)) brand[key] = str(src[key], max);
   for (const key of BRAND_CHOICE) brand[key] = str(src[key], 120).trim() || DEFAULT_BRAND[key];
+  brand.personality = PERSONALITIES.includes(src.personality) ? src.personality : "";
+  brand.warmth = int(src.warmth, 0, 100, WARMTH_DEFAULT);
+  brand.pillars = list(src.pillars, 20).map((p) => str(p, MAX_PILLAR_CHARS).trim()).filter(Boolean).slice(0, MAX_PILLARS);
   const notes = list(body.notes, 8).map((n) => ({ type: str(obj(n).type, 60), text: str(obj(n).text, 1e3) })).filter((n) => n.text.trim());
   const stylePack = STYLE_PACKS[body.stylePack] ? body.stylePack : "classic";
   return { brand, notes, stylePack };
@@ -607,7 +676,6 @@ function cleanGridSettings(input, medium) {
   return {
     words: s.words == null || s.words === "" ? null : int(s.words, 1, MAX_WORDS, null),
     brief: str(s.brief, 1e3),
-    requirements: str(s.requirements, 1e3),
     component: medium === "website" && GRID_WEBSITE_COMPONENTS[s.component] ? s.component : "hero",
     pointerCount: int(s.pointerCount, 2, 6, 3)
   };
@@ -638,7 +706,6 @@ function cleanNode(input) {
     label: str(n.label, 120).trim() || cat.label,
     brief: str(n.brief, 2e3),
     words: int(n.words, 4, 600, 60),
-    requirements: str(n.requirements, 2e3),
     platform: n.category === "social" && PLATFORMS.includes(n.platform) ? n.platform : null,
     component: WEBSITE_COMPONENTS[n.component] ? n.component : "hero",
     pointerCount: int(n.pointerCount, 2, 6, 3)
@@ -678,6 +745,39 @@ var gridLengthIssues = (cards) => (data) => offTarget(cards.filter((c) => c.sett
   text: allText(item),
   target: c.settings.words
 }))));
+var clampNode = (node) => (data) => {
+  const d = obj(data);
+  if (!Array.isArray(d.variants)) return data;
+  return {
+    ...d,
+    variants: d.variants.map((v) => {
+      const o = obj(v);
+      return typeof o.body === "string" ? { ...o, body: trimToWords(o.body, node.words) } : v;
+    })
+  };
+};
+function clampItem(item, max) {
+  if (typeof item === "string") return trimToWords(item, max);
+  const o = obj(item);
+  const keys = Object.keys(o).filter((k) => typeof o[k] === "string");
+  let over = countWords(keys.map((k) => o[k]).join(" ")) - max;
+  if (over <= 0) return item;
+  const next = { ...o };
+  for (const k of [...keys].reverse()) {
+    if (over <= 0) break;
+    const had = countWords(next[k]);
+    next[k] = trimToWords(next[k], Math.max(1, had - over));
+    over -= had - countWords(next[k]);
+  }
+  return next;
+}
+var clampGrid = (cards) => (data) => {
+  const d = { ...obj(data) };
+  for (const c of cards) {
+    if (c.settings.words && Array.isArray(d[c.key])) d[c.key] = d[c.key].map((item) => clampItem(item, c.settings.words));
+  }
+  return d;
+};
 function buildGeneration(type, body = {}) {
   const ctx = cleanCtx(body);
   const platforms = cleanPlatforms(body.platforms);
@@ -690,7 +790,8 @@ function buildGeneration(type, body = {}) {
         ctx,
         credits: cards.length,
         prompt: buildQuickGridPrompt(ctx, n, cards, platforms),
-        lengthIssues: gridLengthIssues(cards)
+        lengthIssues: gridLengthIssues(cards),
+        clampLength: clampGrid(cards)
       };
     }
     case "regenerate": {
@@ -702,7 +803,8 @@ function buildGeneration(type, body = {}) {
         ctx,
         credits: 1,
         prompt: buildQuickGridPrompt(ctx, n, [card], platforms),
-        lengthIssues: gridLengthIssues([card])
+        lengthIssues: gridLengthIssues([card]),
+        clampLength: clampGrid([card])
       };
     }
     case "node": {
@@ -713,7 +815,8 @@ function buildGeneration(type, body = {}) {
         ctx,
         credits: 1,
         prompt: buildNodePrompt(ctx, node, n, linked, cleanSource(body.source), platforms),
-        lengthIssues: nodeLengthIssues(node)
+        lengthIssues: nodeLengthIssues(node),
+        clampLength: clampNode(node)
       };
     }
     case "hook":
@@ -833,22 +936,46 @@ var BRAND_COLS = [
   "banned",
   "must_include",
   "location",
-  "language"
+  "language",
+  "personality",
+  "writing_rules",
+  "voice_sample"
 ];
-var LOCALE_COLS = ["location", "language"];
-function brandRow(input, withLocale = true) {
+var COL_GROUPS = [
+  ["location", "language"],
+  // 20261012
+  ["pillars"],
+  // 20261116
+  ["personality", "writing_rules", "voice_sample", "warmth"]
+  // 20261117
+];
+var OPTIONAL_COLS = COL_GROUPS.flat();
+function brandRow(input, skip) {
   const src = input && typeof input === "object" ? input : {};
   const row = {};
   for (const col of BRAND_COLS) {
-    if (!withLocale && LOCALE_COLS.includes(col)) continue;
+    if (skip.has(col)) continue;
     if (typeof src[col] === "string") row[col] = src[col];
+  }
+  if (!skip.has("warmth") && Number.isFinite(Number(src.warmth)) && src.warmth !== null && src.warmth !== "") {
+    row.warmth = Math.min(100, Math.max(0, Math.round(Number(src.warmth))));
+  }
+  if (!skip.has("pillars") && Array.isArray(src.pillars)) {
+    row.pillars = src.pillars.filter((p) => typeof p === "string").map((p) => p.trim().slice(0, MAX_PILLAR_CHARS)).filter(Boolean).slice(0, MAX_PILLARS);
   }
   return row;
 }
-var isMissingLocaleCol = (error) => (error?.code === "42703" || error?.code === "PGRST204") && LOCALE_COLS.some((c) => (error.message || "").includes(c));
+var missingCols = (error) => error?.code === "42703" || error?.code === "PGRST204" ? OPTIONAL_COLS.filter((c) => (error.message || "").includes(c)) : [];
 async function writeBrand(input, run) {
-  const result = await run(brandRow(input));
-  return isMissingLocaleCol(result.error) ? run(brandRow(input, false)) : result;
+  const skip = /* @__PURE__ */ new Set();
+  let result = await run(brandRow(input, skip));
+  for (let i = 0; i < COL_GROUPS.length; i++) {
+    const missing = missingCols(result.error).filter((c) => !skip.has(c));
+    if (!missing.length) break;
+    missing.forEach((c) => (COL_GROUPS.find((g) => g.includes(c)) ?? [c]).forEach((x) => skip.add(x)));
+    result = await run(brandRow(input, skip));
+  }
+  return result;
 }
 async function ownsBrand(admin, userId, brandId) {
   if (typeof brandId !== "string" || !brandId) return false;
@@ -1000,7 +1127,7 @@ Deno.serve(async (req) => {
     });
   }
   if (isData) return handleData(admin, userId, type, body);
-  const { prompt, credits, ctx, lengthIssues } = generation;
+  const { prompt, credits, ctx, lengthIssues, clampLength } = generation;
   const { data: reserved, error: reserveError } = await admin.rpc("reserve_credits", {
     p_user: userId,
     p_kind: type,
@@ -1116,5 +1243,6 @@ Deno.serve(async (req) => {
     const rewritten = typeof retry === "string" ? parse(retry) : null;
     if (rewritten && Object.keys(data).every((key) => key in rewritten) && findBanned(rewritten, ctx.brand.banned).length < banned.length) data = rewritten;
   }
+  if (clampLength) data = clampLength(data);
   return reply({ success: true, data });
 });

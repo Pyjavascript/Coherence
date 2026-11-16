@@ -19,6 +19,13 @@ import "./styles/composer.css";
 import "./styles/workspace-theme.css";
 // The plans lock and dialog.
 import "./styles/plans.css";
+// Node Studio cards and the target-words slider.
+import "./styles/studio-card.css";
+// The product tour (step icons over one card).
+import "./styles/tour-cards.css";
+import "./styles/brand-panel.css";
+// Generated copy (Quick Grid cards, Node Studio nodes) in Onest.
+import "./styles/copy-type.css";
 // Dark theme hand-tuning (the rest is generated, see scripts/vite-dark-theme.js).
 import "./styles/theme-dark.css";
 

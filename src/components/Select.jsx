@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 export const LockIcon = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -11,11 +11,14 @@ export const LockIcon = ({ className }) => (
 // premium: lock + centred value (Style & Output). locked: lock + left-aligned value;
 // the menu still opens so the options can be browsed, but picking one calls
 // onLocked instead of onChange (Advanced Behaviour).
-export default function Select({ value, onChange, options, label, premium = false, locked = false, onLocked }) {
+// visibleOptions: show at most this many rows; the rest scroll (a long list
+// that would otherwise run past the panel, e.g. Output language).
+export default function Select({ value, onChange, options, label, premium = false, locked = false, onLocked, visibleOptions }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
   const optionRefs = useRef([]);
+  const menuRef = useRef(null);
   const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
   const selected = options[selectedIndex];
 
@@ -39,8 +42,21 @@ export default function Select({ value, onChange, options, label, premium = fals
     };
   }, [open]);
 
+  // Cap the list at visibleOptions rows, measured from the rendered rows so it
+  // follows their real height. Runs before focus, so the chosen option then
+  // scrolls into view inside the capped list.
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!open || !menu || !visibleOptions || options.length <= visibleOptions) return;
+    const last = optionRefs.current[visibleOptions - 1]?.parentElement;
+    if (!last) return;
+    const padBottom = parseFloat(getComputedStyle(menu).paddingBottom) || 0;
+    menu.style.maxHeight = `${Math.ceil(last.offsetTop + last.offsetHeight + padBottom)}px`;
+  }, [open, visibleOptions, options.length]);
+
   useEffect(() => {
-    if (open) optionRefs.current[selectedIndex]?.focus();
+    if (open) optionRefs.current[selectedIndex]?.focus({ preventScroll: true });
+    if (open) optionRefs.current[selectedIndex]?.scrollIntoView({ block: "nearest" });
   }, [open, selectedIndex]);
 
   const moveFocus = (event) => {
@@ -83,7 +99,7 @@ export default function Select({ value, onChange, options, label, premium = fals
         </span>
       </button>
       {open && (
-        <ul className="bp-dd-menu" role="listbox" aria-label={label} onKeyDown={moveFocus}>
+        <ul className="bp-dd-menu" role="listbox" aria-label={label} onKeyDown={moveFocus} ref={menuRef}>
           {options.map((option, index) => (
             <li key={option.value} role="presentation">
               <button

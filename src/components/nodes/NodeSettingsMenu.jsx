@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import WordsRange from "../WordsRange";
 
 // The settings button's icon: a pencil, for "edit this card's settings".
 const PencilIcon = () => (
@@ -81,7 +82,7 @@ function NumberField({ value, min, max, labelId, onCommit, onDone }) {
 // setting's input, with a back arrow top left. The menu closes from the arrow,
 // a tap or click outside, Esc, or (mouse) the pointer leaving it — unless a
 // field inside is being typed in.
-// fields = [{ key, label, kind: "text" | "number" | "choice", value, display,
+// fields = [{ key, label, kind: "text" | "number" | "range" | "choice", value, display,
 //             placeholder, min, max, options: [[key, label]], isSet, onChange }]
 export default function NodeSettingsMenu({ label, fields }) {
   const [open, setOpen] = useState(false);
@@ -191,6 +192,9 @@ export default function NodeSettingsMenu({ label, fields }) {
                 </button>
                 <span id={labelId}>{field.label}</span>
               </div>
+              {field.kind === "range" && (
+                <WordsRange label={null} labelledBy={labelId} value={field.value} min={field.min} max={field.max} onChange={field.onChange} />
+              )}
               {field.kind === "number" && (
                 <NumberField value={field.value} min={field.min} max={field.max} labelId={labelId} onCommit={field.onChange} onDone={back} />
               )}

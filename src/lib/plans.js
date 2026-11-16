@@ -1,8 +1,7 @@
 // Subscription plans shown in the plans dialog (components/PlansModal.jsx).
-// Each card's title is `name` over `kind`, and `chip` is the small label in
-// its top-right corner. Prices are USD per month; `yearly` is the per-month price when billed
-// yearly. Keep each plan's two prices the same number of digits so the price
-// doesn't change width when the billing switch flips.
+// Each card's title is `name` over `kind`, `chip` is the small label in its
+// top-right corner (icon + tone), and `cta` is its button's label. Prices are
+// USD per month; billed yearly, every plan is ANNUAL_DISCOUNT % off.
 //
 // PLACEHOLDERS: names, prices and limits here are not wired to billing yet.
 // Checkout isn't connected, so choosing a plan only shows a toast (App.jsx).
@@ -12,55 +11,33 @@ export const FREE_PLAN = {
   summary: "40 generations a day, 2 brands and 5 free hooks.",
 };
 
+export const ANNUAL_DISCOUNT = 20; // percent off on the yearly plan
+
 export const PLANS = [
   {
-    id: "plus",
-    name: "Plus",
-    kind: "Essentials",
-    chip: { label: "For creators", icon: "drop" },
-    tagline: "For solo makers finding their voice.",
-    monthly: 9,
-    yearly: 7,
-    features: [
-      "150 generations a day",
-      "5 saved brands",
-      "Unlimited hooks",
-      "2 variants per card",
-    ],
+    id: "starter",
+    name: "Starter",
+    kind: "Automation",
+    chip: { label: "Most Popular", icon: "flame", tone: "green" },
+    tagline: "For small teams beginning their journey",
+    monthly: 499,
+    cta: "Enquire",
   },
   {
-    id: "pro",
-    name: "Pro",
-    kind: "Growth",
-    chip: { label: "Most popular", icon: "flame" },
-    tagline: "For brands that ship copy every day.",
-    monthly: 19,
-    yearly: 15,
+    id: "growth",
+    name: "Growth",
+    kind: "Automation",
+    chip: { label: "Most Popular", icon: "flame", tone: "orange" },
+    tagline: "For scaling businesses",
+    monthly: 1199,
     featured: true,
-    features: [
-      "500 generations a day",
-      "Unlimited brands",
-      "Unlimited hooks",
-      "Up to 3 variants per card",
-      "All four style packs",
-    ],
-  },
-  {
-    id: "studio",
-    name: "Studio",
-    kind: "Teams",
-    chip: { label: "For agencies", icon: "spark" },
-    tagline: "For agencies running many brands.",
-    monthly: 49,
-    yearly: 39,
-    features: [
-      "Everything in Pro",
-      "2,000 generations a day",
-      "Priority generation",
-      "Priority support",
-    ],
+    cta: "Buy",
   },
 ];
 
-// How much a year of `yearly` saves over a year of `monthly`, rounded (e.g. 21).
-export const yearlySaving = (plan) => Math.round((1 - plan.yearly / plan.monthly) * 100);
+// The per-month price for a billing period, in dollars (cents kept: 399.2).
+export const priceFor = (plan, billing) =>
+  billing === "yearly" ? Math.round(plan.monthly * (100 - ANNUAL_DISCOUNT)) / 100 : plan.monthly;
+
+// How much the yearly plan saves, in percent.
+export const yearlySaving = () => ANNUAL_DISCOUNT;

@@ -1,11 +1,11 @@
 import { useLayoutEffect, useRef } from "react";
 import { LIMITS } from "../lib/clientId";
-import { Logo } from "../assets/globalAssets";
+// Rail logo hidden for now (see the commented-out .lnav-head below).
+// import { Logo } from "../assets/globalAssets";
 import { profileOf } from "./ProfileModal";
 import BrandMark from "./BrandMark";
 import BrandLogo from "./BrandLogo";
 import { useCountUp } from "../hooks/useCountUp";
-import { BoltIcon } from "./BrandPanel";
 
 // Labels fade in one after another when the sidebar opens; --pl-li is a
 // label's place in that sequence (capped, so long brand lists don't lag).
@@ -23,13 +23,17 @@ function Row({ as: Tag = "button", className = "", icon, label, order = 0, fit =
   );
 }
 
-// The open rail is as wide as its widest fixed label ([data-fit]: the product
-// name, Minimize, Add Brand, Log in, Credits used) and no wider, so the space
+// Widest a fitted label may make the rail: the profile name is fitted so it
+// shows in full, but a very long name (or an email) ellipsizes past this.
+const FIT_MAX = 200;
+
+// The open rail is as wide as its widest fitted label ([data-fit]: Minimize,
+// Add Brand, Log in, Credits used, the profile name up to FIT_MAX) and no wider, so the space
 // after the labels matches the shell padding before the icons (layout.css
 // --lnav-open). Labels have a fixed box, so the text itself is measured.
-// Brand and profile names don't widen it; they ellipsize. Re-measured when
-// fonts load and on resize, since the type sizes follow the viewport.
-function useFitLabels(rootRef) {
+// Brand names don't widen it; they ellipsize. Re-measured when fonts load, on
+// resize (the type sizes follow the viewport) and when the profile name changes.
+function useFitLabels(rootRef, profileName) {
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return undefined;
@@ -40,6 +44,7 @@ function useFitLabels(rootRef) {
         range.selectNodeContents(label);
         widest = Math.max(widest, range.getBoundingClientRect().width);
       });
+      widest = Math.min(widest, FIT_MAX);
       if (widest) document.documentElement.style.setProperty("--lnav-label-w", `${Math.ceil(widest) + 1}px`);
     };
     measure();
@@ -48,6 +53,52 @@ function useFitLabels(rootRef) {
     return () => {
       window.removeEventListener("resize", measure);
       document.documentElement.style.removeProperty("--lnav-label-w");
+    };
+  }, [rootRef, profileName]);
+}
+
+// The rail's icons sit on the workspace's own lines: the toggle centred on
+// the toolbar row (Grid / view switch), the last brand centred on the bottom
+// row (the composer). Measured, since both rows' sizes follow the viewport and
+// several stylesheets; exposed as --lnav-line-top / --lnav-line-bottom (each
+// row's centre, from the rail's top / bottom edge) for layout.css.
+function useWorkspaceLines(rootRef) {
+  useLayoutEffect(() => {
+    const rail = rootRef.current;
+    if (!rail) return undefined;
+    let frame = 0;
+    const centre = (el) => {
+      const box = el.getBoundingClientRect();
+      return box.height ? box.top + box.height / 2 : null;
+    };
+    const measure = () => {
+      frame = 0;
+      const box = rail.getBoundingClientRect();
+      const top = document.querySelector(".ws-topbar-start");
+      const bottom = document.querySelector(".ws-tray > :last-child");
+      const topY = top && centre(top);
+      const bottomY = bottom && centre(bottom);
+      if (topY != null) rail.style.setProperty("--lnav-line-top", `${topY - box.top}px`);
+      else rail.style.removeProperty("--lnav-line-top");
+      if (bottomY != null) rail.style.setProperty("--lnav-line-bottom", `${box.bottom - bottomY}px`);
+      else rail.style.removeProperty("--lnav-line-bottom");
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(measure); };
+    measure();
+    document.fonts?.ready.then(schedule);
+    window.addEventListener("resize", schedule);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
+    if (observer) {
+      observer.observe(rail);
+      [".workspace", ".ws-topbar", ".ws-tray"].forEach((sel) => {
+        const el = document.querySelector(sel);
+        if (el) observer.observe(el);
+      });
+    }
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", schedule);
+      observer?.disconnect();
     };
   }, [rootRef]);
 }
@@ -67,31 +118,25 @@ const ProfileIcon = ({ src }) => (
 
 export default function BrandSidebar({
   open, drawer, closeInHead = false, onToggle, brands, brandsLoaded = true, currentId, onSelect, onNew, user, onLogin, onSignup, onProfile, onUsage, usage,
-  onHook, hooksLeft,
 }) {
-  // No brands yet: Add Brand sits in the middle of the rail (in the brand
-  // list's centred slot) instead of at the top. Not while the list is still
-  // loading, so it doesn't jump for people who do have brands.
+  // No brands yet: Add Brand drops into its (always centred) slot. Not while
+  // the list is still loading, so it doesn't animate for people who do have
+  // brands.
   const empty = brandsLoaded && brands.length === 0;
-  // hooksLeft: free hooks left today (null = unlimited / Premium).
-  const hookTitle = hooksLeft == null
-    ? "Generate a hook"
-    : hooksLeft > 0
-      ? `Generate a free hook (${hooksLeft} left today)`
-      : "Today's free hooks are used";
   const generationsUsed = Math.min(LIMITS.generations, Math.max(0, usage?.generations || 0));
   const usagePercent = Math.round((generationsUsed / LIMITS.generations) * 100);
   // The ring's number counts up whenever usage changes.
   const shownPercent = useCountUp(usagePercent, 720);
   const tip = (text) => (open ? undefined : text);
   const profile = user ? profileOf(user) : null;
-  const footerOrder = 3 + brands.length;
+  const profileName = profile ? profile.displayName || user.email : "";
   const rootRef = useRef(null);
-  useFitLabels(rootRef);
+  useFitLabels(rootRef, profileName);
+  useWorkspaceLines(rootRef);
 
   const addRow = (
     <Row
-      order={2}
+      order={3}
       className={"lnav-add" + (empty ? " is-centred" : "")}
       title={tip("Add brand")}
       onClick={() => onNew("regular")}
@@ -107,17 +152,23 @@ export default function BrandSidebar({
 
   return (
     <aside className="lnav" ref={rootRef} data-open={open} aria-label="Workspace navigation">
+      {/* Logo + product name: hidden for now (the open/close toggle starts
+          the rail instead).
       <div className="lnav-head">
         <span className="lnav-slot">
           <span className="lnav-logo"><img src={Logo} alt="" /></span>
         </span>
         <span className="lnav-label lnav-title rail-product-name" style={labelOrder(0)} data-fit>Coherence Content<br />Orchestration</span>
       </div>
+      */}
 
+      {/* Top: the open/close toggle, then the profile and credits used, side
+          by side in the column. */}
+      <div className="lnav-top">
       {/* Phones: no close control at all; the drawer closes by tapping the
           scrim beside it (or Escape). */}
       {!closeInHead && <Row
-        order={1}
+        order={0}
         className="lnav-toggle"
         aria-expanded={open}
         aria-label={drawer ? "Close navigation" : open ? "Collapse sidebar" : "Expand sidebar"}
@@ -137,15 +188,51 @@ export default function BrandSidebar({
         fit
       />}
 
-      {!empty && addRow}
+      {user ? (
+        <Row
+          order={1}
+          title={tip(profileName)}
+          aria-haspopup="dialog"
+          onClick={onProfile}
+          icon={<ProfileIcon src={profile.avatar} />}
+          label={profileName}
+          fit
+        />
+      ) : (
+        <Row order={1} title={tip("Log in")} onClick={onLogin} icon={<ProfileIcon />} label="Log in" fit />
+      )}
+      <Row
+        order={2}
+        className="rail-credits"
+        aria-haspopup={user ? "dialog" : undefined}
+        aria-label={`Credits used: ${usagePercent}%`}
+        title={tip(`Credits used: ${usagePercent}%`)}
+        onClick={user ? onUsage : onLogin}
+        icon={
+          <span
+            className="rail-credits-meter"
+            style={{ "--credits-progress": `${usagePercent}%`, "--pl-pct": shownPercent }}
+            data-percent={`${usagePercent}%`}
+            data-pl-count={shownPercent !== usagePercent || undefined}
+            aria-hidden="true"
+          />
+        }
+        label="Credits used"
+        fit
+      />
+      </div>
 
+      {/* Add Brand: always in the middle of the rail. */}
+      <div className="lnav-centre">{addRow}</div>
+
+      {/* Brands: stacked from the bottom of the rail up; the list scrolls
+          when it doesn't fit. */}
       <nav className="lnav-brands" aria-label="Brands">
         <div className="lnav-brand-list">
-        {empty && addRow}
         {brands.map((brand, i) => (
           <Row
             key={brand.id}
-            order={3 + i}
+            order={4 + i}
             className={"lnav-item" + (brand.id === currentId ? " is-active" : "")}
             aria-current={brand.id === currentId ? "true" : undefined}
             title={tip(brand.name || "Untitled")}
@@ -162,58 +249,6 @@ export default function BrandSidebar({
         ))}
         </div>
       </nav>
-
-      <div className="lnav-footer">
-        {/* The free-hook bolt (it used to sit in the stage's bottom-left
-            corner): makes a hook straight away. */}
-        {onHook && (
-          <Row
-            order={footerOrder - 1}
-            className={"lnav-hook" + (hooksLeft === 0 ? " is-used" : "")}
-            aria-label={hookTitle}
-            title={tip(hookTitle)}
-            onClick={onHook}
-            icon={
-              <span className={"hook-bolt lnav-hook-bolt" + (hooksLeft === 0 ? " is-used" : "")} aria-hidden="true">
-                <BoltIcon />
-              </span>
-            }
-            label="Free hook"
-            fit
-          />
-        )}
-        {user ? (
-          <Row
-            order={footerOrder}
-            title={tip(profile.displayName || user.email)}
-            aria-haspopup="dialog"
-            onClick={onProfile}
-            icon={<ProfileIcon src={profile.avatar} />}
-            label={profile.displayName || user.email}
-          />
-        ) : (
-          <Row order={footerOrder} title={tip("Log in")} onClick={onLogin} icon={<ProfileIcon />} label="Log in" fit />
-        )}
-        <Row
-          order={footerOrder + 1}
-          className="rail-credits"
-          aria-haspopup={user ? "dialog" : undefined}
-          aria-label={`Credits used: ${usagePercent}%`}
-          title={tip(`Credits used: ${usagePercent}%`)}
-          onClick={user ? onUsage : onLogin}
-          icon={
-            <span
-              className="rail-credits-meter"
-              style={{ "--credits-progress": `${usagePercent}%`, "--pl-pct": shownPercent }}
-              data-percent={`${usagePercent}%`}
-              data-pl-count={shownPercent !== usagePercent || undefined}
-              aria-hidden="true"
-            />
-          }
-          label="Credits used"
-          fit
-        />
-      </div>
     </aside>
   );
 }

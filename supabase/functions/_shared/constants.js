@@ -102,17 +102,19 @@ export const SPECS = {
   email: "a subject line under 8 words plus a preview line under 14 words",
 };
 
-// Quick Grid node types (order, tags and placeholders match the prototype).
+// Quick Grid node types, in Node Studio's column order (COL_ORDER): email,
+// marketing (in Social's place), website, packaging, advertising.
 // `full` nodes span the whole grid row; `color` drives the node indicator.
 // `limits` mirror SPECS (max words per field) plus inbox truncation for email.
 export const MEDIA = [
   {
-    key: "packaging",
-    label: "Packaging",
-    tag: "2–6 words",
-    color: "#2C93D8",
-    placeholder: "What it is, felt instantly.",
-    limits: { headline: { label: "Pack line", words: 6 } },
+    key: "email",
+    label: "Email",
+    tag: "subject + preview",
+    color: "#4653FF",
+    placeholder: "Subject line plus preview text.",
+    full: true,
+    limits: { headline: { label: "Subject", words: 8, chars: 60 }, sub: { label: "Preview", words: 14, chars: 110 } },
   },
   {
     key: "marketing",
@@ -123,14 +125,6 @@ export const MEDIA = [
     limits: { headline: { label: "Campaign line", words: 12 } },
   },
   {
-    key: "advertising",
-    label: "Advertising",
-    tag: "headline + subtext",
-    color: "#B04FC7",
-    placeholder: "Headline plus one-line subtext.",
-    limits: { headline: { label: "Headline", words: 8 }, sub: { label: "Subtext", words: 12 } },
-  },
-  {
     key: "website",
     label: "Website",
     tag: "hero + support",
@@ -139,13 +133,20 @@ export const MEDIA = [
     limits: { headline: { label: "Hero", words: 10 }, sub: { label: "Support", words: 20 } },
   },
   {
-    key: "email",
-    label: "Email",
-    tag: "subject + preview",
-    color: "#4653FF",
-    placeholder: "Subject line plus preview text.",
-    full: true,
-    limits: { headline: { label: "Subject", words: 8, chars: 60 }, sub: { label: "Preview", words: 14, chars: 110 } },
+    key: "packaging",
+    label: "Packaging",
+    tag: "2–6 words",
+    color: "#2C93D8",
+    placeholder: "What it is, felt instantly.",
+    limits: { headline: { label: "Pack line", words: 6 } },
+  },
+  {
+    key: "advertising",
+    label: "Advertising",
+    tag: "headline + subtext",
+    color: "#B04FC7",
+    placeholder: "Headline plus one-line subtext.",
+    limits: { headline: { label: "Headline", words: 8 }, sub: { label: "Subtext", words: 12 } },
   },
 ];
 export const MEDIA_BY_KEY = Object.fromEntries(MEDIA.map((m) => [m.key, m]));
@@ -264,6 +265,22 @@ export const TONE_MODES = [
   "Cultural",
   "Instructional",
 ];
+// Brand panel → Language: the brand's personality (one, or none).
+export const PERSONALITIES = [
+  "Emotional",
+  "Premium",
+  "Authoritative",
+  "Warm",
+  "Playful",
+  "Bold",
+  "Minimal",
+  "Rational",
+  "Witty",
+  "Inspiring",
+];
+// Language → the Cold / Neutral / Warm slider (0 = coldest, 100 = warmest).
+export const WARMTH_DEFAULT = 50;
+
 export const AUDIENCES = [
   "Cold — scrolling, distracted",
   "Warm — comparing options",
@@ -305,11 +322,21 @@ export const NOTE_TYPES = [
   "Keyword",
 ];
 
+// Brand pillars: up to this many short statements the copy should embody
+// (brand panel, "Create brand pillars").
+export const MAX_PILLARS = 3;
+export const MAX_PILLAR_CHARS = 200;
+
 export const DEFAULT_BRAND = {
   name: "",
   logo: "",
   belief: "",
+  pillars: [],
   message: "",
+  personality: "",
+  rules: "",
+  voice: "",
+  warmth: WARMTH_DEFAULT,
   industry: "general",
   stage: "Discovery",
   mode: "Emotional",
@@ -329,6 +356,10 @@ export const DEFAULT_BRAND = {
 export const SAMPLE_BRAND = {
   name: "Ember & Oak",
   belief: "Scent is memory, not marketing — every candle should feel like a place you've been.",
+  pillars: ["Hand-made in small batches", "Every scent tells a story"],
+  personality: "Warm",
+  rules: "Short sentences, active voice, no exclamation marks",
+  warmth: 70,
   message: "Our autumn candle collection is hand-poured in small batches with natural soy wax.",
   industry: "retail",
   stage: "Discovery",

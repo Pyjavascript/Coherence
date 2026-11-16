@@ -1,0 +1,245 @@
+/* ==========================================================================
+   Product tour (components/TourModal.jsx): a row of step icons over one card.
+
+   Sized from the design, where the card is 700 x 800 (30 padding, 60 corner,
+   a 50px medium heading, 50 between the heading and the 640 x 480
+   illustration) and the icons are 75 x 75. --u is one design pixel, scaled so
+   everything keeps the design's proportions at any screen size:
+   - laptops / desktops: the whole tour (icons + gap + card, ~905 tall) takes
+     about 78% of the window height, so it never crowds the screen
+     (~454 x 518 card on a 800px-tall laptop window);
+   - phones: the card spans the width with a 16px gutter each side;
+   - never larger than 0.8 of the design (560 x 640 card) on big monitors.
+   ========================================================================== */
+
+.tc-overlay {
+  --u: min(0.8px, calc((100dvh - 48px) * 0.78 / 905), calc((100vw - 32px) / 700));
+  --tc-green: #113c49; /* the theme colour */
+  background: rgb(6 26 32 / 0.55);
+  backdrop-filter: blur(3px);
+  transition: opacity 400ms ease; /* TourModal.jsx FADE_MS */
+}
+
+/* The dialog itself is only a column (icons over the card): no shared modal
+   shadow (polish/shell.css), and no phone zoom (enhancements.css), since --u
+   already fits it to the screen. */
+#root .overlay > .tc {
+  box-shadow: none !important;
+}
+
+.overlay > .tc {
+  zoom: 1;
+}
+
+/* After the last step (or any close): the tour fades out. */
+.tc-overlay.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(30 * var(--u));
+  outline: none;
+}
+
+/* ---------- Step icons ------------------------------------------------------ */
+/* 75 x 75 tiles with a white rim; the active one is the theme green with a
+   white icon, the others pale grey with a green icon. Corners: 0.42 x height,
+   like the rest of the app's boxes. */
+.tc-steps {
+  display: flex;
+  gap: calc(10 * var(--u));
+}
+
+.tc-step {
+  --sz: calc(75 * var(--u));
+  box-sizing: border-box;
+  width: var(--sz);
+  height: var(--sz);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--tc-green);
+  background: #e8eaec;
+  border: calc(5 * var(--u)) solid #fff;
+  border-radius: var(--ui-r);
+  cursor: pointer;
+  transition: background-color 300ms ease, color 300ms ease, scale 120ms ease;
+}
+
+.tc-step:hover:not([aria-current]) {
+  background: #dde1e4;
+}
+
+.tc-step:active {
+  scale: 0.95;
+}
+
+.tc-step[aria-current="step"] {
+  color: #fff;
+  background: var(--tc-green);
+}
+
+.tc-step:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.tc-step svg {
+  width: calc(30 * var(--u));
+  height: calc(30 * var(--u));
+}
+
+/* ---------- The card -------------------------------------------------------- */
+.tc-card {
+  box-sizing: border-box;
+  width: calc(700 * var(--u));
+  height: calc(800 * var(--u));
+  display: flex;
+  flex-direction: column;
+  padding: calc(30 * var(--u));
+  color: var(--shell-ink);
+  background: #fdfcf9;
+  border-radius: var(--ui-r);
+  box-shadow: 0 24px 70px rgb(4 22 28 / 0.35);
+}
+
+/* Top row: "CCO" on the left, the Beta badge on the right. */
+.tc-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Scales with the card, but never below a readable 12px on phones. */
+  font-size: max(12px, calc(16 * var(--u)));
+  font-weight: 600;
+  line-height: 1;
+}
+
+.tc-badge {
+  padding: calc(6 * var(--u)) calc(12 * var(--u));
+  color: #6b7378;
+  background: #eceef0;
+  border-radius: var(--ui-r);
+  font-size: max(10px, calc(14 * var(--u)));
+  font-weight: 500;
+}
+
+/* The heading sits 50 above the illustration; the room left above it is
+   empty. All steps' headings share the cell. */
+.tc-titles {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  align-items: end;
+  margin-bottom: calc(50 * var(--u));
+}
+
+.tc-titles h2 {
+  grid-area: 1 / 1;
+  max-width: calc(580 * var(--u));
+  margin: 0 auto;
+  color: inherit;
+  font-family: inherit;
+  font-size: calc(50 * var(--u));
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  text-align: center;
+  text-wrap: balance;
+  /* Leaving: the old heading softens out of focus and fades, in place. */
+  opacity: 0;
+  filter: blur(calc(6 * var(--u)));
+  transition: opacity 260ms ease, filter 260ms ease;
+}
+
+.tc-titles h2[data-active="true"] {
+  opacity: 1;
+  filter: none;
+  transition: none;
+}
+
+/* Arriving: word by word, each rising a little and coming into focus,
+   just after the image starts to open. */
+.tc-word {
+  display: inline-block;
+}
+
+.tc-titles h2[data-active="true"] .tc-word {
+  animation: tc-word-in 720ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(180ms + var(--i) * 55ms);
+}
+
+@keyframes tc-word-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.45em);
+    filter: blur(calc(8 * var(--u)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+/* The illustration (640 x 480, its own rounded corners). The steps' images
+   are stacked; the new one opens over the old: from a slightly inset rounded
+   frame out to the full image, settling from a gentle zoom. The old one stays
+   underneath until it's covered, then hides, so the card never flashes empty
+   between steps. */
+.tc-art {
+  position: relative;
+  flex: none;
+  width: 100%;
+  aspect-ratio: 640 / 480;
+}
+
+.tc-art img {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 200ms ease 900ms;
+  user-select: none;
+}
+
+.tc-art img[data-active="true"] {
+  z-index: 1;
+  opacity: 1;
+  transition: none;
+  animation: tc-art-in 1000ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes tc-art-in {
+  from {
+    opacity: 0;
+    clip-path: inset(9% 9% 9% 9% round calc(42 * var(--u)));
+    transform: scale(1.08);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round calc(42 * var(--u)));
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-titles h2,
+  .tc-titles h2 .tc-word,
+  .tc-art img {
+    animation: none !important;
+    filter: none;
+    transform: none;
+    transition: opacity 1ms;
+  }
+}

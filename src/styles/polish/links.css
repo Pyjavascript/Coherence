@@ -10,7 +10,7 @@
    ========================================================================== */
 
 :root {
-  --pl-link: var(--shell-blue, #173cf5);
+  --pl-link: var(--shell-blue, var(--shell-green));
   --pl-link-soft: color-mix(in srgb, var(--pl-link) 16%, transparent);
   --pl-link-danger: #d6303c;
 }
@@ -71,7 +71,7 @@ html body .ws-view-nodes .sn-node[data-pl-link-end] { outline-color: var(--pl-li
   place-items: center;
   background: #fff;
   border: 2px solid var(--pl-link);
-  border-radius: 50%;
+  border-radius: var(--ui-r);
   cursor: crosshair;
   pointer-events: none;             /* only while visible, see [data-vis] */
   translate: -50% -50%;             /* left/top are the port's centre point */
@@ -88,7 +88,7 @@ html body .ws-view-nodes .sn-node[data-pl-link-end] { outline-color: var(--pl-li
   width: 6px;
   height: 6px;
   background: var(--pl-link);
-  border-radius: 50%;
+  border-radius: var(--ui-r);
   transition: background-color var(--pl-d-1, 120ms) ease;
 }
 .pl-port[data-vis] { opacity: 1; scale: 1; pointer-events: auto; }
@@ -97,7 +97,7 @@ html body .ws-view-nodes .sn-node[data-pl-link-end] { outline-color: var(--pl-li
 .pl-port:hover::after,
 .pl-port:focus-visible::after { background: #fff; }
 .pl-port:focus-visible { box-shadow: 0 0 0 3px var(--pl-link-soft); }
-#root .pl-port { box-shadow: 0 1px 3px rgb(12 23 79 / .22) !important; }
+#root .pl-port { box-shadow: 0 1px 3px rgb(17 60 73 / .22) !important; }
 .pl-link-ui[data-dragging] .pl-port { cursor: grabbing; }
 
 /* Drop targets while dragging a new link */
@@ -126,10 +126,10 @@ html body .ws-view-nodes .sn-node[data-pl-drop=no] { outline-color: var(--pl-lin
   gap: 6px;
   height: 30px;
   padding: 0 12px 0 5px;
-  color: var(--shell-ink, #0c174f);
+  color: var(--shell-ink, #113c49);
   background: #fff;
   border: 1px solid #dfe3f2;
-  border-radius: calc(30px * var(--ui-ratio));
+  border-radius: var(--ui-r);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -157,7 +157,7 @@ html body .ws-view-nodes .sn-node[data-pl-drop=no] { outline-color: var(--pl-lin
   flex: none;
   color: var(--pl-link-danger);
   background: #fff0f1;
-  border-radius: calc(20px * var(--ui-ratio-sm));
+  border-radius: var(--ui-r);
   transition: background-color var(--pl-d-1, 120ms) ease, color var(--pl-d-1, 120ms) ease;
 }
 .pl-chip-x svg { width: 11px; height: 11px; }
@@ -167,16 +167,16 @@ html body .ws-view-nodes .sn-node[data-pl-drop=no] { outline-color: var(--pl-lin
 .pl-chip:focus-visible .pl-chip-x { color: #fff; background: var(--pl-link-danger); }
 .pl-chip:focus-visible { box-shadow: 0 0 0 3px #d6303c29; }
 .pl-chip:active { scale: .96; }
-#root .pl-chip { box-shadow: 0 1px 2px rgb(12 23 79 / .12), 0 8px 20px -8px rgb(12 23 79 / .35) !important; }
+#root .pl-chip { box-shadow: 0 1px 2px rgb(17 60 73 / .12), 0 8px 20px -8px rgb(17 60 73 / .35) !important; }
 
 /* ---------- Tooltip that follows the pointer while dragging --------------- */
 .pl-tip {
   position: absolute;
   padding: 5px 10px;
   color: #fff;
-  background: var(--shell-navy, #0c174f);
-  border-radius: 999px;
-  font-size: 11.5px;
+  background: var(--shell-navy, #113c49);
+  border-radius: var(--ui-r);
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   opacity: 0;

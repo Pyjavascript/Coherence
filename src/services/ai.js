@@ -115,7 +115,7 @@ const malformed = () => new AIError("The AI returned an unexpected format. Try a
 /* ---------- public API ---------- */
 // cards = [{ key, medium, settings }], one per Quick Grid card. key names the
 // card's copy in the answer ("website", "website_2", ...); settings =
-// { words, brief, requirements, component, pointerCount }. Costs one credit per card.
+// { words, brief, component, pointerCount }. Costs one credit per card.
 // platforms = the composer's picked platform keys (optional) to write for.
 // Returns { [key]: items[] }.
 export async function generateQuickGrid({ ctx, variantCount, tier, cards, platforms }) {

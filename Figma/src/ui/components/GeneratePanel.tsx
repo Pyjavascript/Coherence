@@ -33,7 +33,6 @@ interface Draft {
   component: string;
   pointerCount: number;
   layerName: string;
-  requirements: string;
 }
 
 const defaultWords = (category: string) => (NODE_DEFAULT_WORDS as Record<string, number>)[category] || 60;
@@ -46,7 +45,6 @@ const draftFor = (category: string): Draft => ({
   component: "hero",
   pointerCount: 3,
   layerName: "",
-  requirements: "",
 });
 
 const countWords = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
@@ -135,7 +133,6 @@ export default function GeneratePanel(props: Props) {
       label: draft.label.trim() || medium.piece,
       brief: draft.brief,
       words,
-      requirements: draft.requirements,
       platform: category === "social" ? draft.platform : null,
       component: isWebsite ? draft.component : "hero",
       pointerCount: draft.pointerCount,
@@ -276,17 +273,6 @@ export default function GeneratePanel(props: Props) {
             <input value={draft.layerName} maxLength={120} placeholder={draft.label.trim() || medium.piece} onChange={(e) => setDraft({ layerName: e.target.value })} />
           </label>
         </div>
-
-        <label className="field">
-          <span className="field-label">Specific requirements</span>
-          <textarea
-            rows={2}
-            maxLength={2000}
-            placeholder="Format, must-include line, banned words override..."
-            value={draft.requirements}
-            onChange={(e) => setDraft({ requirements: e.target.value })}
-          />
-        </label>
       </div>
 
       <div className={"copies" + (tooMany ? " is-over" : "")}>

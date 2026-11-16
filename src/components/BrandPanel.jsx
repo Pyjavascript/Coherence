@@ -1,190 +1,201 @@
-
-import { useEffect, useState, useRef } from "react";
-import {
-  INDUSTRY_LAYERS, STYLE_PACKS, FUNNEL_STAGES, TONE_MODES, AUDIENCES, EMOTIONS, FORMALITIES, CTA_LEVELS, LANGUAGES,
-} from "../lib/constants";
+import { useEffect, useRef, useState } from "react";
+import { INDUSTRY_LAYERS, LANGUAGES, MAX_PILLARS, MAX_PILLAR_CHARS, PERSONALITIES, WARMTH_DEFAULT } from "../lib/constants";
 import { toast } from "../lib/brandPanelCopy";
 import { resizeImageFile } from "../lib/image";
 import { shortcut } from "../lib/shortcuts";
-import { FREE_HOOKS_PER_DAY, timeUntilReset } from "../lib/hookQuota";
-import BrandSelect, { LockIcon } from "./Select";
+import BrandSelect from "./Select";
 import BrandLogo from "./BrandLogo";
 
-// Text input / textarea that is read-only behind a lock until Premium; any
-// attempt to use it calls onLocked instead.
-function LockedField({ locked, onLocked, as: Tag = "input", className = "", ...props }) {
-  if (!locked) return <Tag className={className} {...props} />;
-  return (
-    <div className="bp-lockwrap">
-      <LockIcon className="bp-field-lock" />
-      <Tag
-        className={className + " is-locked"}
-        {...props}
-        readOnly
-        aria-readonly="true"
-        onClick={onLocked}
-        onKeyDown={(e) => { if (e.key.length === 1 || e.key === "Backspace" || e.key === "Delete" || e.key === "Enter") onLocked(); }}
-      />
-    </div>
-  );
-}
-
+// The "Content Job" here is the same text as the composer at the bottom of
+// the workspace (brand.message): typing in either updates both.
 const MAX_MESSAGE = 2000; // the generate function's cap on brand.message
 
-// Export formats for the Quick Grid's copy (App.jsx handleExport kinds).
-const EXPORT_OPTIONS = [
-  { value: "copy", label: "Copy to clipboard", hint: "", icon: "M8.5 8.5h11v11h-11zM15.5 5.6c0-1.3-.9-2.1-2.1-2.1H6.1C4.8 3.5 4 4.4 4 5.6v7.3c0 1.2.8 2.1 2 2.1h.5" },
-  { value: "txt", label: "Text file", hint: ".txt", icon: "M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8L14 3.5zM14 3.5V8h4.5M9 12.5h6M9 16h4" },
-  { value: "csv", label: "Spreadsheet", hint: ".csv", icon: "M4.5 5.5h15v13h-15zM4.5 10h15M4.5 14.5h15M10 5.5v13" },
-  { value: "md", label: "Markdown", hint: ".md", icon: "M3.5 6.5h17v11h-17zM7 14.5v-5l2.5 3 2.5-3v5M15.5 9.5v5M13.5 12.5l2 2 2-2" },
+// The Cold / Neutral / Warm slider's value, read out to screen readers.
+const warmthText = (w) => (w <= 15 ? "Cold" : w <= 40 ? "Cool" : w <= 60 ? "Neutral" : w <= 85 ? "Warm" : "Very warm");
+
+const TABS = [
+  { key: "brand", label: "Brand" },
+  { key: "language", label: "Language" },
+  { key: "customer", label: "Customer" },
 ];
 
-// One Export button; it opens the formats (styled as the panel's dropdowns),
-// and picking one copies or downloads at once.
-function ExportMenu({ canExport, onExport }) {
-  const [open, setOpen] = useState(false);
-  const fromKeyboard = useRef(false); // opened with Enter / Space: focus the first format
-  const menuRef = useRef(null);
-  const rootRef = useRef(null);
-  const triggerRef = useRef(null);
-  const itemRefs = useRef([]);
-
-  useEffect(() => {
-    if (!canExport) setOpen(false);
-  }, [canExport]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    // Opened by mouse, the menu itself takes focus (so arrows still work)
-    // and only the row under the pointer lights up.
-    if (fromKeyboard.current) itemRefs.current[0]?.focus();
-    else menuRef.current?.focus();
-    const onPointerDown = (event) => {
-      if (!rootRef.current?.contains(event.target)) setOpen(false);
-    };
-    const onKeyDown = (event) => {
-      if (event.key !== "Escape") return;
-      event.stopPropagation();
-      setOpen(false);
-      triggerRef.current?.focus();
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  const moveFocus = (event) => {
-    const items = itemRefs.current;
-    const index = items.indexOf(document.activeElement);
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      items[(index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
-    } else if (event.key === "Tab") {
-      setOpen(false);
-    }
-  };
-
-  return (
-    <div className={"bp-export" + (open ? " open" : "")} ref={rootRef}>
-      <button
-        type="button"
-        ref={triggerRef}
-        className="bp-copy bp-export-btn"
-        title={canExport ? "Export your copy" : "Generate copy on the Quick Grid first to export it"}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        disabled={!canExport}
-        onClick={(event) => {
-          fromKeyboard.current = event.detail === 0;
-          setOpen((isOpen) => !isOpen);
-        }}
-      >
-        Export
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-2" />
-        </svg>
-      </button>
-      {open && (
-        <div className="bp-dd-menu bp-export-menu" role="menu" aria-label="Export format" tabIndex={-1} ref={menuRef} onKeyDown={moveFocus}>
-          {EXPORT_OPTIONS.map((option, index) => (
-            <button
-              key={option.value}
-              type="button"
-              role="menuitem"
-              ref={(element) => { itemRefs.current[index] = element; }}
-              className="bp-dd-opt bp-export-opt"
-              onClick={() => {
-                setOpen(false);
-                triggerRef.current?.focus();
-                onExport(option.value);
-              }}
-            >
-              <span className="bp-dd-opt-label">
-                <svg className="bp-export-opt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d={option.icon} />
-                </svg>
-                <span>{option.label}</span>
-              </span>
-              {option.hint && <span className="bp-export-opt-hint">{option.hint}</span>}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// The free hook card's lightning bolt in its circle (also the stage's quick-hook button).
-export const BoltIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
-    <path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12l1-8z" />
+const Icon = ({ d, width = 2 }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={d} />
   </svg>
 );
 
-export default function BrandPanel({
-  brand, onField, stylePack, onStylePack, premium,
-  researchCount, isSaved, dirty, saving, focusRequest, hookQuota, canExport,
-  onSave, onDelete, onResearch, onCoherence, onHook, onHistory, onExport, onStatus, onClose,
-}) {
-  // Advanced Behaviour (including the style pack) is Premium and starts collapsed.
-  const [advOpen, setAdvOpen] = useState(false);
-  const [upsell, setUpsell] = useState(null); // { name, where: "advanced" }
-  // Generate was pressed with no message: the field is flagged until one is written.
-  const [messageFlagged, setMessageFlagged] = useState(false);
-  const fileInputRef = useRef(null);
-  const messageMissing = messageFlagged && !brand.message?.trim();
-  const bind = (k) => ({ value: brand[k] ?? "", onChange: (e) => onField(k, e.target.value) });
-  const opts = (list) => list.map((option) => ({ value: option, label: option }));
-  const advLocked = !premium;
-  const lockAdvanced = () => setUpsell({ name: "Advanced behaviour", where: "advanced" });
+const ICONS = {
+  download: "M12 4v11M7.5 10.5 12 15l4.5-4.5M5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-2",
+  close: "M6 6l12 12M18 6L6 18",
+  arrow: "M5 12h14M13 6l6 6-6 6",
+  check: "M5 12.5l4.5 4.5L19 7.5",
+  trash: "M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l.8 12.2a1.5 1.5 0 0 0 1.5 1.3h6.4a1.5 1.5 0 0 0 1.5-1.3l.8-12.2",
+  image: "M5.5 4.5h13a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2zM20.5 15.5l-4.6-4.6a1.5 1.5 0 0 0-2.1 0L5 19.5M9 8.3a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4z",
+};
 
-  // Focus a field by id once the panel has slid in.
-  const focusTarget = (target, delay = 60) => {
-    window.setTimeout(() => {
-      const el = document.getElementById(target);
+// Brand pillars: up to MAX_PILLARS cards. Written ones come first (Pillar 1,
+// 2, ...); every free slot is an "Add New" card. Adding or clicking a pillar
+// opens an input under the cards: Enter (or the tick) keeps it, Escape
+// cancels, and saving an existing pillar empty removes it.
+function Pillars({ pillars, onChange }) {
+  const [editing, setEditing] = useState(null); // null | index (pillars.length = a new one)
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (editing != null) inputRef.current?.focus();
+  }, [editing]);
+
+  // Another brand opened (or the fields cleared) under an open editor.
+  useEffect(() => {
+    if (editing != null && editing > pillars.length) setEditing(null);
+  }, [pillars.length, editing]);
+
+  const open = (index) => {
+    setEditing(index);
+    setDraft(pillars[index] ?? "");
+  };
+  const close = () => setEditing(null);
+  const commit = () => {
+    if (editing == null) return;
+    const text = draft.trim();
+    if (editing >= pillars.length) {
+      if (text && pillars.length < MAX_PILLARS) onChange([...pillars, text]);
+    } else if (text) {
+      onChange(pillars.map((p, i) => (i === editing ? text : p)));
+    } else {
+      onChange(pillars.filter((_, i) => i !== editing));
+    }
+    close();
+  };
+  const remove = (index) => {
+    onChange(pillars.filter((_, i) => i !== index));
+    if (editing != null) close();
+  };
+
+  const isNew = editing != null && editing >= pillars.length;
+
+  return (
+    <>
+      <div className="bpx-pillars" role="group" aria-labelledby="bp-pillars-label">
+        {pillars.map((pillar, index) => (
+          <div className={"bpx-pillar" + (editing === index ? " is-editing" : "")} key={index}>
+            <button
+              type="button"
+              className="bpx-pillar-body"
+              aria-label={`Pillar ${index + 1}: ${pillar}. Edit`}
+              title={`${pillar}\n\nClick to edit`}
+              onClick={() => open(index)}
+            >
+              <span className="bpx-pillar-title">Pillar {index + 1}</span>
+              <span className="bpx-pillar-text">{pillar}</span>
+            </button>
+            <button
+              type="button"
+              className="bpx-pillar-remove"
+              aria-label={`Remove pillar ${index + 1}`}
+              title="Remove pillar"
+              onClick={() => remove(index)}
+            >
+              <Icon d={ICONS.close} width={2.4} />
+            </button>
+          </div>
+        ))}
+        {Array.from({ length: MAX_PILLARS - pillars.length }, (_, i) => (
+          <button
+            key={`add-${i}`}
+            type="button"
+            className={"bpx-pillar bpx-pillar-add" + (isNew && i === 0 ? " is-editing" : "")}
+            onClick={() => open(pillars.length)}
+          >
+            <span aria-hidden="true">+</span>
+            Add New
+          </button>
+        ))}
+      </div>
+
+      {editing != null && (
+        <div className="bpx-pillar-editor">
+          <label className="sr-only" htmlFor="bp-pillar-input">Pillar {Math.min(editing, pillars.length) + 1}</label>
+          <input
+            id="bp-pillar-input"
+            ref={inputRef}
+            className="bp-input"
+            type="text"
+            maxLength={MAX_PILLAR_CHARS}
+            placeholder={`Write pillar ${Math.min(editing, pillars.length) + 1}`}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                commit();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                close();
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="bpx-pillar-ok"
+            aria-label={isNew ? "Add pillar" : "Save pillar"}
+            title={isNew ? "Add pillar (Enter)" : "Save pillar (Enter)"}
+            onClick={commit}
+          >
+            <Icon d={ICONS.check} width={2.4} />
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+export default function BrandPanel({
+  brand, onField, isSaved, saving, focusRequest, canExport,
+  onSave, onDelete, onCopyPrompt, onDownload, onStatus, onClose,
+}) {
+  const [tab, setTab] = useState("brand");
+  const fileInputRef = useRef(null);
+  const chipsRef = useRef(null);
+  const tabRefs = useRef([]);
+  const bind = (k) => ({ value: brand[k] ?? "", onChange: (e) => onField(k, e.target.value) });
+  const pillars = Array.isArray(brand.pillars) ? brand.pillars : [];
+  const warmth = Number.isFinite(Number(brand.warmth)) ? Number(brand.warmth) : WARMTH_DEFAULT;
+
+  // App asks for a field (e.g. Generate without a brand name): show the
+  // Brand tab and focus it once the panel has slid in.
+  useEffect(() => {
+    if (!focusRequest) return undefined;
+    setTab("brand");
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(focusRequest.target);
       if (!el) return;
       el.focus({ preventScroll: true });
       el.scrollIntoView({ block: "center", behavior: "smooth" });
-    }, delay);
-  };
-
-  // App asks for a field (e.g. Generate without a brand name); wait for the panel to slide in.
-  useEffect(() => {
-    if (!focusRequest) return;
-    if (focusRequest.target === "bp-message") setMessageFlagged(true);
-    focusTarget(focusRequest.target, 340);
+    }, 340);
+    return () => window.clearTimeout(timer);
   }, [focusRequest]);
 
+  // The personality chips scroll sideways with an ordinary mouse wheel too,
+  // until the row reaches its end (then the panel scrolls as usual).
   useEffect(() => {
-    if (brand.message?.trim()) setMessageFlagged(false);
-  }, [brand.message]);
-
-  useEffect(() => {
-    if (premium) setUpsell(null);
-  }, [premium]);
+    const row = chipsRef.current;
+    if (!row) return undefined;
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      const max = row.scrollWidth - row.clientWidth;
+      if (max <= 0) return;
+      const next = Math.min(max, Math.max(0, row.scrollLeft + e.deltaY));
+      if (next === row.scrollLeft) return;
+      e.preventDefault();
+      row.scrollLeft = next;
+    };
+    row.addEventListener("wheel", onWheel, { passive: false });
+    return () => row.removeEventListener("wheel", onWheel);
+  }, [tab]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -197,298 +208,231 @@ export default function BrandPanel({
     }
   };
 
-  // Gold Premium callout shown in the card the user just tried to use.
-  const renderUpsell = (where, note, detail) => (upsell?.where === where ? (
-    <div className="bp-upsell" role="status">
-      <span className="bp-upsell-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M10 3.5c.4-1 1.8-1 2.2 0l1.5 3.8c.1.3.4.6.7.7l3.8 1.5c1 .4 1 1.8 0 2.2l-3.8 1.5c-.3.1-.6.4-.7.7l-1.5 3.8c-.4 1-1.8 1-2.2 0l-1.5-3.8c-.1-.3-.4-.6-.7-.7L4 11.7c-1-.4-1-1.8 0-2.2l3.8-1.5c.3-.1.6-.4.7-.7z" />
-        </svg>
-      </span>
-      <div className="bp-upsell-text">
-        <b>{upsell.name} is part of Premium.</b>
-        <span>{detail}</span>
-      </div>
-      <button type="button" aria-label="Dismiss" onClick={() => setUpsell(null)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-          <path d="M7 7l10 10M17 7L7 17" />
-        </svg>
-      </button>
-    </div>
-  ) : (
-    <p className="bp-premium-note">{note}</p>
-  ));
+  // Arrow keys move between the tabs (WAI-ARIA tabs pattern).
+  const onTabKey = (e) => {
+    const index = TABS.findIndex((t) => t.key === tab);
+    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const next = (index + step + TABS.length) % TABS.length;
+    setTab(TABS[next].key);
+    tabRefs.current[next]?.focus();
+  };
 
-  const saveLabel = saving ? "Saving…" : !isSaved ? "Save" : dirty ? "Save changes" : "Saved ✓";
+  const title = brand.name?.trim() || "Untitled Brand";
 
   return (
-    <div className="rsb-scroll">
-      {/* Title scrolls with the rest of the panel. */}
-      <header className="rsb-head">
-        <h2 title={brand.name || "Untitled Brand"}>{brand.name || "Untitled Brand"}</h2>
-        {dirty && <span className="rsb-unsaved" title="You have unsaved changes">Unsaved</span>}
-        <button
-          type="button"
-          className="rsb-history"
-          aria-label="Generation history"
-          title={isSaved ? "Generation history" : "Save the brand to see its history"}
-          disabled={!isSaved}
-          onClick={onHistory}
-        >
-          {/* A list of past entries with a clock: a log of what was generated. */}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 5.5h14M4 10.5h6.5M4 15.5h4.5" />
-            <circle cx="16.5" cy="16" r="5" />
-            <path d="M16.5 13.6V16l1.6 1.1" />
-          </svg>
-        </button>
-        <button type="button" aria-label="Collapse brand panel" title="Collapse" onClick={onClose}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
+    <div className="rsb-scroll bpx">
+      <header className="rsb-head bpx-head">
+        <h2 title={title}>{title}</h2>
+        {/* Shown only once this brand has generated copy on the Quick Grid. */}
+        {canExport && (
+          <button
+            type="button"
+            className="bpx-head-btn"
+            aria-label="Download copy"
+            title="Download this brand's copy (.txt)"
+            onClick={onDownload}
+          >
+            <Icon d={ICONS.download} />
+          </button>
+        )}
+        <button type="button" className="bpx-head-btn bpx-close" aria-label="Close brand panel" title="Close" onClick={onClose}>
+          {/* Drawn smaller (brand-panel.css .bpx-close), so a thicker stroke
+              keeps its line the save arrow's ~2px. */}
+          <Icon d={ICONS.close} width={2.6} />
         </button>
       </header>
 
-      <section className="bp-section">
-        <h3 className="bp-section-title">Brand Core</h3>
-        <div className="bp-card">
-          <div className="bp-field">
-            <label className="bp-label" htmlFor="bp-name">Brand Name</label>
-            <div className="bp-inline bp-name-input">
-              <input id="bp-name" className="bp-input" type="text" placeholder="e.g. Ferox Parfums" {...bind("name")} />
-              <button
-                type="button"
-                className={"bp-addimg" + (brand.logo ? " has-logo" : "")}
-                aria-label={brand.logo ? "Change image" : "Add image"}
-                title={brand.logo ? "Change image" : "Add image"}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {brand.logo ? (
-                  <BrandLogo src={brand.logo} />
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
-                    <circle cx="9" cy="10" r="1.75" />
-                    <path d="m20.5 15.5-4.6-4.6a1.5 1.5 0 0 0-2.1 0L5 19.5" />
-                  </svg>
-                )}
+      <div className="bpx-tabs" role="tablist" aria-label="Brand panel sections" onKeyDown={onTabKey}>
+        {TABS.map((t, i) => (
+          <button
+            key={t.key}
+            ref={(el) => { tabRefs.current[i] = el; }}
+            type="button"
+            role="tab"
+            id={`bp-tab-${t.key}`}
+            aria-selected={tab === t.key}
+            aria-controls={`bp-tabpanel-${t.key}`}
+            tabIndex={tab === t.key ? 0 : -1}
+            className={"bpx-tab" + (tab === t.key ? " is-active" : "")}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="bpx-body">
+        {tab === "brand" && (
+          <div className="bpx-card" role="tabpanel" id="bp-tabpanel-brand" aria-labelledby="bp-tab-brand">
+            <div className="bp-field">
+              <label className="bpx-label" htmlFor="bp-name">Brand Name</label>
+              <div className="bp-inline bp-name-input">
+                <input id="bp-name" className="bp-input" type="text" placeholder="Type here" maxLength={200} {...bind("name")} />
+                <button
+                  type="button"
+                  className={"bp-addimg" + (brand.logo ? " has-logo" : "")}
+                  aria-label={brand.logo ? "Change logo" : "Add logo"}
+                  title={brand.logo ? "Change logo" : "Add logo"}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {brand.logo ? <BrandLogo src={brand.logo} /> : <Icon d={ICONS.image} width={1.75} />}
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" className="bp-file-input" onChange={handleImageUpload} />
+              </div>
+            </div>
+
+            <div className="bp-field">
+              <span className="bpx-label" id="bp-industry-label">Industry</span>
+              <BrandSelect
+                label="Industry"
+                value={brand.industry}
+                onChange={(value) => onField("industry", value)}
+                options={Object.entries(INDUSTRY_LAYERS).map(([value, layer]) => ({ value, label: layer.label }))}
+              />
+            </div>
+
+            <div className="bp-field bpx-flex">
+              <label className="bpx-label" htmlFor="bp-belief">Core promise / values / principles</label>
+              <textarea
+                id="bp-belief"
+                className="bp-textarea bpx-tall"
+                maxLength={2000}
+                placeholder="e.g. Our scent is a memory, not marketing."
+                {...bind("belief")}
+              />
+            </div>
+
+            <div className="bp-field bpx-flex">
+              <span className="bpx-label" id="bp-pillars-label">Create brand Pillars</span>
+              <Pillars pillars={pillars} onChange={(next) => onField("pillars", next)} />
+            </div>
+
+            <div className="bp-field bpx-flex">
+              <label className="bpx-label" htmlFor="bp-message">Content Job</label>
+              <textarea
+                id="bp-message"
+                className="bp-textarea bpx-tall"
+                maxLength={MAX_MESSAGE}
+                placeholder="e.g. Hook"
+                {...bind("message")}
+              />
+            </div>
+          </div>
+        )}
+
+        {tab === "language" && (
+          <div className="bpx-card" role="tabpanel" id="bp-tabpanel-language" aria-labelledby="bp-tab-language">
+            <div className="bp-field">
+              <span className="bpx-label" id="bp-personality-label">Select a personality</span>
+              <div className="bpx-chips" role="radiogroup" aria-labelledby="bp-personality-label" ref={chipsRef}>
+                {PERSONALITIES.map((p) => {
+                  const on = brand.personality === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      className={"bpx-chip" + (on ? " is-on" : "")}
+                      // Clicking the chosen one again clears it (no personality).
+                      onClick={() => onField("personality", on ? "" : p)}
+                    >
+                      <span className="bpx-chip-dot" aria-hidden="true" />
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="bp-field">
+              <label className="bpx-label" htmlFor="bp-rules">Mention writing rules</label>
+              <input id="bp-rules" className="bp-input" type="text" maxLength={1000} placeholder="e.g. short sentences, active voice" {...bind("rules")} />
+            </div>
+
+            <div className="bp-field">
+              <label className="bpx-label" htmlFor="bp-banned">Mention words to avoid</label>
+              <input id="bp-banned" className="bp-input" type="text" maxLength={1000} placeholder="e.g. cheap, best-ever, revolutionary" {...bind("banned")} />
+            </div>
+
+            {/* The language every piece of copy is written in (brands.language;
+                prompts.js tells the model to write in it). */}
+            <div className="bp-field">
+              <span className="bpx-label" id="bp-language-label">Output language</span>
+              <BrandSelect
+                label="Output language"
+                value={brand.language || "English"}
+                onChange={(value) => onField("language", value)}
+                options={LANGUAGES.map((l) => ({ value: l, label: l }))}
+                visibleOptions={5}
+              />
+            </div>
+
+            <div className="bp-field bpx-flex">
+              <label className="bpx-label" htmlFor="bp-voice">Voice / Tone sample (optional)</label>
+              <textarea
+                id="bp-voice"
+                className="bp-textarea bpx-tall"
+                maxLength={1000}
+                placeholder="A line or two of copy that sounds like your brand."
+                {...bind("voice")}
+              />
+            </div>
+
+            <div className="bp-field">
+              <div className="bpx-warmth-scale" aria-hidden="true">
+                <span>Cold</span>
+                <span>Neutral</span>
+                <span>Warm</span>
+              </div>
+              <input
+                id="bp-warmth"
+                className="bpx-warmth"
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                aria-label="Warmth, cold to warm"
+                aria-valuetext={warmthText(warmth)}
+                value={warmth}
+                onChange={(e) => onField("warmth", Number(e.target.value))}
+              />
+            </div>
+          </div>
+        )}
+
+        {tab === "customer" && (
+          <div className="bpx-soon" role="tabpanel" id="bp-tabpanel-customer" aria-labelledby="bp-tab-customer">
+            <p>Customer settings are coming soon.</p>
+          </div>
+        )}
+
+        <div className="bpx-bar">
+          <button type="button" className="bpx-btn bpx-copy" onClick={onCopyPrompt}>
+            Copy AI Prompt
+          </button>
+          <span className="bpx-bar-end">
+            {isSaved && (
+              <button type="button" className="bpx-btn bpx-icon bpx-delete" aria-label="Delete brand" title="Delete brand" onClick={onDelete}>
+                <Icon d={ICONS.trash} width={1.8} />
               </button>
-              <input ref={fileInputRef} type="file" accept="image/*" className="bp-file-input" onChange={handleImageUpload} />
-            </div>
-          </div>
-          <div className="bp-field">
-            <label className="bp-label" htmlFor="bp-belief">Core Belief</label>
-            <textarea id="bp-belief" className="bp-textarea" rows={2} placeholder="e.g. Scent is memory, not marketing." {...bind("belief")} />
-          </div>
-          {/* What Generate adapts into every format (the only place it is edited). */}
-          <div className={"bp-field bp-message" + (messageMissing ? " is-invalid" : "")}>
-            <label className="bp-label" htmlFor="bp-message">Message to Adapt</label>
-            <textarea
-              id="bp-message"
-              className="bp-textarea"
-              rows={2}
-              maxLength={MAX_MESSAGE}
-              placeholder="What do you want to generate?"
-              aria-required="true"
-              aria-invalid={messageMissing || undefined}
-              aria-describedby={messageMissing ? "bp-message-error" : undefined}
-              {...bind("message")}
-            />
-            {messageMissing && (
-              <p id="bp-message-error" className="bp-field-error">Write a message to generate every format.</p>
             )}
-          </div>
-          <div className="bp-field">
-            <div className="bp-label-row">
-              <span className="bp-label">Industry Category</span>
-              <span className="bp-tag">Pixel layer</span>
-            </div>
-            <BrandSelect
-              label="Industry category"
-              value={brand.industry}
-              onChange={(value) => onField("industry", value)}
-              options={Object.entries(INDUSTRY_LAYERS).map(([value, layer]) => ({ value, label: layer.label }))}
-            />
-          </div>
-          <div className="bp-actions">
             <button
               type="button"
-              className="bp-del"
-              aria-label="Delete brand"
-              title={isSaved ? "Delete brand" : "Nothing to delete — this brand isn't saved yet"}
-              disabled={!isSaved}
-              onClick={onDelete}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l.8 12.2a1.5 1.5 0 0 0 1.5 1.3h6.4a1.5 1.5 0 0 0 1.5-1.3l.8-12.2" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="bp-save"
-              title={`Save brand (${shortcut("S")})`}
+              className={"bpx-btn bpx-icon bpx-save" + (saving ? " is-busy" : "")}
+              aria-label={saving ? "Saving brand" : "Save brand"}
+              title={saving ? "Saving…" : `Save brand (${shortcut("S")})`}
               aria-busy={saving || undefined}
               disabled={saving}
               onClick={onSave}
             >
-              {saveLabel}
+              {saving ? <span className="bpx-spin" aria-hidden="true" /> : <Icon d={ICONS.arrow} width={2.2} />}
             </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="bp-section">
-        <h3 className="bp-section-title">Customer Context</h3>
-        <div className="bp-card">
-          <div className="bp-row2">
-            <div className="bp-field">
-              <span className="bp-label">Funnel Stage</span>
-              <BrandSelect label="Funnel stage" value={brand.stage} onChange={(value) => onField("stage", value)} options={opts(FUNNEL_STAGES)} />
-            </div>
-            <div className="bp-field">
-              <span className="bp-label">Language</span>
-              <BrandSelect label="Language mode" value={brand.mode} onChange={(value) => onField("mode", value)} options={opts(TONE_MODES)} />
-            </div>
-          </div>
-          <div className="bp-field">
-            <span className="bp-label">Audience Posture</span>
-            <BrandSelect label="Audience posture" value={brand.audience} onChange={(value) => onField("audience", value)} options={opts(AUDIENCES)} />
-          </div>
-        </div>
-      </section>
-
-      <section className="bp-section bp-section-premium bp-advanced-section">
-        <button
-          type="button"
-          className="bp-section-toggle"
-          aria-expanded={advOpen}
-          aria-controls="bp-advanced"
-          onClick={() => setAdvOpen((isOpen) => !isOpen)}
-        >
-          <span className="bp-toggle-label">
-            <LockIcon className="bp-toggle-lock" />
-            <span className="bp-section-title">Advanced Behaviour</span>
           </span>
-          <span className="bp-chevron-slot" aria-hidden="true">
-            <svg className={"bp-section-chevron" + (advOpen ? " open" : "")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </span>
-        </button>
-        {advOpen && (
-          <div className="bp-card bp-card-cream" id="bp-advanced">
-
-            <div className="bp-field">
-              <label className="bp-label" htmlFor="bp-pain">Customer Pain Points</label>
-              <LockedField locked={advLocked} onLocked={lockAdvanced} id="bp-pain" className="bp-input" type="text" placeholder="What's bothering them right before this moment?" {...bind("pain")} />
-            </div>
-            <div className="bp-row2">
-              <div className="bp-field">
-                <span className="bp-label">Desired Emotions</span>
-                <BrandSelect label="Desired emotion" locked={advLocked} onLocked={lockAdvanced} value={brand.emo} onChange={(value) => onField("emo", value)} options={opts(EMOTIONS)} />
-              </div>
-              <div className="bp-field">
-                <span className="bp-label">Formality</span>
-                <BrandSelect label="Formality" locked={advLocked} onLocked={lockAdvanced} value={brand.formality} onChange={(value) => onField("formality", value)} options={opts(FORMALITIES)} />
-              </div>
-            </div>
-            <div className="bp-field">
-              <label className="bp-label" htmlFor="bp-objection">Objection to pre-empt</label>
-              <LockedField locked={advLocked} onLocked={lockAdvanced} id="bp-objection" className="bp-input" type="text" placeholder="e.g. worried it wont last through the day" {...bind("objection")} />
-            </div>
-            <div className="bp-row2">
-              <div className="bp-field">
-                <span className="bp-label">CTA intensity</span>
-                <BrandSelect label="CTA intensity" locked={advLocked} onLocked={lockAdvanced} value={brand.cta} onChange={(value) => onField("cta", value)} options={opts(CTA_LEVELS)} />
-              </div>
-              <div className="bp-field">
-                <label className="bp-label" htmlFor="bp-banned">Avoid words</label>
-                <LockedField locked={advLocked} onLocked={lockAdvanced} id="bp-banned" className="bp-input" type="text" placeholder="e.g. cheap" {...bind("banned")} />
-              </div>
-            </div>
-            <div className="bp-field">
-              <span className="bp-label" id="bp-research-label">Research notes</span>
-              <button
-                type="button"
-                className={"bp-research-field" + (advLocked ? " is-locked" : "")}
-                aria-labelledby="bp-research-label"
-                onClick={advLocked ? lockAdvanced : onResearch}
-              >
-                <span className="bp-research-label">
-                  {advLocked && <LockIcon className="bp-field-lock-inline" />}
-                  <span>Research notes</span>
-                </span>
-                <b>{researchCount}</b>
-              </button>
-            </div>
-             <div className="bp-row2">
-              <div className="bp-field">
-                <label className="bp-label" htmlFor="bp-location">Location</label>
-                <LockedField locked={advLocked} onLocked={lockAdvanced} id="bp-location" className="bp-input" type="text" placeholder="e.g. Mumbai, India" {...bind("location")} />
-              </div>
-              <div className="bp-field">
-                <span className="bp-label">Output Language</span>
-                <BrandSelect label="Output language" locked={advLocked} onLocked={lockAdvanced} value={brand.language || "English"} onChange={(value) => onField("language", value)} options={opts(LANGUAGES)} />
-              </div>
-            </div>
-            <div className="bp-field">
-              <span className="bp-label">Style Pack</span>
-              <BrandSelect
-                label="Style pack"
-                locked={advLocked}
-                onLocked={lockAdvanced}
-                value={stylePack}
-                onChange={onStylePack}
-                options={Object.entries(STYLE_PACKS).map(([value, pack]) => ({ value, label: pack.label }))}
-              />
-            </div>
-            {renderUpsell(
-              "advanced",
-              "Advanced behaviour is Premium.",
-              "Premium unlocks style packs, location, output language, pain points, emotions, objections, CTA intensity, avoid words and research notes.",
-            )}
-          </div>
-        )}
-      </section>
-
-      <section className="bp-section bp-external-section">
-        <h3 className="bp-section-title">External Ai</h3>
-        <button type="button" className="bp-copy" onClick={onCoherence}>
-          Copy Prompt
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="8.5" y="8.5" width="11" height="11" rx="3" />
-            <path d="M15.5 5.6c0-1.3-.9-2.1-2.1-2.1H6.1C4.8 3.5 4 4.4 4 5.6v7.3c0 1.2.8 2.1 2 2.1h.5" />
-          </svg>
-        </button>
-      </section>
-
-      <section className="bp-section bp-bonus-section">
-        <div className="bp-card-hook">
-          <div className="bp-gen-top">
-            {/* The bolt in its circle is a shortcut to the same hook. */}
-            <button type="button" className={"hook-bolt" + (hookQuota?.left === 0 ? " is-used" : "")} aria-label="Generate a free hook" title="Generate a free hook" onClick={onHook}>
-              <BoltIcon />
-            </button>
-            <div>
-              <h4>Generate a free hook</h4>
-              <p>
-                {hookQuota && hookQuota.left <= 0
-                  ? `Today's free hooks are used · more in ${timeUntilReset()}`
-                  : `${hookQuota?.left ?? FREE_HOOKS_PER_DAY} free hook${(hookQuota?.left ?? FREE_HOOKS_PER_DAY) === 1 ? "" : "s"} left today`}
-              </p>
-            </div>
-          </div>
-          <button type="button" className="bp-gen-btn" onClick={onHook}>Generate</button>
         </div>
-      </section>
-
-      {/* The Quick Grid's copy: Export opens the formats; each copies or downloads straight away.
-          Shown only once the open brand has copy on the grid (App.jsx). */}
-      {canExport && (
-        <section className="bp-section bp-export-section">
-          <ExportMenu canExport={canExport} onExport={onExport} />
-        </section>
-      )}
+      </div>
     </div>
   );
 }

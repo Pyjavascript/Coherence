@@ -147,11 +147,20 @@ export default function NodeCard({
             message={node.message}
             onRetry={onRegenerate}
             onEdit={onEdit ? (field, text) => onEdit(shown, field, text) : undefined}
-            footer={canCopy && (
-              <CopyButton label={title} onCopy={() => onCopy([item.headline, item.sub].filter(Boolean).join("\n"))} />
+            // The copy box's bottom row: the banned-words check on the left (as
+            // on a Node Studio node), Copy in the bottom-right corner. Copy
+            // stays (disabled) while the copy regenerates, so nothing jumps.
+            footer={item && (
+              <div className="ncard-box-foot">
+                {!busy ? <BannedCheck copy={item} banned={banned} className="ncard-banned" /> : <span />}
+                <CopyButton
+                  label={title}
+                  disabled={!canCopy}
+                  onCopy={() => onCopy([item.headline, item.sub].filter(Boolean).join("\n"))}
+                />
+              </div>
             )}
           />
-          {!busy && item && <BannedCheck copy={item} banned={banned} className="ncard-banned" />}
           {!busy && node.items.length > 1 && (
             <div className="ncard-vtabs">
               <div className="ncard-vtabs-list" role="tablist" aria-label={`${title} variants`}>

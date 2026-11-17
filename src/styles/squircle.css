@@ -1,0 +1,158 @@
+/* ==========================================================================
+   One corner shape for every small icon button and icon tile: a rounded
+   square whose corner is a fixed share of the button's size,
+   --icon-btn-ratio (0.35, polish/tokens.css). So a 36px tile gets a 13px
+   corner and a 44px arrow a 15px one, and none turns into a circle the way
+   a fixed 16-20px corner did on the small tiles. 0.35 is the top bar's
+   own proportion (20px on its 52-60px buttons) and the reference button's.
+
+   Left as they were, with their own corners: the top bar, the left rail,
+   the message box and its arrow, and PRO.
+
+   Square buttons take the ratio as a percentage (--icon-btn-r); wide ones
+   (the Copy buttons, Copy AI Prompt) take it from their height, below.
+   Add a selector to give a new button the same corner. Colours untouched.
+   ========================================================================== */
+
+html body #root :is(
+  /* Node Studio: the "+" under a node, the card's tiles and arrow. */
+  .sn-add,
+  .sn-card-btn,
+  .sn-card-go,
+
+  /* Quick Grid: header tiles, variant tiles, the phone carousel arrows. */
+  .ncard-action,
+  .ncard-sheet-trigger,
+  .ncard-vtab,
+  .qg-arrow,
+
+  /* Brand panel: the regenerate / save tiles, the pillar tick, the logo
+     button. */
+  .bpx-btn.bpx-icon,
+  .bpx-pillar-ok,
+  .bp-addimg,
+
+  /* The tour "?" in the bottom row and the tour's four step icons. */
+  .tour-launch,
+  .tc-step,
+
+  /* Popups: close buttons and small icon buttons. */
+  .profile-close,
+  .plans-close,
+  .toast-close,
+  .pa-icon-btn
+) {
+  border-radius: var(--icon-btn-r) !important;
+}
+
+/* Wide buttons: the same share of their height (a % would stretch the
+   corner into an oval across the width). */
+html body #root .sn-card-copy {
+  border-radius: calc(var(--snc-cta, 44px) * var(--icon-btn-ratio)) !important;
+}
+
+html body #root .bpx .bpx-btn:not(.bpx-icon) {
+  border-radius: calc(var(--bpx-btn) * var(--icon-btn-ratio)) !important;
+}
+
+/* ---------- Brand panel fields: the same corner as its buttons ----------
+   Inputs, dropdowns, text boxes, chips, the tab strip and the pillar cards
+   all took --ui-r (~31px on a 44px field: a pill), so they didn't match
+   Copy AI Prompt / regenerate / save. They now take the buttons' corner:
+   the same share (--icon-btn-ratio) of the one control height. Taller boxes
+   (core promise, content job, pillar cards) keep that same corner rather
+   than a bigger one, so every box in the panel has one corner. Anything
+   nested inside a box (a tab in the strip, an option in the menu) takes
+   that corner minus its inset, so the curves run parallel. */
+html body #root .bpx {
+  --bpx-r: calc(var(--bp-field-h) * var(--icon-btn-ratio));
+}
+
+html body #root .bpx :is(
+  .bp-input,
+  .bp-textarea,
+  .bp-dd-trigger,
+  .bp-dd-menu,
+  .bpx-chip,
+  .bpx-tabs,
+  .bpx-pillar,
+  .bpx-soon
+) {
+  border-radius: var(--bpx-r) !important;
+}
+
+html body #root .bpx .bpx-tab {
+  border-radius: calc(var(--bpx-r) - var(--bpx-tab-inset)) !important;
+}
+
+/* Options sit 7px inside the menu (.bp-dd-menu padding). */
+html body #root .bpx .bp-dd-opt {
+  border-radius: max(8px, calc(var(--bpx-r) - 7px)) !important;
+}
+
+/* Add Node / Add Grid menu options: as tall as the top bar's buttons, so
+   the same share of that height (like the Add button itself) instead of
+   --ui-r, which made them pills. On phones they stack, 46px tall, in a white
+   card whose corner wraps theirs (+ its 6px padding). */
+html body #root .ws-topbar .toolbar-node-menu button {
+  border-radius: calc(var(--tb-h) * var(--icon-btn-ratio)) !important;
+}
+
+@container ws (max-width: 760px) {
+  html body #root .ws-topbar .toolbar-node-menu button {
+    border-radius: calc(46px * var(--icon-btn-ratio)) !important;
+  }
+
+  html body #root .ws-topbar .toolbar-node-menu {
+    border-radius: calc(46px * var(--icon-btn-ratio) + 6px) !important;
+  }
+}
+
+/* ---------- Add Node / Add Grid: the four "+" dots -----------------------
+   The dots and the gap between them are fractions of the button (--tb-h:
+   48px on phones up to 60px), snapped to whole pixels so the "+" bars stay
+   crisp: 13px dots / 4px gap at 48-52px, 15px / 5px at 60px. The 2 x 2 grid
+   is ~62% of the button, centred, with clear air between the dots on every
+   screen (it was 14px dots 2px apart on desktop, almost touching). This
+   replaces the per-breakpoint sizes in index.css, layout.css and
+   workspace-theme.css. */
+html body #root .ws-topbar .toolbar-add-spark {
+  --spark-dot: calc(var(--tb-h) * 0.26);
+  --spark-gap: calc(var(--tb-h) * 0.08);
+  --spark-bar: calc(var(--spark-dot) * 0.5);
+  --spark-line: 1.5px;
+  grid-template-columns: repeat(2, var(--spark-dot));
+  gap: var(--spark-gap);
+}
+
+@supports (width: round(nearest, 1px, 1px)) {
+  html body #root .ws-topbar .toolbar-add-spark {
+    --spark-dot: round(nearest, calc(var(--tb-h) * 0.26), 1px);
+    --spark-gap: round(nearest, calc(var(--tb-h) * 0.08), 1px);
+    /* Even dots take even bars and odd dots odd ones, so each bar sits on
+       the dot's exact centre line. */
+    --spark-bar: calc(var(--spark-dot) - 2 * round(down, calc(var(--spark-dot) / 4), 1px));
+  }
+}
+
+/* 2px bars once the dots reach 15px (60px buttons), 1.5px below. */
+@media (min-width: 1500px) and (min-height: 860px) {
+  html body #root .ws-topbar .toolbar-add-spark {
+    --spark-line: 2px;
+  }
+}
+
+html body #root .ws-topbar .toolbar-add-spark i {
+  width: var(--spark-dot);
+  height: var(--spark-dot);
+}
+
+html body #root .ws-topbar .toolbar-add-spark i::before {
+  width: var(--spark-bar);
+  height: var(--spark-line);
+}
+
+html body #root .ws-topbar .toolbar-add-spark i::after {
+  width: var(--spark-line);
+  height: var(--spark-bar);
+}

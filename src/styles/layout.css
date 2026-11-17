@@ -34,7 +34,18 @@
   --shell-radius: var(--ui-r);
 
   --gap: clamp(8px, 0.75vw, 12px);
-  --ui-icon: clamp(45px, 3.4vw, 50px);
+  /* ONE control height for the whole app: every button, CTA, icon button,
+     tab, chip and one-line input (toolbar, bottom row, message box, brand
+     panel). The design's 120 on the @2x Mac frame is 60px here.
+     It follows the window: 4vw or 7vh, whichever is smaller, so a screen
+     that is shorter than a Mac's gets smaller controls even when it's wide.
+     44px floor (the minimum touch target, phones and tablets), 60px cap.
+     Snapped to 4px below, so it's always 44 / 48 / 52 / 56 / 60. */
+  --ctl-min: 44px;
+  --ctl-max: 60px;
+  --ctl-fluid: min(4vw, 7vh);
+  --ctl-h: clamp(var(--ctl-min), var(--ctl-fluid), var(--ctl-max));
+  --ui-icon: var(--ctl-h);
   --shell-pad: 20px;
   /* The navy bands above and below the workspace: the same height, so the
      frame is even top and bottom; the bottom one holds the credit line. */
@@ -55,17 +66,52 @@
   --lnav-label-w: calc(clamp(236px, 19vw, 290px) - var(--lnav-side) - var(--ui-icon) - var(--lnav-row-gap));
   --lnav-open: calc(var(--ui-icon) + var(--lnav-row-gap) + var(--lnav-label-w) + var(--lnav-side) * 2);
   --rsb-w: clamp(320px, 28vw, 420px);
-  --tb-h: clamp(44px, 4vw, 58px);
+  --tb-h: var(--ctl-h);
   --tb-pad-bottom: clamp(10px, 1.1vw, 16px);
   /* The workspace's inset on every side: the toolbar sits this far from the
      top, the toolbar and Quick Grid this far from the sides, and the cards end
      this far from the bottom. cqw resolves against the ws container where the
      padding is used. */
   --ws-gutter: clamp(12px, 1.8cqw, 24px);
-  --tb-pad-top: var(--ws-gutter);
+  /* The vertical inset (toolbar from the top, bottom row from the bottom)
+     follows the window, not the workspace: opening the left or right panel
+     narrows the workspace, and a cqw-based inset would shrink with it, lifting
+     the toolbar and dropping the bottom row a few px, and the rail's icons,
+     which sit on those rows' centre lines, with them. 1.8vw less 2px is about
+     what 1.8cqw is with the panels closed (the workspace is ~110px narrower
+     than the window), so nothing shifts from before. */
+  --ws-gutter-y: clamp(12px, calc(1.8vw - 2px), 24px);
+  --tb-pad-top: var(--ws-gutter-y);
   --tb-pad-x: var(--ws-gutter);
   /* Full toolbar height: Node Studio's canvas extends up under it by this much. */
   --tb-total: calc(var(--tb-pad-top) + var(--tb-h) + var(--tb-pad-bottom));
+}
+
+/* Round the control height to the nearest 4px, so sizes step cleanly
+   (44 → 48 → 52 → 56 → 60) instead of landing on fractions like 53.7px.
+   Browsers without CSS round() keep the smooth value above. */
+@supports (width: round(nearest, 1px, 1px)) {
+  :root {
+    --ctl-h: round(nearest, clamp(var(--ctl-min), var(--ctl-fluid), var(--ctl-max)), 4px);
+  }
+}
+
+/* Phones: one fixed 48px for every control, top bar and bottom row alike
+   (44px reads small under a thumb). Set through min/max, not --ctl-h, so the
+   dark theme's copy of the rule above lands on the same value.
+   Very narrow phones (<360px) take 44px so the top bar's five boxes fit. */
+@media (max-width: 767.98px) {
+  :root {
+    --ctl-min: 48px;
+    --ctl-max: 48px;
+  }
+}
+
+@media (max-width: 359.98px) {
+  :root {
+    --ctl-min: 44px;
+    --ctl-max: 44px;
+  }
 }
 
 /* Phones (same cut-off as data-bp="mobile"): tighter corners. Set on :root so
@@ -955,7 +1001,7 @@ body {
    text inputs, the belief box, dropdowns, Research notes, Save/Delete, Copy
    Prompt, Export and Generate. */
 .rsb {
-  --bp-field-h: clamp(48px, 3.8vw, 54px);
+  --bp-field-h: var(--ctl-h);
 }
 
 .rsb .bp-input,
@@ -2480,8 +2526,8 @@ body {
   margin: 0;
 }
 
-/* Copy, then the Copy button: at the end of the copy, pushed to the box's
-   bottom-right corner when the copy is short. */
+/* The copy, then (at the box's bottom) the "No banned words" check, as on a
+   Node Studio node. */
 .ncard-body.is-generated {
   display: flex;
   flex-direction: column;
@@ -2489,64 +2535,51 @@ body {
   color: var(--shell-ink);
 }
 
-/* The Copy button is an .ncard-action like the header's ×: same height,
-   corner and focus ring, but wide enough for icon + "Copy", and navy. It sits
-   --ncard-copy-inset from the copy box's bottom-right corner (the negative
-   margins cancel the box's padding) and stays there while long copy scrolls.
-   Sticky offsets are measured inside the scroller's padding, so `bottom`
-   subtracts it too: the gap below matches the gap on the right. No hover
-   effect; pressed it stays navy (no light-blue flash); copied, the icon is a
-   green tick. The .ncard-body prefix outranks the shared
-   .ncard-action rules (here, enhancements.css, polish/grid.css). */
-.ncard-body .ncard-copy-btn {
+/* The box's bottom row: banned-words check left, Copy in the bottom-right
+   corner, --ncard-copy-inset from both edges (the negative margins cancel
+   the box's padding). Sticky, so Copy stays in the corner while long copy
+   scrolls; its tint background hides the text scrolling under it. Sticky
+   offsets count from the scroller's padding edge, hence bottom = -padding. */
+.ncard-body .ncard-box-foot {
   --ncard-copy-inset: 10px;
+  --snc-cta: 44px; /* Node Studio's Copy size */
   position: sticky;
-  bottom: calc(var(--ncard-copy-inset) - var(--ncard-pad-y, 26px));
+  bottom: calc(-1 * var(--ncard-pad-y, 26px));
   z-index: 1;
   flex: none;
-  align-self: flex-end;
-  width: auto;
-  margin: auto calc(var(--ncard-copy-inset) - var(--ncard-pad-x, 24px)) calc(var(--ncard-copy-inset) - var(--ncard-pad-y, 26px)) 0;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 12px 0 10px;
-  color: #fff;
-  background: var(--shell-navy);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1;
+  justify-content: space-between;
+  gap: 10px;
+  margin: auto calc(var(--ncard-copy-inset) - var(--ncard-pad-x, 24px)) calc(-1 * var(--ncard-pad-y, 26px)) 0;
+  padding: 6px 0 var(--ncard-copy-inset);
+  background: var(--shell-tint);
 }
 
-.ncard-body .ncard-copy-btn svg {
-  width: 16px;
-  height: 16px;
+.ncard-body .ncard-banned {
+  min-width: 0;
+}
+
+/* Copy: Node Studio's button (.sn-card-copy, studio-card.css: size, corner,
+   type, "✓ Copied" on click) in the theme green with white text. Hover
+   deepens the green; a press shrinks it a touch, like the other buttons. */
+#root .app .ncard-body .sn-card-copy {
   flex: none;
-}
-
-/* No hover effect at all: same navy, white text, full opacity, copied or not.
-   #root outranks the shared icon-button hover tint (enhancements.css), which
-   loads later and otherwise turns the navy pale. */
-#root .ncard-body .ncard-action.ncard-copy-btn:hover:not(:disabled),
-#root .ncard-body .ncard-action.ncard-copy-btn:active:not(:disabled) {
   color: #fff;
-  background: var(--shell-navy);
-  opacity: 1;
-  filter: none;
+  background: var(--shell-green);
+  transition: background-color 150ms ease, opacity 150ms ease, scale var(--pl-d-1, 120ms) var(--pl-ease-out, ease-out);
 }
 
-.ncard-body .ncard-copy-btn.is-copied {
+#root .app .ncard-body .sn-card-copy:hover:not(:disabled) {
+  background: var(--shell-green-hover);
+}
+
+#root .app .ncard-body .sn-card-copy:active:not(:disabled) {
+  scale: var(--pl-press-scale, 0.97);
+}
+
+#root .app .ncard-body .sn-card-copy.is-copied {
   color: #fff;
-  background: var(--shell-navy);
-}
-
-.ncard-body .ncard-copy-btn.is-copied svg {
-  color: var(--ux-ok);
-}
-
-#root .ncard-body .ncard-copy-btn.is-copied {
-  box-shadow: none !important;
 }
 
 .ncard-copy {
@@ -3140,6 +3173,16 @@ body {
   z-index: 60 !important;
 }
 
+/* An open menu hangs below the card, over where the "+" and the link ports
+   sit. The "+" is the card's sibling and the ports live in an overlay above
+   every node, so neither can be stacked under the menu: hide them while it
+   is open. */
+.cn:has(.bp-dd.open) .sn-add-child,
+.nodecanvas:has(.cn .bp-dd.open) .pl-port {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .sn-row2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3401,6 +3444,30 @@ body {
      so the hover scale also stretched this offset and the button drifted
      down-left while growing. With `translate` it grows in place. */
   translate: -50% 100%;
+}
+
+/* A quieter "+": 48px instead of 56px with a 20px glyph (was 26px), and
+   slightly see-through at rest; hover / focus bring it to full strength. */
+.ws-view-nodes .sn-add.sn-add-child {
+  width: 48px;
+  height: 48px;
+  opacity: 0.7;
+  transition: var(--hover-transition), opacity 150ms ease;
+}
+
+.ws-view-nodes .sn-add.sn-add-child svg {
+  width: 42%;
+  height: 42%;
+}
+
+.ws-view-nodes .sn-add.sn-add-child:hover,
+.ws-view-nodes .sn-add.sn-add-child:focus-visible {
+  opacity: 1;
+}
+
+/* Stays hidden under an open dropdown (outranks the rule above). */
+.ws-view-nodes .cn:has(.bp-dd.open) .sn-add.sn-add-child {
+  opacity: 0;
 }
 
 .sn-add:focus-visible,

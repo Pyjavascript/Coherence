@@ -4197,10 +4197,11 @@ body {
   cursor: pointer;
 }
 
+/* Hovered or selected: the theme's light green, same as the model menu. */
 .bp-dd-opt:hover,
 .bp-dd-opt:focus-visible,
 .bp-dd-opt.selected {
-  background: #f3f6ff;
+  background: #e3f5ef;
   outline: none;
 }
 
@@ -4208,6 +4209,7 @@ body {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
+  color: var(--shell-blue);
 }
 
 .bp-actions {

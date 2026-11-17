@@ -199,11 +199,11 @@
    (its own scroller) starts one gutter below too; its 4px headroom
    (polish/grid.css: margin-top -4px, padding-top 4px) is kept on top. */
 .app-shell[data-bp] .ws-view-nodes .canvas-world .nodebar {
-  padding-top: calc(var(--bar-h) + var(--ws-gutter));
+  padding-top: calc(var(--bar-h) + var(--ws-gutter-y));
 }
 
 .app-shell[data-bp] .qg {
-  padding-top: calc(var(--ws-gutter) + 4px);
+  padding-top: calc(var(--ws-gutter-y) + 4px);
 }
 
 /* Toolbar boxes are the rail logo's height (--ui-icon), so the bar and the
@@ -363,31 +363,18 @@
   box-shadow: 0 1px 2px rgb(20 20 30 / .04), 0 4px 14px -6px rgb(20 20 30 / .10) !important;
 }
 
-/* ---------- Phones: larger toolbar boxes and icons ------------------------- */
-/* 44px boxes read small on a phone. 50px boxes (top bar and the bottom row,
-   which share --tb-h) with the glyphs a little fuller inside them. */
-.app-shell[data-bp="mobile"] {
-  --tb-h: 50px;
-}
-
-/* The top bar's boxes (logo, Add, model picker, menu) are 45 x 45 on phones;
-   the bottom row keeps the 50px above. Their corners are the profile icon's
-   (--ui-icon-r: the same 45px box at 0.42), logo tile included. */
+/* ---------- Phones: toolbar boxes and icons -------------------------------- */
+/* The top bar and the bottom row share --tb-h, the app's one control height
+   (--ctl-h, layout.css: 48px on phones, 44px under 360px), with the glyphs a
+   little fuller inside them. Corners are the profile icon's (--ui-icon-r),
+   logo tile included. */
 .app-shell[data-bp="mobile"] .ws-topbar {
-  --tb-h: 45px;
   --bar-r: var(--ui-r);
 }
 
 /* The logo tile's 50-unit viewBox: 0.42 x 50. */
 .app-shell[data-bp="mobile"] .ws-topbar .toolbar-logo-tile {
   rx: calc(50px * var(--ui-ratio));
-}
-
-/* Very narrow phones (<360px): five 50px boxes overrun the bar. */
-@media (max-width: 359.98px) {
-  .app-shell[data-bp="mobile"] {
-    --tb-h: 46px;
-  }
 }
 
 .app-shell[data-bp="mobile"] .ws-topbar .toolbar-panel-btn svg {

@@ -12,7 +12,7 @@
    the toolbar's (--ws-gutter). The Quick Grid's cards end above the row
    (layout.css .qg). */
 .ws-stage {
-  --tray-bottom: var(--ws-gutter);
+  --tray-bottom: var(--ws-gutter-y);
   --tray-right: var(--ws-gutter);
   --tray-left: var(--ws-gutter);
   --tray-gap: 12px;
@@ -371,18 +371,15 @@
 }
 
 /* The message box's height, shared with the "Pro" tile (plans.css) so the
-   two match. Laptops + tablets: a roomy box, 1.3x the toolbar's boxes (64px
-   on a 1440px laptop); phones keep it near their height (below). */
+   two match: the app's one control height, like Generate beside it. */
 .ws-stage {
-  --cmp-h: calc(var(--cta-h) * 1.3);
-}
-
-.app-shell[data-bp="mobile"] .ws-stage {
-  --cmp-h: calc(var(--cta-h) + 2px);
+  --cmp-h: var(--cta-h);
 }
 
 .composer {
-  --cmp-pad: 8px;
+  /* The arrow's inset: the top bar's Grid/Node switch inset (--ws-pad,
+     layout.css .ws-switch), so the two green squares sit alike. */
+  --cmp-pad: 4px;
   --cmp-r: var(--composer-r); /* tokens.css */
   position: relative;
   box-sizing: border-box;
@@ -434,7 +431,9 @@
   outline: none;
   resize: none;
   font: inherit;
-  font-size: clamp(14px, 1.15vw, 18px);
+  /* The app's field text (polish/tokens.css), like the brand panel's inputs;
+     it was 14-18px, a size bigger than everything around it. */
+  font-size: var(--ui-field-text);
   font-weight: 500;
   line-height: 1.4;
   scrollbar-width: none;
@@ -457,7 +456,7 @@
   height: var(--cta-h);
   flex: none;
   padding: 0;
-  border-radius:var(--ws-switch-r) ;
+  border-radius: var(--ws-switch-tab-r);
   background: var(--shell-green);
   box-shadow: 0 6px 16px -8px rgba(23, 179, 139, 0.7);
   animation: none;
@@ -500,8 +499,4 @@
   .composer {
     width: 100%;
   }
-}
-
-.app-shell[data-bp="mobile"] .composer {
-  --cmp-pad: 6px;
 }

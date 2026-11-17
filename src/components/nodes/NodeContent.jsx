@@ -62,7 +62,8 @@ export default function NodeContent({ meta, status, item, version, message, onRe
   if (!item) {
     return (
       <div className="ncard-body">
-        <p className="ncard-placeholder">{meta.placeholder}</p>
+        {/* The same line as an empty Node Studio node, in the headline's style. */}
+        <p className="ncard-headline ncard-placeholder">Generated copy<br />appears here</p>
       </div>
     );
   }

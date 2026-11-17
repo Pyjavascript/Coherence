@@ -80,7 +80,7 @@ function makeNode(category, existing, x = null, y = null) {
 // it), so the copy follows the brand's message until one is written.
 function seedNodes() {
   const email = baseNode({ x: COL_X.email, y: 100, category: "email", label: "Launch email", words: 110 });
-  const social = baseNode({ x: COL_X.social, y: 100, category: "social", label: "Instagram launch post", words: 40, platform: "Instagram" });
+  const social = baseNode({ x: COL_X.social, y: 100, category: "social", label: "Instagram post", words: 40, platform: "Instagram" });
   const website = baseNode({ x: COL_X.website, y: 100, category: "website", label: "Homepage hero", words: 30, component: "hero" });
   const packaging = baseNode({ x: COL_X.packaging, y: 100, category: "packaging", label: "Box front line", words: NODE_DEFAULT_WORDS.packaging });
   const advertising = baseNode({ x: COL_X.advertising, y: 100, category: "advertising", label: "Launch ad", words: NODE_DEFAULT_WORDS.advertising });
@@ -130,15 +130,20 @@ const NODE_MAX_WORDS = 600;
 /* ---------- node pieces ---------- */
 // Before anything is generated: a quiet hint at the top-left, styled like a
 // Quick Grid card's empty text (.ncard-body).
-const EmptyOutput = () => (
-  <p className="sn-card-empty-title">Generated copy appears here</p>
+// Set in the copy's own heading style (sn-card-heading), with the node's
+// target length where the word count will go.
+const EmptyOutput = ({ words }) => (
+  <>
+    <p className="sn-card-heading sn-card-empty-title">Generated copy<br />appears here</p>
+    {words ? <div className="sn-card-meta">{words} words</div> : null}
+  </>
 );
 
 // The generated copy: the headline as the heading, the body under it, then a
 // small word count. A placeholder until something has been generated.
 function NodeOutput({ node, banned, onVariant }) {
   if (node.generating) return <Skeleton />;
-  if (!node.variants.length) return <EmptyOutput />;
+  if (!node.variants.length) return <EmptyOutput words={node.words || NODE_DEFAULT_WORDS[node.category]} />;
   const idx = node.activeIdx || 0;
   const v = node.variants[idx] || node.variants[0];
 

@@ -168,7 +168,7 @@ html body .overlay > .plans-modal {
   margin: 0;
   padding: var(--pi);
   list-style: none;
-  background: var(--pm-card);
+  background:#f3f6ff;
   border-radius: calc(var(--pm-card-r) + var(--pi));
 }
 
@@ -181,7 +181,7 @@ html body .overlay > .plans-modal {
   flex-direction: column;
   min-width: 0;
   padding: var(--card-pad);
-  background: var(--pm-card);
+  
   border-radius: var(--pm-card-r);
   animation: plan-rise 420ms var(--shell-ease) both;
   animation-delay: calc(80ms + var(--plan-i, 0) * 60ms);
@@ -361,7 +361,7 @@ html body .overlay > .plans-modal {
   box-sizing: border-box;
   margin: 0 auto;
   padding: var(--pb-pad);
-  background: var(--pm-card);
+  background:#f3f6ff;
   border-radius: var(--ui-r);
 }
 

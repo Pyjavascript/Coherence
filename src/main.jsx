@@ -26,6 +26,8 @@ import "./styles/tour-cards.css";
 import "./styles/brand-panel.css";
 // Generated copy (Quick Grid cards, Node Studio nodes) in Onest.
 import "./styles/copy-type.css";
+// One proportional corner (--icon-btn-ratio) for the small icon buttons, and the Add Node dots.
+import "./styles/squircle.css";
 // Dark theme hand-tuning (the rest is generated, see scripts/vite-dark-theme.js).
 import "./styles/theme-dark.css";
 

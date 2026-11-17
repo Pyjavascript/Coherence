@@ -462,7 +462,6 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
             skipped={Boolean(quick.targetMedia && !quick.targetMedia.has(n.type))}
             banned={quick.banned}
             onLabelChange={(text) => quick.setLabel(n.id, text)}
-            onEdit={(index, field, text) => quick.editItem(n.id, index, field, text)}
             onWordsChange={(value) => quick.setWords(n.id, value)}
             onSetting={(field, value) => quick.setSetting(n.id, field, value)}
             onResetSettings={() => quick.resetSettings(n.id)}

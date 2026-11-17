@@ -10,13 +10,6 @@ const RegenIcon = () => (
   </svg>
 );
 
-const CopyIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect x="8.5" y="8.5" width="11" height="11" rx="3" />
-    <path d="M15.5 5.6c0-1.3-.9-2.1-2.1-2.1H6.1C4.8 3.5 4 4.4 4 5.6v7.3c0 1.2.8 2.1 2 2.1h.5" />
-  </svg>
-);
-
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="m4.5 12.5 5 5L19.5 7" />
@@ -84,10 +77,10 @@ function MoreMenu({ label, onDuplicate, onDelete, disabled }) {
   );
 }
 
-// Navy "Copy" button in the bottom-right corner of the card's copy box, the
-// header's × height (.ncard-action). A click copies and, for a moment, turns
-// the icon into a tick.
-export function CopyButton({ label, onCopy }) {
+// The "Copy" button under the card's copy box: Node Studio's Copy
+// (.sn-card-copy, studio-card.css), the light button with just the word,
+// "✓ Copied" for a moment after a click. Disabled until there's copy.
+export function CopyButton({ label, onCopy, disabled = false }) {
   const [copied, flashCopied] = useCopyFeedback();
 
   const copy = async (event) => {
@@ -104,13 +97,14 @@ export function CopyButton({ label, onCopy }) {
   return (
     <button
       type="button"
-      className={"ncard-action ncard-copy-btn" + (copied ? " is-copied" : "")}
-      title={copied ? "Copied" : `Copy ${label}`}
+      className={"sn-card-copy" + (copied ? " is-copied" : "")}
+      title={disabled ? "Generate copy first" : copied ? "Copied" : `Copy ${label}`}
       aria-label={copied ? `${label} copied` : `Copy ${label}`}
+      disabled={disabled}
       onClick={copy}
     >
-      {copied ? <CheckIcon /> : <CopyIcon />}
-      <span>Copy</span>
+      {copied && <CheckIcon />}
+      {copied ? "Copied" : "Copy"}
     </button>
   );
 }

@@ -38,7 +38,7 @@
   --pl-inset-hi: inset 0 1px 0 rgb(255 255 255 / .55); /* top highlight on solid buttons */
 
   /* One radius for the whole app: 24px on desktop (~1000px+), fluid down to 14px on small phones */
-  --ui-r: clamp(14px, 8px + 1.6vw, 24px);
+  --ui-r: clamp(14px,60px, 60px);
   --pl-r-xs: var(--ui-r);
   --pl-r-sm: var(--ui-r);
   --pl-r-md: var(--ui-r);

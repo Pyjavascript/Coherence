@@ -30,7 +30,7 @@ const ICONS = {
   close: "M6 6l12 12M18 6L6 18",
   arrow: "M5 12h14M13 6l6 6-6 6",
   check: "M5 12.5l4.5 4.5L19 7.5",
-  trash: "M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l.8 12.2a1.5 1.5 0 0 0 1.5 1.3h6.4a1.5 1.5 0 0 0 1.5-1.3l.8-12.2",
+  regen: "M20 12a8 8 0 1 1-2.34-5.66L20 8.5M20 4v4.5h-4.5",
   image: "M5.5 4.5h13a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2zM20.5 15.5l-4.6-4.6a1.5 1.5 0 0 0-2.1 0L5 19.5M9 8.3a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4z",
 };
 
@@ -154,8 +154,8 @@ function Pillars({ pillars, onChange }) {
 }
 
 export default function BrandPanel({
-  brand, onField, isSaved, saving, focusRequest, canExport,
-  onSave, onDelete, onCopyPrompt, onDownload, onStatus, onClose,
+  brand, onField, saving, focusRequest, canExport, generating, atGenLimit,
+  onSave, onRegenerate, onCopyPrompt, onDownload, onStatus, onClose,
 }) {
   const [tab, setTab] = useState("brand");
   const fileInputRef = useRef(null);
@@ -238,9 +238,8 @@ export default function BrandPanel({
           </button>
         )}
         <button type="button" className="bpx-head-btn bpx-close" aria-label="Close brand panel" title="Close" onClick={onClose}>
-          {/* Drawn smaller (brand-panel.css .bpx-close), so a thicker stroke
-              keeps its line the save arrow's ~2px. */}
-          <Icon d={ICONS.close} width={2.6} />
+          {/* Same stroke as the rail's Add Brand "+" (brand-panel.css .bpx-close). */}
+          <Icon d={ICONS.close} width={2} />
         </button>
       </header>
 
@@ -327,6 +326,9 @@ export default function BrandPanel({
             <div className="bp-field">
               <span className="bpx-label" id="bp-personality-label">Select a personality</span>
               <div className="bpx-chips" role="radiogroup" aria-labelledby="bp-personality-label" ref={chipsRef}>
+                {/* Equal-width chips, three to a row width, like the tabs
+                    (brand-panel.css .bpx-chips-row). */}
+                <div className="bpx-chips-row">
                 {PERSONALITIES.map((p) => {
                   const on = brand.personality === p;
                   return (
@@ -339,11 +341,11 @@ export default function BrandPanel({
                       // Clicking the chosen one again clears it (no personality).
                       onClick={() => onField("personality", on ? "" : p)}
                     >
-                      <span className="bpx-chip-dot" aria-hidden="true" />
                       {p}
                     </button>
                   );
                 })}
+                </div>
               </div>
             </div>
 
@@ -414,11 +416,19 @@ export default function BrandPanel({
             Copy AI Prompt
           </button>
           <span className="bpx-bar-end">
-            {isSaved && (
-              <button type="button" className="bpx-btn bpx-icon bpx-delete" aria-label="Delete brand" title="Delete brand" onClick={onDelete}>
-                <Icon d={ICONS.trash} width={1.8} />
-              </button>
-            )}
+            {/* Writes the cards again from the brand as it is now (the
+                composer's Generate). */}
+            <button
+              type="button"
+              className={"bpx-btn bpx-icon bpx-regen" + (generating ? " is-busy" : "")}
+              aria-label={generating ? "Generating" : "Regenerate"}
+              title={atGenLimit ? "Daily generation limit reached" : generating ? "Generating…" : "Regenerate"}
+              aria-busy={generating || undefined}
+              disabled={generating || atGenLimit}
+              onClick={onRegenerate}
+            >
+              <Icon d={ICONS.regen} />
+            </button>
             <button
               type="button"
               className={"bpx-btn bpx-icon bpx-save" + (saving ? " is-busy" : "")}

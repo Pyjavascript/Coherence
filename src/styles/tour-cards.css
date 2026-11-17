@@ -88,10 +88,16 @@
   outline-offset: 2px;
 }
 
+/* Icon sizes in design pixels, measured from the design's 75px tiles. */
 .tc-step svg {
-  width: calc(30 * var(--u));
-  height: calc(30 * var(--u));
+  width: calc(var(--ic-w, 30) * var(--u));
+  height: calc(var(--ic-h, 30) * var(--u));
 }
+
+.tc-step .tc-ic-cc { --ic-w: 32; --ic-h: 25.75; }
+.tc-step .tc-ic-grid { --ic-w: 20; --ic-h: 20; }
+.tc-step .tc-ic-nodes { --ic-w: 30; --ic-h: 23.1; }
+.tc-step .tc-ic-figma { --ic-w: 19.5; --ic-h: 29.75; }
 
 /* ---------- The card -------------------------------------------------------- */
 .tc-card {
@@ -186,7 +192,7 @@
   }
 }
 
-/* The illustration (640 x 480, its own rounded corners). The steps' images
+/* The illustration (640 x 480, rounded like the card, var(--ui-r)). The steps' images
    are stacked; the new one opens over the old: from a slightly inset rounded
    frame out to the full image, settling from a gentle zoom. The old one stays
    underneath until it's covered, then hides, so the card never flashes empty
@@ -205,6 +211,8 @@
   width: 100%;
   height: 100%;
   display: block;
+  /* The SVGs are square-cornered; the corner comes from here, the card's. */
+  border-radius: var(--ui-r);
   opacity: 0;
   transition: opacity 200ms ease 900ms;
   user-select: none;
@@ -220,7 +228,7 @@
 @keyframes tc-art-in {
   from {
     opacity: 0;
-    clip-path: inset(9% 9% 9% 9% round calc(42 * var(--u)));
+    clip-path: inset(9% 9% 9% 9% round var(--ui-r));
     transform: scale(1.08);
   }
   35% {
@@ -228,7 +236,7 @@
   }
   to {
     opacity: 1;
-    clip-path: inset(0 0 0 0 round calc(42 * var(--u)));
+    clip-path: inset(0 0 0 0 round var(--ui-r));
     transform: none;
   }
 }

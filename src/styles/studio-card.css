@@ -14,6 +14,11 @@
   --snc-pad: 14px;
   --snc-btn: 36px;
   --snc-cta: 44px;
+  box-sizing: border-box;
+  /* 400 x 380 at rest (width: .cn, NODE_W): the panel takes the spare
+     height, so the Copy / Generate row sits at the bottom. Longer copy
+     still grows the card. */
+  min-height: 380px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -133,6 +138,7 @@
 
 /* ---------- The panel: copy or settings -------------------------------------- */
 .sn-card-panel {
+  flex: 1 0 auto;
   min-height: 170px;
   padding: 18px;
   color: var(--shell-ink);
@@ -419,13 +425,25 @@
 }
 
 /* ---------- Empty copy panel (nothing generated yet) ---------------------- */
-/* Styled like a Quick Grid card's empty text (.ncard-body in layout.css /
-   polish/grid.css): Manrope, 14px medium, the muted grey, top-left. */
-#root .app .sn-card-empty-title {
+/* "Generated copy appears here" in the copy's own heading style (Onest
+   Medium, copy-type.css), on Node Studio nodes and Quick Grid cards alike;
+   the node shows its target words at the bottom-left, like real copy. */
+#root .app .sn-card-empty-title,
+#root .app .ncard-placeholder {
   margin: 0;
-  color: var(--shell-muted);
+  user-select: none;
+}
+
+/* Card buttons' corners: --icon-btn-r, set for every icon button in
+   squircle.css. */
+
+/* Copy: the label in proportion to its 44px button (14px, medium, about a
+   third of the height), the same weight as the card's title, padded so the
+   button is ~1.8 x as wide as it is tall. The Grid card's Copy is this same
+   button (NodeActions.jsx CopyButton). */
+#root .app .sn-card-copy {
+  padding: 0 22px;
   font-size: 14px;
   font-weight: 500;
-  line-height: 1.42;
-  user-select: none;
+  letter-spacing: -0.01em;
 }

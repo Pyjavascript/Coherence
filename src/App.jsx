@@ -27,7 +27,7 @@ import { isSupabaseConfigured } from "./lib/supabase";
 import { DEFAULT_TIER, MEDIA, MEDIA_BY_KEY, NODE_CATS, SAMPLE_BRAND } from "./lib/constants";
 import { gridToText, gridToCsv, gridToMarkdown, downloadFile, fileSlug } from "./lib/exporters";
 import { hookQuotaFrom } from "./lib/hookQuota";
-import { brandPanelCopy, toast } from "./lib/brandPanelCopy";
+import { toast } from "./lib/brandPanelCopy";
 import { nextCreditReset } from "./lib/usageActivity";
 import { hideBootLoader } from "./lib/bootLoader";
 
@@ -241,26 +241,6 @@ export default function App() {
   const handleSaveBrand = async () => {
     await ws.save();
     refreshUsage();
-  };
-
-  const handleDeleteBrand = () => {
-    if (!ws.currentId) return setStatus(...toast("deleteUnsaved"));
-    const { deleteBrand } = brandPanelCopy.popups;
-    const [before, after] = deleteBrand.body.split("{name}");
-    setConfirm({
-      title: deleteBrand.title,
-      body: <>{before}<b>{ws.brand.name || brandPanelCopy.header.untitled}</b>{after}</>,
-      note: deleteBrand.note,
-      icon: "delete",
-      cancelLabel: deleteBrand.cancel,
-      confirmLabel: deleteBrand.confirm,
-      tone: "danger",
-      onConfirm: async () => {
-        await ws.remove();
-        setGridCopyIsCurrent(false);
-        refreshUsage();
-      },
-    });
   };
 
   const setPremium = (on) => {
@@ -479,13 +459,14 @@ export default function App() {
         <RightSidebar open={layout.rightOpen}>
           <BrandPanel
             brand={ws.brand} onField={ws.setField}
-            isSaved={Boolean(ws.currentId)}
             saving={ws.saving}
+            generating={isGeneratingAll || quick.busy}
+            atGenLimit={atGenLimit}
             focusRequest={panelFocus}
             canExport={quick.hasCopy && gridCopyIsCurrent}
             onDownload={() => handleExport("txt")}
             onSave={requireLogin(handleSaveBrand)}
-            onDelete={requireLogin(handleDeleteBrand)}
+            onRegenerate={triggerGenerate}
             onCopyPrompt={() => setModal("coherence")}
             onStatus={setStatus}
             onClose={() => layout.close("right")}

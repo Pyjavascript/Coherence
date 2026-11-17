@@ -16,24 +16,26 @@ const STEP_MS = 5000;
 const FADE_MS = 400; // tour-cards.css .tc-overlay transition
 
 // Step icons, drawn in currentColor (white on the active tile, theme green
-// on the others).
+// on the others). Each viewBox is the glyph's exact bounds; its size in the
+// tile comes from the design (tour-cards.css .tc-ic-*).
 const CcIcon = () => (
-  <svg viewBox="7 10 36 30" fill="currentColor" aria-hidden="true">
+  <svg className="tc-ic-cc" viewBox="8.85 12 32.3 26" fill="currentColor" aria-hidden="true">
     <path d="M14.06 12h10.4v5.2h-10.4zM8.85 17.2h5.2v15.6h-5.2zM14.06 32.8h10.4V38h-10.4z" />
     <path d="M35.87 12h5.28v5.2h-5.28zM30.67 17.2h5.2v15.6h-5.2zM35.87 32.8h5.28V38h-5.28z" />
   </svg>
 );
 
+// A wide bar over two squares, 2 apart.
 const GridIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <rect x="3" y="3" width="18" height="8" rx="2.5" />
-    <rect x="3" y="13" width="8.25" height="8" rx="2.5" />
-    <rect x="12.75" y="13" width="8.25" height="8" rx="2.5" />
+  <svg className="tc-ic-grid" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+    <rect width="20" height="9" rx="1.8" />
+    <rect y="11" width="9" height="9" rx="1.8" />
+    <rect x="11" y="11" width="9" height="9" rx="1.8" />
   </svg>
 );
 
 const NodesIcon = () => (
-  <svg viewBox="0 0 31 24" fill="none" aria-hidden="true">
+  <svg className="tc-ic-nodes" viewBox="0 0 30.5 23.5" fill="none" aria-hidden="true">
     <path d="M12.25 7.75L8.25 14.75M18.25 7.75L23.25 14.75" stroke="currentColor" strokeWidth="1.6" />
     <rect x="20.5" y="13" width="10" height="10" rx="2" fill="currentColor" />
     <rect x="10.5" width="10" height="10" rx="2" fill="currentColor" />
@@ -41,14 +43,15 @@ const NodesIcon = () => (
   </svg>
 );
 
-// Figma's mark in one colour.
+// Figma's mark in one colour: its five pieces (18 x 18 cells) kept apart by
+// a 2-unit gap, so they read as separate shapes instead of one blob.
 const FigmaIcon = () => (
-  <svg viewBox="0 0 38 57" fill="currentColor" aria-hidden="true">
-    <path d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0z" />
-    <path d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0z" />
-    <path d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19z" />
-    <path d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5z" />
-    <path d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5z" />
+  <svg className="tc-ic-figma" viewBox="0 0 38 58" fill="currentColor" aria-hidden="true">
+    <path d="M9 0h9v18H9A9 9 0 0 1 9 0z" />
+    <path d="M20 0h9a9 9 0 0 1 0 18h-9z" />
+    <path d="M9 20h9v18H9a9 9 0 0 1 0-18z" />
+    <circle cx="29" cy="29" r="9" />
+    <path d="M0 49a9 9 0 0 1 9-9h9v9a9 9 0 0 1-18 0z" />
   </svg>
 );
 

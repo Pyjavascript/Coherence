@@ -4,14 +4,18 @@ import {
   MAX_PILLARS,
   PERSONALITIES,
   WARMTH_DEFAULT,
+  FUNNEL_STAGE_JOBS,
+  LANGUAGE_PREFS,
+  CTA_STRENGTHS,
   SPECS,
   NODE_CATS,
+  NODE_DEFAULT_HEADING_WORDS,
   WEBSITE_COMPONENTS,
   GRID_WEBSITE_COMPONENTS,
   GEN_PLATFORMS,
   platformsFor,
 } from "./constants.js";
-import { aimFor, cardLimits, wordRange } from "./copyItems.js";
+import { aimFor, cardLimits, cardTargets, wordRange } from "./copyItems.js";
 
 // ctx = { brand, notes, stylePack }
 const t = (s) => (s || "").trim();
@@ -27,6 +31,7 @@ function clean(ctx) {
     stage: b.stage,
     mode: b.mode,
     audience: b.audience,
+    profile: t(b.profile),
     pain: t(b.pain),
     emo: b.emo,
     formality: b.formality,
@@ -57,6 +62,20 @@ const languageBlock = (c) =>
   (c.warmth !== WARMTH_DEFAULT ? `\nWarmth of the voice (${c.warmth}/100, cold to warm): ${warmthLabel(c.warmth)}.` : "") +
   (c.rules ? `\nWriting rules (follow every one): ${c.rules}` : "") +
   (c.voice ? `\nVoice sample (match its rhythm, vocabulary and attitude; never reuse its words): ${c.voice}` : "");
+
+// Brand panel → Customer. The funnel stage carries what the copy should do
+// there; the language preference and CTA strength carry what they mean.
+// Older brands' legacy values (Conversational, Soft, ...) pass through as is.
+const stageText = (c) => (FUNNEL_STAGE_JOBS[c.stage] ? `${c.stage} (the copy should ${FUNNEL_STAGE_JOBS[c.stage]})` : c.stage);
+const customerLine = (c) =>
+  `Customer context: funnel stage = ${stageText(c)}, language mode = ${c.mode}, audience posture = ${c.audience}.` +
+  (c.profile ? `\nCustomer profile (write to this person): ${c.profile}` : "");
+const vocabText = (c) =>
+  LANGUAGE_PREFS[c.formality] ? `Customer vocabulary: ${c.formality}, ${LANGUAGE_PREFS[c.formality]}.` : `Formality: ${c.formality}.`;
+const ctaText = (c) =>
+  CTA_STRENGTHS[c.cta] ? `CTA strength: ${c.cta}, ${CTA_STRENGTHS[c.cta]}.` : `CTA intensity: ${c.cta}.`;
+const feelText = (c) => `Desired emotional response (how the reader should feel after reading): ${c.emo}.`;
+const mustLine = (c) => (c.must ? `\nEvery piece must include (work it in naturally): ${c.must}` : "");
 
 // The brand's pillars (brand panel): what every piece should stand on. "" when none.
 const pillarList = (c) => c.pillars.map((p, i) => `${i + 1}) ${p}`).join("; ");
@@ -90,10 +109,10 @@ function sharedExtras(ctx, c) {
   let extra = `\n${industryLine(c)}`;
   extra += `\nStyle pack — ${packOf(ctx).label}: ${packOf(ctx).rules}`;
   if (c.pain) extra += `\nCustomer pain point: ${c.pain}`;
-  extra += `\nDesired emotional response: ${c.emo}. Formality: ${c.formality}. CTA intensity: ${c.cta}.`;
+  extra += `\n${feelText(c)} ${vocabText(c)} ${ctaText(c)}`;
   if (c.objection) extra += `\nObjection to pre-empt: ${c.objection}`;
   if (c.banned) extra += `\nNever use these words/claims: ${c.banned}`;
-  if (c.must) extra += `\nTry to naturally include: ${c.must}`;
+  extra += mustLine(c);
   extra += languageBlock(c);
   extra += localeBlock(c);
   extra += researchBlock(ctx.notes);
@@ -106,7 +125,7 @@ export function buildBasePrompt(ctx) {
 Brand: ${c.name || "the brand"}
 Core belief (must stay true across every output): ${c.belief}${pillarsLine(c)}
 Message to adapt: ${c.message}
-Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience posture = ${c.audience}.${sharedExtras(ctx, c)}
+${customerLine(c)}${sharedExtras(ctx, c)}
 Never explain your choices. Never use quotation marks in the output text. Keep the core belief's point of view recognisable in every version, even though wording, length and register change per channel.${c.pillars.length ? " Let the brand pillars show through what each version says, without naming them as pillars." : ""}`;
 }
 
@@ -114,23 +133,33 @@ Never explain your choices. Never use quotation marks in the output text. Keep t
 const gridComponent = (medium, s) =>
   medium === "website" && s?.component && s.component !== "hero" ? s.component : null;
 
-// The medium's format + length constraint: the default SPECS line, or one built
-// from the card's component and/or user-set word total.
+// The medium's format + length constraint, worded as Node Studio's: a heading
+// ("headline") of about its default length, or strict when the user set one,
+// plus a description ("sub", the main copy) held strictly to its length, the
+// card's default or the user's, which is the node's "body" rule. Then the
+// medium's style (SPECS) or the Website card's component.
 function lengthSpec(medium, s = {}) {
   const comp = gridComponent(medium, s);
-  if (!s.words && !comp) return SPECS[medium];
+  const targets = cardTargets(medium, s);
   const limits = cardLimits(medium, s);
   if (!limits) return SPECS[medium];
-  const parts = Object.values(limits).map((l) => `${l.label.toLowerCase()} of about ${l.words} words`);
+  const parts = Object.entries(limits).map(([key, l]) => {
+    const field = key === "headline" ? "headline" : "sub";
+    const label = l.label.toLowerCase();
+    const name = label === field ? field : `${field} (${label})`;
+    if (!targets[key]) return `${name} of about ${l.words} words`;
+    const { min, max } = wordRange(targets[key]);
+    return `${name} of ${min}-${max} words (strict: never more than ${max}; aim for about ${aimFor(targets[key])})`;
+  });
   let spec = parts.join(" plus ");
   if (comp) {
     const pointers = comp === "pointers" ? ` (exactly ${s.pointerCount || 3} pointers)` : "";
     spec = `a "${WEBSITE_COMPONENTS[comp].label}" website component${pointers}: ${GRID_WEBSITE_COMPONENTS[comp].guide}; ${spec}`;
+  } else if (SPECS[medium]) {
+    spec += `; ${SPECS[medium]}`;
   }
-  if (s.words) {
-    const { min, max } = wordRange(s.words);
-    spec += ` (user-set length, strict: ${min}-${max} words in total across its fields and never more than ${max}; aim for about ${aimFor(s.words)}; this overrides any default length)`;
-  }
+  if (targets.sub) spec += "; sub is the main copy: write enough to reach its length with concrete detail, benefits, proof or a clear call to action, never filler or repetition";
+  if (Object.keys(targets).length) spec += "; count each field's words on its own; these lengths override any shorter length the channel's conventions suggest";
   return spec;
 }
 
@@ -150,26 +179,26 @@ function platformRules(picked) {
 
 export const GRID_MEDIA = ["packaging", "marketing", "advertising", "website", "email"];
 
-const itemShape = (medium) =>
-  medium === "packaging" || medium === "marketing"
-    ? '"..."'
-    : medium === "email"
-      ? '{"subject":"...","preview":"..."}'
-      : '{"headline":"...","sub":"..."}';
+// Every medium answers with a heading plus a description, under the same keys
+// (the app files an email's as its subject / body: services/ai.js).
+const itemShape = () => '{"headline":"...","sub":"..."}';
 
 // cards = [{ key, medium, settings }]: one entry per Quick Grid card. `key` names
 // the card's array in the answer ("website", or "website_2" for a second Website
-// card); settings = { words, brief, component, pointerCount }, with
+// card); settings = { words: { headline, sub } (per-field word targets), brief, component, pointerCount, platform }, with
 // missing fields using the medium's defaults. One card = a regenerate.
 // platforms = the composer's picked platform keys; each card is written for
-// the ones that cover its medium.
+// the ones that cover its medium, unless it has its own platform (the Social
+// card's Platform setting), which wins, as on a Node Studio node.
 export function buildQuickGridPrompt(ctx, n, cards, platforms = []) {
   const base = buildBasePrompt(ctx);
-  const rulesFor = (medium) => platformRules(platformsFor(platforms, "media", medium));
+  const rulesFor = (medium, settings) => platformRules(settings?.platform
+    ? GEN_PLATFORMS.filter((pl) => pl.label === settings.platform)
+    : platformsFor(platforms, "media", medium));
   if (cards.length === 1) {
     const [{ key, medium, settings }] = cards;
     const brief = cardBrief(settings);
-    const rules = rulesFor(medium);
+    const rules = rulesFor(medium, settings);
     return `${base}
 Generate exactly ${n} distinct variant(s) for the ${medium} medium only — different angles, not synonyms.
 Return ONLY this JSON, no markdown fences: {"${key}":[${itemShape(medium)}]}  (array length ${n})
@@ -178,7 +207,7 @@ Constraint: ${lengthSpec(medium, settings)}.${rules ? `\nPlatform — write it n
   const label = ({ key, medium }) => (key === medium ? key : `${key} (${medium})`);
   const shared = cards.some((c, i) => cards.findIndex((o) => o.medium === c.medium) !== i);
   const briefs = cards.map((c) => [c, cardBrief(c.settings)]).filter(([, b]) => b);
-  const targeted = cards.map((c) => [c, rulesFor(c.medium)]).filter(([, r]) => r);
+  const targeted = cards.map((c) => [c, rulesFor(c.medium, c.settings)]).filter(([, r]) => r);
   return `${base}
 Generate exactly ${n} distinct variant(s) for every output below — different angles, not synonyms of each other.${shared
     ? "\nSome outputs share a medium (e.g. website and website_2): give each its own angle, never the same line twice."
@@ -205,20 +234,27 @@ Core belief (constant): ${c.belief}${pillarsLine(c)}
 Brand message reference: ${c.message || "(none supplied — infer from the belief)"}
 ${industryLine(c)}
 Style pack — ${packOf(ctx).label}: ${packOf(ctx).rules}
-Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience posture = ${c.audience}.`;
+${customerLine(c)}`;
   if (c.pain) p += `\nCustomer pain point: ${c.pain}`;
-  p += `\nDesired emotional response: ${c.emo}. Formality: ${c.formality}. CTA intensity: ${c.cta}.`;
+  p += `\n${feelText(c)} ${vocabText(c)} ${ctaText(c)}`;
   if (c.objection) p += `\nObjection to pre-empt: ${c.objection}`;
   if (c.banned) p += `\nNever use these words/claims: ${c.banned}`;
-  if (c.must) p += `\nTry to naturally include: ${c.must}`;
+  p += mustLine(c);
   p += languageBlock(c);
   p += localeBlock(c);
   p += researchBlock(ctx.notes);
   const words = node.words || 60;
   const range = wordRange(words);
+  // The headline: strict when the user set its length, else about the category's default.
+  const heading = node.headingWords ? wordRange(node.headingWords) : null;
+  const headingWords = NODE_DEFAULT_HEADING_WORDS[node.category] || 10;
+  const headingSpec = heading
+    ? `The headline must be ${heading.min}-${heading.max} words and never more than ${heading.max}; aim for about ${aimFor(node.headingWords)} (set by the user, strict; count its words on its own).`
+    : `The headline is a short line of about ${headingWords} words.`;
   p += `\n\nThis node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
-Length (set by the user, strict): the body must be ${range.min}-${range.max} words and never more than ${range.max}; aim for about ${aimFor(words)}. The headline is not counted. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.`;
+Length (set by the user, strict): the body must be ${range.min}-${range.max} words and never more than ${range.max}; aim for about ${aimFor(words)}. The headline is not counted in it. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.
+${headingSpec}`;
   const rules = platformRules(node.platform
     ? GEN_PLATFORMS.filter((pl) => pl.label === node.platform)
     : platformsFor(platforms, "nodes", node.category));
@@ -264,7 +300,7 @@ Length (set by the user, strict): the body must be ${range.min}-${range.max} wor
     p += `\nThis is a "Feature pointers" component: produce exactly ${pc} distinct benefit-led pointers, each a short title (3-6 words) plus a one-sentence detail.`;
     p += `\n\nReturn ONLY valid JSON, no markdown fences: {"variants":[{"pointers":[{"title":"...","detail":"..."} /* exactly ${pc} of these */]}]} with exactly ${vCount} variant(s) in the array, each a distinct set of ${pc} pointers. Never use quotation marks inside the text. Never explain your choices.`;
   } else {
-    p += `\n\nReturn ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line. body is the main copy, ${range.min}-${range.max} words. Never use quotation marks inside the text. Never explain your choices.`;
+    p += `\n\nReturn ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line${heading ? ` of ${heading.min}-${heading.max} words` : ""}. body is the main copy, ${range.min}-${range.max} words. Never use quotation marks inside the text. Never explain your choices.`;
   }
   return p;
 }
@@ -313,7 +349,7 @@ export function buildCoherencePrompt(ctx, described) {
   return `You are a brand copy QA reviewer checking CTA-to-copy coherence.
 
 Brand core belief: ${c.belief || "(not set)"}${pillarsLine(c)}
-CTA intensity setting: ${c.cta}
+CTA setting: ${ctaText(c)}
 Copy under review (from: ${sourceLabel}):
 ${sampleCopy}
 
@@ -340,16 +376,16 @@ ${line("Brand name", c.name)}${line("Core belief (must stay true in every piece)
 - Style: ${packOf(ctx).label}. ${packOf(ctx).rules}
 
 ## Customer context
-- Funnel stage: ${c.stage}
+${line("Who the customer is", c.profile)}- Funnel stage: ${stageText(c)}
 - Language mode: ${c.mode}
 - Audience posture: ${c.audience}
 ${line("Pain point right before this moment", c.pain)}${line("Objection to pre-empt", c.objection)}
 ## Voice and output
-${line("Brand personality", c.personality)}${c.warmth !== WARMTH_DEFAULT ? `- Warmth: ${c.warmth}/100 (${warmthLabel(c.warmth)})\n` : ""}${line("Writing rules (follow every one)", c.rules)}${line("Voice sample (match its rhythm and attitude, never reuse its words)", c.voice)}- Desired emotional response: ${c.emo}
-- Formality: ${c.formality}
-- CTA intensity: ${c.cta}
+${line("Brand personality", c.personality)}${c.warmth !== WARMTH_DEFAULT ? `- Warmth: ${c.warmth}/100 (${warmthLabel(c.warmth)})\n` : ""}${line("Writing rules (follow every one)", c.rules)}${line("Voice sample (match its rhythm and attitude, never reuse its words)", c.voice)}- How the reader should feel after reading: ${c.emo}
+- ${vocabText(c)}
+- ${ctaText(c)}
 ${line("Target market", c.location && `${c.location} (use its spelling, currency, units and cultural cues)`)}- Output language: ${c.language}
-${line("Never use these words or claims", c.banned)}${line("Work in naturally", c.must)}${notes ? `\n## Research notes\n${notes}\n` : ""}
+${line("Never use these words or claims", c.banned)}${line("Every piece must include", c.must)}${notes ? `\n## Research notes\n${notes}\n` : ""}
 ## Your task
 Adapt the message above into channel-correct copy:
 1. Packaging line (under 12 words)
@@ -381,7 +417,7 @@ Brand name: ${c.name || "(not set)"}
 Core belief: ${c.belief || "(not set)"}${pillarsLine(c)}
 ${industryLine(c)}
 Style: ${packOf(ctx).rules}
-Desired emotional response: ${c.emo}. Formality: ${c.formality}.${languageBlock(c)}${localeBlock(c)}
+${feelText(c)} ${vocabText(c)}${c.profile ? `\nWho it's for: ${c.profile}` : ""}${languageBlock(c)}${localeBlock(c)}
 
 How to write it:
 - Build the hook from the brief's subject. If the brief and the voice guidance point at different products, follow the brief.

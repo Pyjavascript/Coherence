@@ -4,9 +4,9 @@
 // chatbot. Every field is type-checked and length-capped first.
 import {
   AI_MODELS, DEFAULT_TIER, DEFAULT_BRAND, MAX_PILLARS, MAX_PILLAR_CHARS, PERSONALITIES, WARMTH_DEFAULT, STYLE_PACKS, NODE_CATS, PLATFORMS,
-  WEBSITE_COMPONENTS, GRID_WEBSITE_COMPONENTS, GEN_PLATFORMS, GEN_PLATFORMS_BY_KEY,
+  WEBSITE_COMPONENTS, GRID_WEBSITE_COMPONENTS, GEN_PLATFORMS, GEN_PLATFORMS_BY_KEY, MEDIA_BY_KEY, NODE_MAX_HEADING_WORDS,
 } from "./constants.js";
-import { MAX_WORDS, countWords, trimToWords, wordRange } from "./copyItems.js";
+import { MAX_WORDS, applyEdit, cardTargets, countWords, toDisplay, trimToWords, wordRange } from "./copyItems.js";
 import {
   GRID_MEDIA, buildQuickGridPrompt, buildNodePrompt, buildHookPrompt, buildCoherencePrompt,
 } from "./prompts.js";
@@ -33,7 +33,7 @@ const int = (v, min, max, fallback) => {
 // Free-text fields and their caps. The pick-list fields (industry, stage, ...)
 // only need a short cap: prompts.js falls back for values it doesn't know.
 const BRAND_TEXT = {
-  name: 200, belief: 2000, message: 2000, pain: 1000, objection: 1000,
+  name: 200, belief: 2000, message: 2000, profile: 1000, pain: 1000, objection: 1000,
   banned: 1000, must: 1000, location: 200, language: 60,
   rules: 1000, voice: 1000,
 };
@@ -58,13 +58,29 @@ function cleanCtx(body) {
   return { brand, notes, stylePack };
 }
 
+// A card's word targets: { headline?, sub? } per field (only the medium's own
+// fields), or one number, a total across them (older clients). null = defaults.
+function cleanGridWords(words, medium) {
+  if (words == null || words === "") return null;
+  if (typeof words !== "object") return int(words, 1, MAX_WORDS, null);
+  const fields = Object.keys(MEDIA_BY_KEY[medium]?.limits || {});
+  const out = {};
+  for (const key of fields) {
+    const n = int(obj(words)[key], 1, MAX_WORDS, null);
+    if (n) out[key] = n;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 function cleanGridSettings(input, medium) {
   const s = obj(input);
   return {
-    words: s.words == null || s.words === "" ? null : int(s.words, 1, MAX_WORDS, null),
+    words: cleanGridWords(s.words, medium),
     brief: str(s.brief, 1000),
     component: medium === "website" && GRID_WEBSITE_COMPONENTS[s.component] ? s.component : "hero",
     pointerCount: int(s.pointerCount, 2, 6, 3),
+    // The Social card's Platform, as on a Social node.
+    platform: medium === "marketing" && PLATFORMS.includes(s.platform) ? s.platform : null,
   };
 }
 
@@ -97,6 +113,8 @@ function cleanNode(input) {
     label: str(n.label, 120).trim() || cat.label,
     brief: str(n.brief, 2000),
     words: int(n.words, 4, 600, 60),
+    // The headline's user-set length (null = no target; the body is `words`).
+    headingWords: n.headingWords == null || n.headingWords === "" ? null : int(n.headingWords, 1, NODE_MAX_HEADING_WORDS, null),
     platform: n.category === "social" && PLATFORMS.includes(n.platform) ? n.platform : null,
     component: WEBSITE_COMPONENTS[n.component] ? n.component : "hero",
     pointerCount: int(n.pointerCount, 2, 6, 3),
@@ -139,29 +157,38 @@ function offTarget(targets) {
   });
 }
 
-// Node Studio: each variant's body against the node's word count (pointer
-// components have no word count).
+// Node Studio: each variant's body against the node's word count, and its
+// headline against the heading target when one is set (pointer components
+// have no word count).
 const nodeLengthIssues = (node) => (data) =>
   offTarget(list(obj(data).variants, MAX_NODE_VARIANTS)
-    .map((v, i) => ({ label: `variant ${i + 1} body`, text: obj(v).body, target: node.words }))
+    .flatMap((v, i) => [
+      { label: `variant ${i + 1} body`, text: obj(v).body, target: node.words },
+      ...(node.headingWords ? [{ label: `variant ${i + 1} headline`, text: obj(v).headline, target: node.headingWords }] : []),
+    ])
     .filter((t) => typeof t.text === "string"));
 
-// Quick Grid: every item of a card with a user-set word count, all its text
-// fields together (the count is a total across them).
-const allText = (item) =>
-  typeof item === "string" ? item : Object.values(obj(item)).filter((v) => typeof v === "string").join(" ");
+// The JSON field an item keeps a display field in: every medium answers with
+// "headline" / "sub" (prompts.js itemShape).
+const jsonField = (medium, field) => field;
+
+// Quick Grid: each field (heading, description) of every item of a card that
+// has a user-set word target for it.
 const gridLengthIssues = (cards) => (data) =>
-  offTarget(cards
-    .filter((c) => c.settings.words)
-    .flatMap((c) => list(obj(data)[c.key], MAX_GRID_VARIANTS).map((item, i) => ({
-      label: `${c.key} item ${i + 1} (all its text fields together)`,
-      text: allText(item),
-      target: c.settings.words,
-    }))));
+  offTarget(cards.flatMap((c) => {
+    const targets = Object.entries(cardTargets(c.medium, c.settings));
+    if (!targets.length) return [];
+    const single = Object.keys(MEDIA_BY_KEY[c.medium]?.limits || {}).length === 1;
+    return list(obj(data)[c.key], MAX_GRID_VARIANTS).flatMap((item, i) => targets.map(([field, target]) => ({
+      label: single ? `${c.key} item ${i + 1}` : `${c.key} item ${i + 1} "${jsonField(c.medium, field)}"`,
+      text: toDisplay(item)?.[field],
+      target,
+    })));
+  }).filter((t) => typeof t.text === "string"));
 
 // The last guard on a user-set word count, after the rewrites: anything still
 // over its limit is cut back to it (copyItems.js trimToWords). Never lengthens.
-// Node Studio: each variant's body.
+// Node Studio: each variant's body, and its headline when it has a target.
 const clampNode = (node) => (data) => {
   const d = obj(data);
   if (!Array.isArray(d.variants)) return data;
@@ -169,33 +196,27 @@ const clampNode = (node) => (data) => {
     ...d,
     variants: d.variants.map((v) => {
       const o = obj(v);
-      return typeof o.body === "string" ? { ...o, body: trimToWords(o.body, node.words) } : v;
+      if (typeof o.body !== "string") return v;
+      const next = { ...o, body: trimToWords(o.body, node.words) };
+      if (node.headingWords && typeof o.headline === "string") next.headline = trimToWords(o.headline, node.headingWords);
+      return next;
     }),
   };
 };
 
-// Quick Grid: an item's text fields together; the supporting line (sub /
-// preview) gives way first, then the headline.
-function clampItem(item, max) {
-  if (typeof item === "string") return trimToWords(item, max);
-  const o = obj(item);
-  const keys = Object.keys(o).filter((k) => typeof o[k] === "string");
-  let over = countWords(keys.map((k) => o[k]).join(" ")) - max;
-  if (over <= 0) return item;
-  const next = { ...o };
-  for (const k of [...keys].reverse()) {
-    if (over <= 0) break;
-    const had = countWords(next[k]);
-    next[k] = trimToWords(next[k], Math.max(1, had - over));
-    over -= had - countWords(next[k]);
-  }
-  return next;
+// Quick Grid: each field with a user-set target, on its own.
+function clampItem(item, targets) {
+  return targets.reduce((it, [field, max]) => {
+    const text = toDisplay(it)?.[field];
+    return typeof text === "string" && countWords(text) > max ? applyEdit(it, field, trimToWords(text, max)) : it;
+  }, item);
 }
 
 const clampGrid = (cards) => (data) => {
   const d = { ...obj(data) };
   for (const c of cards) {
-    if (c.settings.words && Array.isArray(d[c.key])) d[c.key] = d[c.key].map((item) => clampItem(item, c.settings.words));
+    const targets = Object.entries(cardTargets(c.medium, c.settings));
+    if (targets.length && Array.isArray(d[c.key])) d[c.key] = d[c.key].map((item) => clampItem(item, targets));
   }
   return d;
 };

@@ -155,6 +155,62 @@
   cursor: auto;
 }
 
+/* Heading + description: two panels, as on a Quick Grid card
+   (NodeStudio.jsx SplitOutput). The heading's panel hugs its text; the
+   description's takes the card's spare height, its word count at the
+   bottom-left. The gap is the card's own. */
+.sn-card-split {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+}
+
+/* Laptops and tablets: the gap is --copy-box-gap, the corners --copy-head-r
+   and --copy-desc-r (tokens.css), as on a Quick Grid card. */
+.app-shell:not([data-bp="mobile"]) .sn-card-split {
+  gap: var(--copy-box-gap, 10px);
+}
+
+.app-shell:not([data-bp="mobile"]) .sn-card-split > .sn-card-out-head {
+  border-radius: var(--copy-head-r, 17px);
+}
+
+.app-shell:not([data-bp="mobile"]) .sn-card-split > .sn-card-out-desc {
+  border-radius: var(--copy-desc-r, 27px);
+}
+
+/* The panels' padding is even (18px, .sn-card-panel); trim the text's own
+   line spacing off its first and last lines so the visible gap above and
+   below the text equals the gap at its sides. */
+.sn-card-split :is(.sn-card-heading, .sn-card-text, .sn-card-meta) {
+  text-box: trim-both cap alphabetic;
+}
+
+.sn-card-split > .sn-card-out-head {
+  flex: none;
+  min-height: 0;
+}
+
+.sn-card-split > .sn-card-out-desc {
+  flex: 1 0 auto;
+  min-height: 120px;
+}
+
+/* Quiet, like the Grid card's word count (.ncard-words). */
+.sn-card-out-desc .sn-card-meta {
+  opacity: 0.6;
+  user-select: none;
+}
+
+.sn-card-out .skel:last-child {
+  margin-bottom: 0;
+}
+
+.sn-card-out-head .skel {
+  height: 22px;
+}
+
 .sn-card-heading {
   margin: 0;
   color: var(--shell-ink);

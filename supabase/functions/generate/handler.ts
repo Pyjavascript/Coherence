@@ -80,7 +80,7 @@ const MAX_BRANDS = 2; // keep in sync with LIMITS.brands in src/lib/clientId.js
 const BRAND_COLS = [
   "name", "logo", "scope", "belief", "message", "industry", "stage", "mode", "audience",
   "pain", "emo", "formality", "objection", "cta", "banned", "must_include", "location", "language",
-  "personality", "writing_rules", "voice_sample",
+  "personality", "writing_rules", "voice_sample", "customer_profile",
 ];
 // Added by later migrations, each written only if the database has it. Columns
 // that came in one migration are dropped together.
@@ -88,6 +88,7 @@ const COL_GROUPS = [
   ["location", "language"], // 20261012
   ["pillars"], // 20261116
   ["personality", "writing_rules", "voice_sample", "warmth"], // 20261117
+  ["customer_profile"], // 20261118
 ];
 const OPTIONAL_COLS = COL_GROUPS.flat();
 

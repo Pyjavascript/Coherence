@@ -73,12 +73,13 @@ export default function NodePreview({ type, item, brand }) {
           <span className="pv-pack-brand">{name}</span>
           <span className="pv-pack-rule" aria-hidden="true" />
           <span className="pv-pack-line">{item.headline}</span>
+          {item.sub && <span className="pv-pack-sub">{item.sub}</span>}
         </div>
       </div>
     );
   }
 
-  // Marketing (and anything else): a campaign poster.
+  // Social (and anything else): a campaign poster.
   return (
     <div className="pv pv-poster" aria-label="Campaign poster preview">
       <span className="pv-poster-line">{item.headline}</span>

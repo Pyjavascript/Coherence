@@ -63,7 +63,7 @@
 }
 /* Desktop: the panel is a column of the frame (workspace-theme.css), so it
    takes the frame's colour. */
-:root[data-theme="dark"] .app-shell[data-bp="desktop"] .rsb {
+:root[data-theme="dark"] .app-shell:not([data-bp="mobile"]) .rsb {
   background: transparent;
 }
 
@@ -211,10 +211,18 @@ html[data-theme="dark"] body .overlay .tour .tour-dots button.is-on::before {
   box-shadow: var(--dk-edge), var(--dk-drop) !important;
 }
 
-/* ---------- Phone carousel pager -------------------------------------------- */
-/* The pale dots are the Generate blue mixed into the dark surface, not white. */
-:root[data-theme="dark"] .qg-pager-dot:not([aria-current]) {
-  background: color-mix(in srgb, var(--shell-blue) 45%, #3a3d52);
+/* ---------- Quick Grid pager ------------------------------------------------ */
+/* A dark backing; the pale dots are the Generate colour mixed into the dark
+   surface, not white. */
+:root[data-theme="dark"] .qg-pager-dots {
+  background: #26272b;
+  border-color: #33343a;
+}
+:root[data-theme="dark"] .qg-pager {
+  --dot-ink: color-mix(in srgb, var(--shell-blue) 45%, #3a3d52);
+}
+:root[data-theme="dark"] .qg-pager-dot:hover:not([aria-current]) {
+  background: color-mix(in srgb, var(--shell-blue) 70%, #3a3d52);
 }
 
 /* ---------- Plans dialog ----------------------------------------------------- */

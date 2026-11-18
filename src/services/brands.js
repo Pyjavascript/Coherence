@@ -16,6 +16,7 @@ const OPTIONAL_COLS = {
   locale: { cols: ["location", "language"], migration: "20261012000000_brand_location_language.sql" },
   pillars: { cols: ["pillars"], migration: "20261116000000_brand_pillars.sql" },
   voice: { cols: ["personality", "writing_rules", "voice_sample", "warmth"], migration: "20261117000000_brand_language.sql" },
+  customer: { cols: ["customer_profile"], migration: "20261118000000_brand_customer.sql" },
 };
 const missingGroups = new Set();
 // False once a save or load found that group's columns missing (its
@@ -72,6 +73,7 @@ function fromRow(r) {
     stage: r.stage,
     mode: r.mode,
     audience: r.audience,
+    profile: r.customer_profile || "",
     pain: r.pain || "",
     emo: r.emo,
     formality: r.formality,
@@ -101,6 +103,7 @@ function toRow(b) {
     stage: t(b.stage),
     mode: t(b.mode),
     audience: t(b.audience),
+    customer_profile: t(b.profile),
     pain: t(b.pain),
     emo: t(b.emo),
     formality: t(b.formality),

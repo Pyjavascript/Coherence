@@ -131,14 +131,16 @@ export function useBrandWorkspace(setStatus, userId) {
     }
   };
 
+  // Resolves true once the brand is saved, false if it wasn't (the toast says why).
   const save = async () => {
+    const fail = (...args) => { setStatus(...args); return false; };
     if (!brand.name.trim())
-      return setStatus(...toast("saveNoName"));
+      return fail(...toast("saveNoName"));
     if (!isSupabaseConfigured)
-      return setStatus(...toast("saveUnavailable"));
+      return fail(...toast("saveUnavailable"));
     if (!currentId && brands.length >= LIMITS.brands)
-      return setStatus(...toast("saveLimit", { n: LIMITS.brands }));
-    if (saving) return;
+      return fail(...toast("saveLimit", { n: LIMITS.brands }));
+    if (saving) return false;
     setSaving(true);
     try {
       const payload = { ...brand, scope };
@@ -160,6 +162,7 @@ export function useBrandWorkspace(setStatus, userId) {
         for (const k of ["personality", "rules", "voice", "warmth"])
           if (normal(brand[k]) !== normal(DEFAULT_BRAND[k])) kept[k] = brand[k];
       }
+      if (!canSaveGroup("customer") && normal(brand.profile)) kept.profile = brand.profile;
       const dropped = Object.keys(kept).length > 0;
       setBrand((prev) => ({ ...prev, ...saved, ...kept }));
       setSavedSnap(snapshot({ ...DEFAULT_BRAND, ...saved }));
@@ -167,10 +170,11 @@ export function useBrandWorkspace(setStatus, userId) {
       if (pending.length) setNotes(await getResearchNotes(saved.id));
       setFileLabel(saved.name);
       setStatus(...toast(dropped ? "fieldsNotSaved" : "saveSuccess"));
+      return true;
     } catch {
       if (!currentId && brands.length >= LIMITS.brands)
-        return setStatus(...toast("saveLimit", { n: LIMITS.brands }));
-      setStatus(...toast("saveFailed"));
+        return fail(...toast("saveLimit", { n: LIMITS.brands }));
+      return fail(...toast("saveFailed"));
     } finally {
       setSaving(false);
     }

@@ -72,7 +72,7 @@
 
 /* ---------- Title row ---------- */
 #root .bpx .bpx-head {
-  gap: 10px;
+  gap: 4px;
   margin-bottom: var(--bpx-row-gap);
 }
 
@@ -93,7 +93,11 @@
    same glyph size and a 2-unit stroke, so all three lines are the same
    weight. Each keeps a full --ctl-h hit area; hover only dims the glyph. */
 #root .bpx .bpx-head .bpx-head-btn {
-  width: var(--bpx-btn);
+  /* As wide as the glyph plus a little air (full height stays the hit
+     area): a full --ctl-h square each left ~30px of empty space between
+     the download and × glyphs. */
+  --head-glyph: clamp(22px, 1.9vw, 28px);
+  width: calc(var(--head-glyph) + 12px);
   height: var(--bpx-btn);
   flex: none;
   display: grid;
@@ -109,8 +113,13 @@
 }
 
 #root .bpx .bpx-head .bpx-head-btn svg {
-  width: clamp(22px, 1.9vw, 28px);
-  height: clamp(22px, 1.9vw, 28px);
+  width: var(--head-glyph);
+  height: var(--head-glyph);
+}
+
+/* The × glyph's right edge lines up with the fields' right edge below. */
+#root .bpx .bpx-head .bpx-head-btn:last-child {
+  margin-right: -6px;
 }
 
 #root .bpx .bpx-head .bpx-head-btn:not(:disabled):hover {
@@ -587,7 +596,9 @@
    wheel, or the wheel, BrandPanel.jsx). Chosen: the theme colour, like the
    active tab. The row runs to the card's edges so chips scroll under them. */
 #root .bpx .bpx-chips {
-  --chip-h: var(--ctl-h);
+  /* The inputs' height (56px on phones, the app's control height elsewhere),
+     so a chip row lines up with the fields around it. */
+  --chip-h: var(--bp-field-h);
   --chip-gap: 8px;
   /* The chips size from this row's width (cqw), not the window's. */
   container-type: inline-size;
@@ -656,6 +667,18 @@
   outline-offset: 1px;
 }
 
+/* Options in a sideways-scrolling row lead with a small dot (in the chip's
+   text colour, so it turns white on a picked chip). */
+#root .bpx .bpx-chips .bpx-chip::before {
+  content: "";
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
 /* Cold / Neutral / Warm: the labels over a cool-to-warm track, white thumb. */
 #root .bpx .bpx-warmth-scale {
   display: flex;
@@ -715,30 +738,708 @@
   border-radius: 999px;
 }
 
-/* ---------- Customer (not built yet) ---------- */
-#root .bpx .bpx-soon {
-  flex: 1 0 auto;
+/* ---------- Customer tab (CustomerTab.jsx) ----------
+   Free: Client Profile, Desired Emotions, Funnel Stage, in the panel's own
+   style. Premium: Advanced Behaviour and the Pixels Intelligence Layer, two
+   separate solid sections under them (gold only marks Premium). Their
+   controls stay white with the theme green for picks, like the rest. */
+
+/* A label with something on its right (the 2/3 counter). */
+#root .bpx .bpx-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#root .bpx .bpx-label-row .bpx-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#root .bpx .bpx-count {
+  flex: none;
+  margin: 0 2px var(--bpx-label-gap) 0;
+  color: rgb(255 255 255 / 0.6);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Testing switch beside "Client Profile": free plan ↔ Premium. Off: a
+   quiet grey track; on: the Premium gold. Square-ish corners, no pill. */
+#root .bpx .bpx-plan-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 2px var(--bpx-label-gap) 0;
+  padding: 2px 0;
+  color: rgb(255 255 255 / 0.7);
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-plan-toggle.is-on {
+  color: #f0b64a;
+}
+
+#root .bpx .bpx-plan-toggle:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+#root .bpx .bpx-plan-toggle-track {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  flex: none;
+  background: rgb(255 255 255 / 0.22);
+  border-radius: 7px;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-plan-toggle.is-on .bpx-plan-toggle-track {
+  background: #f0b64a;
+}
+
+#root .bpx .bpx-plan-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 5px;
+  transition: translate var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-plan-toggle.is-on .bpx-plan-toggle-knob {
+  translate: 14px 0;
+}
+
+/* One quiet line under a control: what it does. */
+#root .bpx .bpx-hint {
+  margin: 6px 2px 0;
+  color: rgb(255 255 255 / 0.62);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#root .bpx .bpx-hint-tight {
+  margin-top: calc(6px - var(--bpx-gap));
+}
+
+/* Desired Emotions: "+ Your own" leads the row, outlined so it reads as an
+   action, not an option. Past 3 picks the unpicked ones dim. */
+#root .bpx .bpx-chip-add {
+  gap: 6px;
+  color: #fff;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.4) !important;
+}
+
+#root .bpx .bpx-chip-add:not(.is-dim):hover,
+#root .bpx .bpx-chip-add.is-adding {
+  background: rgb(255 255 255 / 0.1);
+}
+
+#root .bpx .bpx-chip-add svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+#root .bpx .bpx-chip.is-dim {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#root .bpx .bpx-chip.is-dim:hover {
+  background: var(--bpx-field);
+}
+
+#root .bpx .bpx-chip-add.is-dim:hover {
+  background: transparent;
+}
+
+/* The Customer tab scrolls inside itself (its Premium sections can open
+   below the fold); the bottom buttons stay put under it. The 2px inline
+   padding keeps focus rings from being clipped at the edges. */
+#root .bpx .bpx-cust {
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0 -2px;
+  padding: 0 2px 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+#root .bpx .bpx-cust::-webkit-scrollbar {
+  display: none;
+}
+
+#root .bpx .bpx-cust > * {
+  flex: none;
+}
+
+/* Funnel stage slider (Figma): a light lavender start fading through
+   white to the panel's dark green, and a white thumb with a teal ring. */
+/* Thumb (Figma): a white disc in a thick dark-teal ring (~12% of its
+   width), no outer edge, about three times the track's height. [data-bp]
+   keeps the short-window rule (.bpx-warmth --thumb: 20px) from shrinking it. */
+#root .app-shell[data-bp] .bpx .bpx-stage {
+  --thumb: calc(var(--ctl-h) * 0.6);
+  --track: calc(var(--thumb) * 0.34);
+  height: var(--thumb);
+}
+
+#root .bpx .bpx-stage::-webkit-slider-runnable-track {
+  height: var(--track);
+  background: linear-gradient(90deg, #cfd1f7 0%, #eef0fb 30%, #f4f6f2 50%, #8fa596 75%, #1f3f2c 100%);
+}
+
+#root .bpx .bpx-stage::-moz-range-track {
+  height: var(--track);
+  background: linear-gradient(90deg, #cfd1f7 0%, #eef0fb 30%, #f4f6f2 50%, #8fa596 75%, #1f3f2c 100%);
+}
+
+#root .bpx .bpx-stage::-webkit-slider-thumb {
+  box-sizing: border-box;
+  margin-top: calc((var(--track) - var(--thumb)) / 2);
+  background: #fff;
+  border: calc(var(--thumb) * 0.12) solid #0b3a36;
+  box-shadow: none;
+}
+
+#root .bpx .bpx-stage::-moz-range-thumb {
+  box-sizing: border-box;
+  background: #fff;
+  border: calc(var(--thumb) * 0.12) solid #0b3a36;
+  box-shadow: none;
+}
+
+/* ---- Premium features (preview only, nothing works yet) ----
+   "Premium features 🔒", then the card from the Figma frame (1570 × 1000):
+   it keeps that shape at any panel width and every size inside it is a
+   share of its width (cqw), so it scales as one piece. A light blue-white
+   top fading to aqua and dark teal, white arcs, four see-through tiles
+   two by two, and the dark Unlock button over the arcs. */
+#root .bpx .bpx-prem-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#root .bpx .bpx-prem-lock {
+  width: 1.05em;
+  height: 1.05em;
+  flex: none;
+}
+
+#root .bpx .bpx-prem-card {
+  position: relative;
+  container-type: inline-size;
+  width: 100%;
+  aspect-ratio: 1570 / 1000;
+  overflow: hidden;
+  /* ~95 of 1570 wide / 1000 tall */
+  border-radius: 6% / 9.5%;
+  background:
+    radial-gradient(55% 45% at 0% 0%, #c9dcf0 0%, rgb(201 220 240 / 0) 100%),
+    linear-gradient(180deg, #d6e4f0 0%, #eaf1f0 16%, #f1f4ee 30%, #bfe4d9 48%, #7ccbbd 64%, #52a99e 78%, #2b6e71 90%, #1f5a60 100%);
+}
+
+#root .bpx .bpx-prem-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 7;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+/* Tiles: 248 tall at 60 / 350, 42 apart; Unlock: 273 tall at 645. */
+#root .bpx .bpx-prem-grid {
+  position: absolute;
+  top: 3.82cqw;
+  left: 3.82cqw;
+  right: 3.95cqw;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.67cqw 2.6cqw;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#root .bpx .bpx-prem-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 15.8cqw;
+  padding: 0 1.5cqw;
+  overflow: hidden;
+  color: #113c49;
+  background: rgb(255 255 255 / 0.22);
+  border-radius: 4.6cqw;
+  font-size: 3.9cqw;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#root .bpx .bpx-prem-unlock {
+  position: absolute;
+  top: 41.1cqw;
+  left: 4.08cqw;
+  right: 4.2cqw;
+  height: 17.4cqw;
+  color: #fff;
+  background: #033a47;
+  border: 0;
+  border-radius: 5.4cqw;
+  font-size: 4.7cqw;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-prem-unlock:hover {
+  background: #0a4655;
+}
+
+#root .bpx .bpx-prem-unlock:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 2px;
+}
+
+/* Client Profile: two lines tall, a fixed size (longer text scrolls). */
+#root .bpx .bp-textarea.bpx-profile {
+  height: calc(var(--bp-field-h) * 1.5);
+  min-height: calc(var(--bp-field-h) * 1.5);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* ---- Premium sections (Advanced Behaviour, Pixels Intelligence Layer) ----
+   A solid card a step lighter than the panel, with a hairline edge. Gold
+   only marks what is Premium: the icon tile, the label and Unlock. */
+#root .bpx .bpx-sect {
+  --sect-bg: #1d4855;
+  --gold: #f0b64a;
+  --gold-hover: #f4c262;
+  --gold-ink: #3d2a07;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--sect-bg);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: var(--bpx-r);
+}
+
+#root .bpx .bpx-sect-head {
+  width: 100%;
+  min-height: var(--bp-field-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px 7px 7px;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-sect-head:hover {
+  background: rgb(255 255 255 / 0.04);
+}
+
+#root .bpx .bpx-sect-head:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: -2px;
+}
+
+#root .bpx .bpx-sect-icon {
+  --tile: calc(var(--bp-field-h) - 14px);
+  width: var(--tile);
+  height: var(--tile);
+  flex: none;
   display: grid;
   place-items: center;
-  padding: 24px 12px;
-  color: rgb(255 255 255 / 0.7);
-  border: 1px dashed rgb(255 255 255 / 0.2);
-  border-radius: var(--ui-r);
-  font-size: 15px;
+  color: var(--gold-ink);
+  background: var(--gold);
+  border-radius: calc(var(--tile) * var(--icon-btn-ratio));
+}
+
+#root .bpx .bpx-sect-icon svg {
+  width: 52%;
+  height: 52%;
+}
+
+#root .bpx .bpx-sect-titles {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#root .bpx .bpx-sect-title,
+#root .bpx .bpx-sect-sub {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#root .bpx .bpx-sect-title {
+  font-size: var(--bpx-text);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+#root .bpx .bpx-sect-sub {
+  color: rgb(255 255 255 / 0.55);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+#root .bpx .bpx-badge {
+  flex: none;
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+#root .bpx .bpx-sect-chev {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: rgb(255 255 255 / 0.6);
+  transition: rotate var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-sect.is-open .bpx-sect-chev {
+  rotate: 180deg;
+}
+
+#root .bpx .bpx-sect-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bpx-gap);
+  padding: 12px;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+  animation: bpx-rise var(--pl-d-2) var(--pl-ease-out) both;
+}
+
+#root .bpx .bpx-sect-note {
+  margin: 0 2px;
+  color: rgb(255 255 255 / 0.6);
+  font-size: 12px;
+}
+
+#root .bpx .bpx-sect-area {
+  position: relative;
+}
+
+#root .bpx .bpx-sect-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bpx-gap);
+}
+
+#root .bpx .bpx-sect-fields > .bp-field {
+  margin: 0;
+}
+
+/* Locked, or not built yet: a dimmed preview (on the free plan a click
+   target on top opens the plans). */
+#root .bpx .bpx-sect-fields.is-preview {
+  opacity: 0.5;
+}
+
+#root .bpx .bpx-sect-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+#root .bpx .bpx-unlock {
+  height: var(--bp-field-h);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--gold-ink);
+  background: var(--gold);
+  border: 0;
+  border-radius: var(--bpx-r);
+  font-size: var(--bpx-text);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out), scale var(--pl-d-1) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-unlock:hover {
+  background: var(--gold-hover);
+}
+
+#root .bpx .bpx-unlock:active {
+  scale: var(--pl-press-scale);
+}
+
+#root .bpx .bpx-unlock:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 2px;
+}
+
+#root .bpx .bpx-unlock-lock {
+  width: 16px;
+  height: 16px;
+}
+
+/* Segmented options (Everyday | Professional | Expert, CTA strength): the
+   tab strip's shape, the pick green like a chosen chip. */
+#root .bpx .bpx-seg {
+  box-sizing: border-box;
+  height: var(--bp-field-h);
+  display: grid;
+  grid-template-columns: repeat(var(--seg-n, 3), minmax(0, 1fr));
+  gap: 4px;
+  padding: var(--bpx-tab-inset);
+  background: var(--bpx-field);
+  border-radius: var(--bpx-r);
+}
+
+#root .bpx .bpx-seg-btn {
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px;
+  overflow: hidden;
+  color: var(--bpx-ink);
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--bpx-r) - var(--bpx-tab-inset));
+  font-size: var(--bpx-field-text);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out), color var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-seg-btn:not(.is-on):hover {
+  background: var(--shell-tint);
+}
+
+#root .bpx .bpx-seg-btn.is-on {
+  color: #fff;
+  background: var(--shell-green);
+  font-weight: 600;
+}
+
+#root .bpx .bpx-seg-btn:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 1px;
+}
+
+/* Research Notes: a field-like row that opens the notes; green "+" tile. */
+#root .bpx .bpx-rowbtn {
+  --tile: calc(var(--bp-field-h) - 12px);
+  width: 100%;
+  height: var(--bp-field-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px 0 16px;
+  color: var(--bpx-ink);
+  background: var(--bpx-field);
+  border: 0;
+  border-radius: var(--bpx-r);
+  font-size: var(--bpx-field-text);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--pl-d-2) var(--pl-ease-out);
+}
+
+#root .bpx .bpx-rowbtn:hover {
+  background: var(--bpx-field-hover);
+}
+
+#root .bpx .bpx-rowbtn:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 1px;
+}
+
+#root .bpx .bpx-rowbtn-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#root .bpx .bpx-rowbtn-text.is-empty {
+  color: rgb(17 60 73 / 0.6);
+  font-weight: 400;
+}
+
+#root .bpx .bpx-rowbtn-icon {
+  width: var(--tile);
+  height: var(--tile);
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--shell-green);
+  border-radius: calc(var(--tile) * var(--icon-btn-ratio));
+}
+
+#root .bpx .bpx-rowbtn-icon svg {
+  width: 48%;
+  height: 48%;
+}
+
+/* ---- Pixels Intelligence Layer: its contents ---- */
+#root .bpx .bpx-drop {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 16px 10px;
+  color: #fff;
+  border: 1.5px dashed rgb(255 255 255 / 0.3);
+  border-radius: var(--bpx-r);
   text-align: center;
 }
 
-#root .bpx .bpx-soon p {
+#root .bpx .bpx-drop-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  color: var(--bpx-ink);
+  background: var(--bpx-field);
+  border-radius: calc(32px * var(--icon-btn-ratio));
+}
+
+#root .bpx .bpx-drop-icon svg {
+  width: 50%;
+  height: 50%;
+}
+
+#root .bpx .bpx-drop-text {
+  font-size: var(--bpx-field-text);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+#root .bpx .bpx-drop-types {
+  color: rgb(255 255 255 / 0.55);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+#root .bpx .bpx-insights-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#root .bpx .bpx-insight {
+  height: var(--bp-field-h);
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px 0 14px;
+  color: var(--bpx-ink);
+  background: var(--bpx-field);
+  border-radius: var(--bpx-r);
+  font-size: var(--bpx-field-text);
+  font-weight: 500;
+}
+
+#root .bpx .bpx-insight > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Include / leave out: a small switch. */
+#root .bpx .bpx-switch {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  flex: none;
+  background: #d5dbe6;
+  border-radius: 6px;
+}
+
+#root .bpx .bpx-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+#root .bpx .bpx-fill {
+  height: var(--bp-field-h);
+  color: var(--bpx-ink);
+  background: var(--bpx-surface);
+  border: 0;
+  border-radius: var(--bpx-r);
+  font-size: var(--bpx-text);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* ---------- Phones ---------- */
 /* The drawer already has the app's 15px phone frame (.rsb, layout.css), so
    the content takes no second inset on top of it: title, tabs and card sit
    on that edge, and the fields keep only the card's own padding. */
+/* 4px each side, cancelled by the negative margin so the fields keep their
+   width and line: room for the 3px focus ring, which the scroller's
+   overflow would otherwise cut off at both edges. */
 #root .app-shell[data-bp="mobile"] .rsb-scroll.bpx {
-  padding-left: 0;
-  padding-right: 0;
+  margin-left: -4px;
+  margin-right: -4px;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 #root .app-shell[data-bp="mobile"] .bpx {
@@ -863,4 +1564,110 @@
   #root .bpx .bpx-pillar-editor {
     animation: none;
   }
+}
+
+/* ---------- Phones: room to breathe, the panel scrolls ----------------------
+   On a phone the panel no longer squeezes itself to fit the screen (the
+   short-window rules above took text to 13px and gaps to 8px). Instead:
+   16px text in every field (also stops iOS zooming in on focus), 15px
+   labels, clear gaps (10px label → field, 22px between fields), tall boxes
+   that hold four lines, and the whole panel scrolls. Copy AI Prompt /
+   regenerate / save stay pinned to the bottom over a soft fade. */
+#root .app-shell[data-bp="mobile"] .rsb .bpx {
+  /* Type as on desktop (a ~400px panel there, ~370px here): tabs, labels and
+     buttons 16px, field text a step below at 14px, so the label leads and
+     the field text sits quietly in its box. iOS would zoom into a field
+     under 16px; index.html stops that. */
+  --bpx-text: 16px;
+  --bpx-label-text: 16px;
+  --bpx-field-text: 14px;
+  --bpx-gap: 24px;
+  --bpx-label-gap: 10px;
+  --bpx-row-gap: 18px;
+  --bpx-pillar-gap: 10px;
+  /* Roomier fields than the app's 48px phone controls: one-line fields,
+     dropdowns and the tabs are 56px (their corners scale with it,
+     squircle.css), the tall boxes and pillars 144px. */
+  --bp-field-h: 56px;
+  --bpx-tall-h: 144px;
+  --ph-panel: #113c49;
+  padding-top: 12px;
+  padding-bottom: 0;
+}
+
+:root[data-theme="dark"] #root .app-shell[data-bp="mobile"] .rsb .bpx {
+  --ph-panel: var(--dk-panel);
+}
+
+#root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-head h2 {
+  font-size: 26px;
+}
+
+#root .app-shell[data-bp="mobile"] .rsb .bpx :is(.bpx-body, .bpx-card, .bpx-card > .bpx-flex) {
+  flex: none;
+}
+
+/* The Customer tab scrolled inside itself; here the panel scrolls. */
+#root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-cust {
+  flex: none;
+  min-height: 0;
+  overflow: visible;
+}
+
+#root .app-shell[data-bp="mobile"] .rsb .bpx .bp-textarea.bpx-tall {
+  flex: none;
+  height: var(--bpx-tall-h);
+  min-height: var(--bpx-tall-h);
+  padding-top: 18px;
+  padding-bottom: 18px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+#root .app-shell[data-bp="mobile"] .rsb .bpx :is(.bp-input, .bp-dd-trigger, .bp-textarea) {
+  font-size: var(--bpx-field-text);
+  padding-left: 20px;
+}
+
+#root .app-shell[data-bp="mobile"] .rsb .bpx :is(.bp-dd-trigger, .bp-textarea) {
+  padding-right: 20px;
+}
+
+#root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-pillars {
+  flex: none;
+  height: var(--bpx-tall-h);
+  min-height: var(--bpx-tall-h);
+}
+
+#root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-pillar-body {
+  gap: 6px;
+  padding: 12px 8px;
+}
+
+#root .app-shell[data-bp="mobile"] .rsb .bpx :is(.bpx-pillar-title, .bpx-pillar-add) {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+#root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-pillar-text {
+  font-size: 13px;
+  line-height: 1.35;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  max-height: calc(3 * 1.35em);
+}
+
+#root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-warmth-scale {
+  font-size: 14px;
+}
+
+/* Pinned to the bottom on a solid band of the panel's colour (no fade): the
+   fields scroll away under a clean edge, 16px above the buttons. */
+#root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 8px -4px 0;
+  padding: 16px 4px max(12px, env(safe-area-inset-bottom));
+  background: var(--ph-panel);
 }

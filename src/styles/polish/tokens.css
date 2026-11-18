@@ -47,6 +47,16 @@
   --pl-focus-ring: 0 0 0 3px var(--focus-ring, #bfe9dc);
   --pl-inset-hi: inset 0 1px 0 rgb(255 255 255 / .55); /* top highlight on solid buttons */
 
+  /* Gap between a card's heading box and its description box (Quick Grid
+     cards and Node Studio nodes, layout.css .ncard-split / studio-card.css
+     .sn-card-split). Laptops and tablets; phones keep the card's own gap. */
+  --copy-box-gap: 8px;
+  /* Corners of those two boxes, measured from the design (a ~380px card):
+     the short heading box is tighter, the tall description box rounder.
+     Laptops and tablets; phones keep their radius ladder (squircle.css). */
+  --copy-head-r: 17px;
+  --copy-desc-r: 27px;
+
   /* One radius for every corner in the app: 20px on phones, growing to 34px on wide screens.
      Every other radius token below points at it. */
   --ui-r: clamp(20px, 8px + 1.6vw, 34px);

@@ -113,25 +113,36 @@
   box-shadow: 0 24px 70px rgb(4 22 28 / 0.35);
 }
 
-/* Top row: "CCO" on the left, the Beta badge on the right. */
+/* Top row: "CCO" and the step's tag side by side, centred, 5px apart
+   (4px on phones). */
 .tc-head {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 5px;
   /* Scales with the card, but never below a readable 12px on phones. */
   font-size: max(12px, calc(16 * var(--u)));
   font-weight: 600;
   line-height: 1;
 }
 
+@media (max-width: 767.98px) {
+  .tc-head {
+    gap: 4px;
+  }
+}
+
+/* A soft rounded rectangle, not a pill: corners about a third of its
+   height (padding and corner in em, so it keeps that shape at any size). */
 .tc-badge {
-  padding: calc(6 * var(--u)) calc(12 * var(--u));
-  color: #6b7378;
+  padding: 0.5em 0.85em;
+  color: #4b5358;
   background: #eceef0;
-  border-radius: var(--ui-r);
+  border-radius: 0.65em;
   font-size: max(10px, calc(14 * var(--u)));
   font-weight: 500;
+  white-space: nowrap;
 }
 
 /* The heading sits 50 above the illustration; the room left above it is
@@ -146,7 +157,6 @@
 
 .tc-titles h2 {
   grid-area: 1 / 1;
-  max-width: calc(580 * var(--u));
   margin: 0 auto;
   color: inherit;
   font-family: inherit;
@@ -155,7 +165,6 @@
   line-height: 1.1;
   letter-spacing: -0.025em;
   text-align: center;
-  text-wrap: balance;
   /* Leaving: the old heading softens out of focus and fades, in place. */
   opacity: 0;
   filter: blur(calc(6 * var(--u)));
@@ -166,6 +175,12 @@
   opacity: 1;
   filter: none;
   transition: none;
+}
+
+/* The design's line breaks, exactly: one line each, never re-wrapped. */
+.tc-line {
+  display: block;
+  white-space: nowrap;
 }
 
 /* Arriving: word by word, each rising a little and coming into focus,
@@ -249,5 +264,57 @@
     filter: none;
     transform: none;
     transition: opacity 1ms;
+  }
+}
+
+/* ---------- Phones ---------------------------------------------------------- */
+/* The step icons at the app's control size (48px, 16px corner, the bottom
+   row's "?" and PRO), glyphs scaled from the design's 75px tiles. The card
+   is as tall as its content, one 16px inset all round and one 20px gap
+   between the tag row, the heading and the image, everything centred. The
+   image's corner sits 16px inside the card's (16 + 16 = 32). */
+@media (max-width: 767.98px) {
+  .tc {
+    gap: 16px;
+  }
+
+  .tc-steps {
+    gap: 10px;
+  }
+
+  .tc-step {
+    --sz: 48px;
+    border-width: 3px;
+  }
+
+  html body #root .tc .tc-steps .tc-step {
+    border-radius: 16px !important;
+  }
+
+  .tc-step svg {
+    width: calc(var(--ic-w, 30) * 48px / 75);
+    height: calc(var(--ic-h, 30) * 48px / 75);
+  }
+
+  .tc-card {
+    height: auto;
+    align-items: center;
+    gap: 20px;
+    padding: 16px;
+    border-radius: 32px;
+  }
+
+  .tc-head,
+  .tc-titles {
+    width: 100%;
+  }
+
+  .tc-titles {
+    flex: none;
+    margin-bottom: 0;
+  }
+
+  .tc-art {
+    --ui-r: 16px;
   }
 }

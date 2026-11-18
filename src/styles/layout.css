@@ -176,6 +176,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 1em;
   color: #fff;
   font-size: 12px;
   font-weight: 500;
@@ -183,6 +184,14 @@ body {
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
+}
+
+/* The Pixels mark before the credit, a little taller than the text and
+   scaling with it on every breakpoint. */
+.shell-credit-mark {
+  flex: none;
+  width: 1.3em;
+  height: 1.3em;
 }
 
 /* Laptops: a slightly taller band, so the line has air around it (the top
@@ -538,6 +547,36 @@ body {
   font-weight: 600;
 }
 
+/* Collapsed rail: the row is only as wide as the logo, so the white row
+   behind it can't show. The selected brand wears a green ring instead, with
+   a gap of the rail's colour, its logo drawn a little smaller inside it
+   (corner kept parallel). Drawn inside the row, which clips its overflow. */
+.lnav[data-open="false"] .lnav-item {
+  --lnav-ring: 2px;
+  --lnav-ring-gap: 3px;
+}
+
+/* #root .app + !important: the app's "no shadows" reset (#root .app * {
+   box-shadow: none !important }) would remove the ring otherwise. */
+#root .app .lnav[data-open="false"] .lnav-item.is-active {
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--lnav-ring) var(--shell-green) !important;
+}
+
+.lnav[data-open="false"] .lnav-item .lnav-avatar {
+  transition:
+    width var(--pl-d-2, 180ms) var(--pl-ease-out, ease-out),
+    height var(--pl-d-2, 180ms) var(--pl-ease-out, ease-out),
+    border-radius var(--pl-d-2, 180ms) var(--pl-ease-out, ease-out);
+}
+
+.lnav[data-open="false"] .lnav-item.is-active .lnav-avatar {
+  --inset: calc(var(--lnav-ring) + var(--lnav-ring-gap));
+  width: calc(var(--ui-icon) - 2 * var(--inset));
+  height: calc(var(--ui-icon) - 2 * var(--inset));
+  border-radius: max(4px, calc(var(--ws-switch-r) - var(--inset)));
+}
+
 .lnav-avatar {
   width: var(--ui-icon);
   height: var(--ui-icon);
@@ -758,7 +797,7 @@ body {
 /* Desktop: a floating card inset --gap inside the workspace's right edge, over
    the grid / canvas and the toolbar's end. The workspace keeps its full width
    underneath. */
-.app-shell[data-bp="desktop"] .rsb {
+.app-shell:not([data-bp="mobile"]) .rsb {
   top: var(--gap);
   bottom: var(--gap);
   left: auto;
@@ -768,13 +807,14 @@ body {
     0 10px 28px rgba(17, 60, 73, 0.2);
 }
 
-/* Tablet + mobile: right drawer over the workspace. */
-.app-shell:not([data-bp="desktop"]) .shell-right {
+/* Mobile: the right panel is a drawer over the workspace (tablets and
+   laptops open it as a column of the frame: workspace-theme.css). */
+.app-shell[data-bp="mobile"] .shell-right {
   position: static;
   width: 0;
 }
 
-.app-shell:not([data-bp="desktop"]) .rsb {
+.app-shell[data-bp="mobile"] .rsb {
   position: fixed;
   z-index: 50;
   top: var(--gap);
@@ -861,7 +901,7 @@ body {
   font-size: 14px;
 }
 
-.app-shell:not([data-bp="desktop"])[data-right="open"] .rsb {
+.app-shell[data-bp="mobile"][data-right="open"] .rsb {
   transform: none;
 }
 
@@ -2173,8 +2213,7 @@ body {
   /* The cards end one grid gap above the Generate tray (--tray-bottom,
      composer.css; --tray-h, MainWorkspace.jsx), so it never covers them.
      QuickGrid.jsx reads this padding when it fits the rows to the screen.
-     --qg-pb / --qg-pr: the bottom / right padding, also used to place the
-     strip's arrows (workspace-theme.css .qg-arrow). */
+     --qg-pb / --qg-pr: the bottom / right padding. */
   --qg-pb: calc(var(--tray-bottom, 22px) + var(--tray-h, 0px) + clamp(10px, 1.6cqw, 18px));
   padding: 0 clamp(12px, 1.6vw, 24px) var(--qg-pb);
   background-image: radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px);
@@ -2190,7 +2229,7 @@ body {
    so the grid keeps that strip clear and its cards narrow to fit beside it
    (same column count; QuickGrid.jsx re-measures on the resize). Opening, the
    cards make room on the panel's own timing. */
-.app-shell[data-bp="desktop"][data-right="open"] .qg {
+.app-shell:not([data-bp="mobile"])[data-right="open"] .qg {
   --qg-pr: calc(var(--rsb-w) + var(--gap) + var(--ws-gutter));
   padding-right: var(--qg-pr);
   transition: padding-right var(--pl-panel-open) var(--pl-panel-ease);
@@ -2560,6 +2599,22 @@ body {
   min-width: 0;
 }
 
+/* Nothing to flag: no empty bar at the box's foot. */
+.ncard-body .ncard-box-foot:empty {
+  display: none;
+}
+
+/* The card's bottom row, after everything else: Copy | regenerate, Generate,
+   Node Studio's own buttons and sizes (studio-card.css .sn-card-foot: light
+   Copy, light regenerate tile, green arrow). margin-top: auto keeps it on
+   the card's bottom edge when the copy is short. */
+.ncard > .ncard-foot {
+  --snc-btn: 36px;
+  --snc-cta: 44px;
+  flex: none;
+  margin-top: auto;
+}
+
 /* Copy: Node Studio's button (.sn-card-copy, studio-card.css: size, corner,
    type, "✓ Copied" on click) in the theme green with white text. Hover
    deepens the green; a press shrinks it a touch, like the other buttons. */
@@ -2632,6 +2687,90 @@ body {
 
 .ncard-skel.w70 { width: 70%; }
 .ncard-skel.w40 { width: 40%; }
+
+/* ---------- Heading + description: two boxes (NodeContent.jsx SplitContent) */
+/* For media whose copy has a heading and a description. The heading's box
+   hugs its text; the description's box takes the rest of the card, its word
+   count at the bottom-left. The gap is the card's own (inherited). */
+.ncard-split {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  /* radius.css gives .ncard-body `border-radius: inherit`: pass the card's
+     corner through, so both boxes match the card as the single box did. */
+  border-radius: inherit;
+}
+
+/* Laptops and tablets: the gap is --copy-box-gap, the corners --copy-head-r
+   and --copy-desc-r (tokens.css), as in the design. */
+.app-shell:not([data-bp="mobile"]) .ncard-split {
+  gap: var(--copy-box-gap, 10px);
+}
+
+.app-shell:not([data-bp="mobile"]) .ncard-split > .ncard-body-head {
+  border-radius: var(--copy-head-r, 17px);
+}
+
+.app-shell:not([data-bp="mobile"]) .ncard-split > .ncard-body-desc {
+  border-radius: var(--copy-desc-r, 27px);
+}
+
+/* Even padding: the top and bottom match the sides (grid.css sets the box's
+   padding from these two). The Copy row's sticky offsets follow it. */
+.ncard-split > .ncard-body {
+  --ncard-pad-y: var(--ncard-pad-x);
+}
+
+/* The text's own line spacing would add to the top and bottom: trim the
+   first line to its capitals and the last to its baseline, so the visible
+   gap above and below the text equals the gap at its sides. The editable
+   line's 2px hover padding is cancelled the same way. */
+.ncard-split :is(.ncard-headline, .ncard-sub, .ncard-words) {
+  text-box: trim-both cap alphabetic;
+}
+
+.ncard-split .ncard-copy .is-editable {
+  margin-block: -2px;
+}
+
+.ncard-split > .ncard-body-head {
+  flex: 0 1 auto;
+  max-height: 45%;
+}
+
+.ncard-split > .ncard-body-desc {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+/* The description has no heading above it in its own box. */
+#root .app .ncard-body-desc .ncard-sub {
+  margin-top: 0 !important;
+}
+
+.ncard-body-head .ncard-skel {
+  height: clamp(18px, calc(var(--pl-u, 6px) * 6), 28px);
+  margin-bottom: 0;
+}
+
+/* Target (or used / target) words, small and quiet, at the box's bottom-left. */
+.ncard-words {
+  flex: none;
+  margin-top: auto;
+  padding-top: 10px;
+  color: var(--shell-muted);
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.6;
+  user-select: none;
+}
+
+.ncard-words + .ncard-box-foot {
+  margin-top: 0;
+}
 
 .ncard-body.is-error {
   display: flex;

@@ -20,11 +20,10 @@ html body #root :is(
   .sn-card-btn,
   .sn-card-go,
 
-  /* Quick Grid: header tiles, variant tiles, the phone carousel arrows. */
+  /* Quick Grid: header tiles, variant tiles. */
   .ncard-action,
   .ncard-sheet-trigger,
   .ncard-vtab,
-  .qg-arrow,
 
   /* Brand panel: the regenerate / save tiles, the pillar tick, the logo
      button. */
@@ -64,8 +63,14 @@ html body #root .bpx .bpx-btn:not(.bpx-icon) {
    than a bigger one, so every box in the panel has one corner. Anything
    nested inside a box (a tab in the strip, an option in the menu) takes
    that corner minus its inset, so the curves run parallel. */
+/* Corners measured off the brand panel design (each as a share of the
+   control height): fields 0.42, pillar cards 0.48, the tab strip 0.36 of
+   its height and the active tab 0.46 of its own. Buttons stay at 0.35. */
 html body #root .bpx {
-  --bpx-r: calc(var(--bp-field-h) * var(--icon-btn-ratio));
+  --bpx-r: calc(var(--bp-field-h) * 0.42);
+  --bpx-pillar-r: calc(var(--bp-field-h) * 0.48);
+  --bpx-tabs-r: calc(var(--bp-field-h) * 0.36);
+  --bpx-tab-r: calc((var(--bp-field-h) - 2 * var(--bpx-tab-inset)) * 0.46);
 }
 
 html body #root .bpx :is(
@@ -74,15 +79,21 @@ html body #root .bpx :is(
   .bp-dd-trigger,
   .bp-dd-menu,
   .bpx-chip,
-  .bpx-tabs,
-  .bpx-pillar,
   .bpx-soon
 ) {
   border-radius: var(--bpx-r) !important;
 }
 
+html body #root .bpx .bpx-pillar {
+  border-radius: var(--bpx-pillar-r) !important;
+}
+
+html body #root .bpx .bpx-tabs {
+  border-radius: var(--bpx-tabs-r) !important;
+}
+
 html body #root .bpx .bpx-tab {
-  border-radius: calc(var(--bpx-r) - var(--bpx-tab-inset)) !important;
+  border-radius: var(--bpx-tab-r) !important;
 }
 
 /* Options sit 7px inside the menu (.bp-dd-menu padding). */
@@ -155,4 +166,137 @@ html body #root .ws-topbar .toolbar-add-spark i::before {
 html body #root .ws-topbar .toolbar-add-spark i::after {
   width: var(--spark-line);
   height: var(--spark-bar);
+}
+
+/* ==========================================================================
+   Phones: one size-and-corner ladder, each step derived from the one above,
+   so nested curves run parallel (outer corner = inner corner + inset).
+
+     frame (.workspace)        28px = bar box 16 + the 12px gutter
+     card (.ncard)             22px = card button 12 + its 10px inset
+     bar boxes, PRO, message
+       box, "?" (48px)         16px = 1/3 of the height
+     card buttons, send arrow
+       (40px)                  12px = 16 - the message box's 4px inset
+     pager backing (24px)       8px = 1/3 of its height
+     pager dots (6px)           2px
+
+   Under 360px the bar is 44px, and the bar's corners follow (1/3 of it).
+   ========================================================================== */
+html body #root .app-shell[data-bp="mobile"] {
+  --ph-r: calc(var(--tb-h) / 3);
+  --ph-sub: 40px;
+  --ph-sub-r: calc(var(--ph-r) - 4px);
+  --ph-card-r: calc(var(--ph-sub-r) + 10px);
+  --ph-frame-r: calc(var(--ph-r) + 12px);
+}
+
+/* Frame */
+html body #root .app-shell[data-bp="mobile"] .workspace {
+  border-radius: var(--ph-frame-r) !important;
+}
+
+/* Top bar: logo, Add, model picker, menu: one corner. The logo is an SVG
+   tile on a 50-unit viewBox, so its rx is the same share of 50. */
+html body #root .app-shell[data-bp="mobile"] .ws-topbar :is(
+  .toolbar-logo,
+  .toolbar-add-node,
+  .model-selector-trigger,
+  .toolbar-icon-btn
+) {
+  border-radius: var(--ph-r) !important;
+}
+
+html body #root .app-shell[data-bp="mobile"] .ws-topbar .toolbar-logo-tile {
+  rx: calc(50px / 3);
+}
+
+/* Bottom row: PRO, the message box and "?" match the top bar. */
+html body #root .app-shell[data-bp="mobile"] :is(.plan-pro, .composer, .tour-launch) {
+  border-radius: var(--ph-r) !important;
+}
+
+/* The send arrow, inset 4px in the message box. */
+html body #root .app-shell[data-bp="mobile"] .ws-tray .composer .composer-send {
+  border-radius: var(--ph-sub-r) !important;
+}
+
+/* Cards: the card, then its copy panel and every button inside at one step
+   down (40px, the send arrow's size and corner). */
+html body #root .app-shell[data-bp="mobile"] .ncard {
+  border-radius: var(--ph-card-r) !important;
+}
+
+html body #root .app-shell[data-bp="mobile"] .ncard .ncard-body {
+  border-radius: var(--ph-sub-r) !important;
+}
+
+html body #root .app-shell[data-bp="mobile"] .ncard .ncard-action {
+  --ncard-act: var(--ph-sub);
+}
+
+html body #root .app-shell[data-bp="mobile"] .ncard .ncard-sheet-trigger {
+  --sz: var(--ph-sub);
+}
+
+html body #root .app-shell[data-bp="mobile"] .ncard :is(.ncard-foot, .ncard-box-foot) {
+  --snc-cta: var(--ph-sub);
+}
+
+html body #root .app-shell[data-bp="mobile"] .ncard :is(
+  .ncard-action,
+  .ncard-sheet-trigger,
+  .sn-card-copy,
+  .sn-card-btn,
+  .sn-card-go
+) {
+  border-radius: var(--ph-sub-r) !important;
+}
+
+/* Pager: the smallest step, so it reads as a hint under the cards rather
+   than a control as big as the ones around it. */
+html body #root .app-shell[data-bp="mobile"] .qg-pager {
+  --dot: 6px;
+  --pager-pad-y: 8px;
+}
+
+html body #root .app-shell[data-bp="mobile"] .qg-pager-dots {
+  gap: 8px;
+  padding: var(--pager-pad-y) 14px;
+  border-radius: calc((var(--dot) + 2 * var(--pager-pad-y) + 2px) / 3) !important;
+}
+
+html body #root .app-shell[data-bp="mobile"] .qg-pager-dot {
+  border-radius: calc(var(--dot) / 3) !important;
+}
+
+html body #root .app-shell[data-bp="mobile"] .qg-pager-dot[aria-current] {
+  width: calc(var(--dot) * 4);
+}
+
+/* Card header: the pencil and ✕ are supporting actions, so they take a
+   step below the card's main buttons (32px, 10px corner) and leave Copy /
+   regenerate / the green arrow as the card's 40px CTAs. */
+html body #root .app-shell[data-bp="mobile"] .ncard-head .ncard-action {
+  --ncard-act: 32px;
+}
+
+html body #root .app-shell[data-bp="mobile"] .ncard-head .ncard-sheet-trigger {
+  --sz: 32px;
+}
+
+html body #root .app-shell[data-bp="mobile"] .ncard-head :is(.ncard-action, .ncard-sheet-trigger) {
+  border-radius: 10px !important;
+}
+
+html body #root .app-shell[data-bp="mobile"] .ncard-head :is(.ncard-action, .ncard-sheet-trigger) svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Pager: centred in the gap between the cards and the bottom row (it sat
+   18px under the cards but 12px over the message box). */
+html body #root .app-shell[data-bp="mobile"] .qg-pager {
+  padding-top: 11px;
+  padding-bottom: 5px;
 }

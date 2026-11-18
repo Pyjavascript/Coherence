@@ -138,14 +138,7 @@ export default function App() {
     if (ws.brand.message?.trim()) setMessageFlagged(false);
   }, [ws.brand.message]);
 
-  // Whether the Quick Grid's copy was made for the brand that's open now. The
-  // grid keeps its cards when another brand is picked, so Export (brand
-  // panel) shows only once this brand has generated (or restored) copy, and
-  // hides again when the brand changes.
-  const [gridCopyIsCurrent, setGridCopyIsCurrent] = useState(false);
-
-  const handleGenerated = useCallback((event) => {
-    if (event?.type === "quick") setGridCopyIsCurrent(true);
+  const handleGenerated = useCallback(() => {
     refreshUsage();
   }, [refreshUsage]);
 
@@ -201,6 +194,31 @@ export default function App() {
     }
   };
 
+  // Each saved brand keeps its own Quick Grid and Node Studio canvas for the
+  // session: leaving a brand stores both, opening one puts its own back (or
+  // the starter grid and nodes if it has none yet). An unsaved brand's canvas
+  // is dropped with it, like its unsaved history.
+  const canvasesRef = useRef(new Map());
+  const swapCanvas = (fromId, toId) => {
+    if (fromId) {
+      canvasesRef.current.set(fromId, { quick: quick.snapshot(), nodes: nodeStudioRef.current?.snapshot() });
+    }
+    const saved = toId ? canvasesRef.current.get(toId) : null;
+    quick.load(saved?.quick);
+    nodeStudioRef.current?.load(saved?.nodes);
+  };
+
+  // Signing out or switching accounts clears every brand's canvas.
+  const prevUserRef = useRef(user?.id);
+  useEffect(() => {
+    const prev = prevUserRef.current;
+    prevUserRef.current = user?.id;
+    if (!prev || prev === user?.id) return;
+    canvasesRef.current.clear();
+    quick.load(null);
+    nodeStudioRef.current?.load(null);
+  }, [user?.id]);
+
   const handleAddNode = (type) => {
     if (layout.view === "quick") quick.add(type);
     else nodeStudioRef.current?.addNode(type);
@@ -223,8 +241,8 @@ export default function App() {
 
   const handleNewBrand = (scope = "regular") => {
     guardUnsaved(() => {
+      swapCanvas(ws.currentId, null);
       ws.newBrand(scope);
-      setGridCopyIsCurrent(false);
       layout.open("right");
     });
   };
@@ -232,8 +250,8 @@ export default function App() {
   const handleSelectBrand = (id) => {
     if (id === ws.currentId) return layout.open("right");
     guardUnsaved(async () => {
+      swapCanvas(ws.currentId, id);
       await ws.selectBrand(id);
-      setGridCopyIsCurrent(false);
       layout.open("right");
     });
   };
@@ -311,6 +329,21 @@ export default function App() {
   const triggerGenerate = () => {
     if (atGenLimit) return setStatus("Daily generation limit reached.", "warn");
     if (!isGeneratingAll && !quick.busy) requireLogin(handleGenerate)();
+  };
+
+  // The brand panel's arrow: saves the brand first when it has unsaved
+  // changes (or was never saved), then writes the copy straight away. If the
+  // save doesn't go through (no name, brand limit, ...), nothing generates
+  // and the save's own message explains why.
+  const saveAndGenerate = async () => {
+    if (ws.saving || isGeneratingAll || quick.busy) return;
+    if (ws.dirty || !ws.currentId) {
+      const saved = await ws.save();
+      refreshUsage();
+      if (!saved) return;
+    }
+    if (atGenLimit) return setStatus("Brand saved. Daily generation limit reached.", "warn");
+    await handleGenerate();
   };
 
   // Keyboard shortcuts: Ctrl/⌘+Enter generates, Ctrl/⌘+S saves the brand.
@@ -450,7 +483,7 @@ export default function App() {
               navOpen={layout.leftOpen}
               onToggleNav={() => layout.toggle("left")}
               panelOpen={layout.rightOpen}
-              hidePanelToggle={layout.inline && layout.rightOpen}
+              hidePanelToggle={layout.rightInline && layout.rightOpen}
               onTogglePanel={() => layout.toggle("right")}
             />
           }
@@ -463,20 +496,30 @@ export default function App() {
             generating={isGeneratingAll || quick.busy}
             atGenLimit={atGenLimit}
             focusRequest={panelFocus}
-            canExport={quick.hasCopy && gridCopyIsCurrent}
+            canExport={quick.hasCopy}
             onDownload={() => handleExport("txt")}
-            onSave={requireLogin(handleSaveBrand)}
+            onSave={requireLogin(saveAndGenerate)}
             onRegenerate={triggerGenerate}
             onCopyPrompt={() => setModal("coherence")}
             onStatus={setStatus}
             onClose={() => layout.close("right")}
+            premium={premium}
+            onPremiumToggle={setPremium}
+            onUpgrade={() => setShowPlans(true)}
+            notesCount={ws.notes.length}
+            onOpenNotes={() => setModal("research")}
           />
         </RightSidebar>
 
         <div className="shell-scrim" data-visible={Boolean(layout.drawer)} onClick={layout.closeDrawer} aria-hidden="true" />
 
         {/* Sits in the navy band under the workspace (layout.css). */}
-        <p className="shell-credit">Built by Pixels Creative Technologies</p>
+        <p className="shell-credit">
+          <svg className="shell-credit-mark" viewBox="3.5 0 21.15 21" fill="#fff" aria-hidden="true">
+            <path d="M15.578 6v3h-3.002V6zM15.578 12v3h-3.002v-3zM24.648 12v3h-3.002v-3zM3.508 12v3h3.002v-3zM15.602 0v3h3.002V0zM12.555 0v3H9.552V0zM18.604 12h-3.002V9h3.002zM21.628 18h-3.003v-3h3.003zM6.529 18h3.002v-3H6.529zM18.622 5.988h3.003v-3h-3.003zM9.542 5.988H6.539v-3h3.003zM18.604 21h-3.002v-3h3.002zM9.552 21h3.003v-3H9.552zM21.646 9h3.002V6h-3.002zM6.51 9H3.508V6H6.51zM12.557 12H9.555V9h3.002z" />
+          </svg>
+          Built by Pixels Creative Technologies
+        </p>
       </div>
 
       {showTour && (

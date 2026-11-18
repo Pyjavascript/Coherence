@@ -22,12 +22,13 @@
 
 /* The floating brand panel open (desktop): the right side keeps clear of it,
    its right edge on the cards' right edge. */
-.app-shell[data-bp="desktop"][data-right="open"] .ws-stage {
+.app-shell:not([data-bp="mobile"])[data-right="open"] .ws-stage {
   --tray-right: calc(var(--rsb-w) + var(--gap) + var(--ws-gutter));
 }
 
 .ws-tray,
-.ws-tray-start {
+.ws-tray-start,
+.ws-tray-end {
   position: absolute;
   z-index: 16;
   bottom: var(--tray-bottom);
@@ -37,7 +38,7 @@
   pointer-events: none;
 }
 
-/* "Pro" and the "?": in line with the toolbar's left edge, centred on the
+/* "Pro": in line with the toolbar's left edge, centred on the
    same line as the tray (which is Generate's height). */
 .ws-tray-start {
   left: var(--tray-left);
@@ -50,24 +51,44 @@
   transition: right var(--pl-panel-close) var(--pl-panel-ease);
 }
 
-.app-shell[data-bp="desktop"][data-right="open"] .ws-tray {
+.app-shell:not([data-bp="mobile"])[data-right="open"] .ws-tray {
+  transition: right var(--pl-panel-open) var(--pl-panel-ease);
+}
+
+/* The tour "?": the bottom-right corner, on the row's line. Moves in step
+   with the brand panel, like the tray. */
+.ws-tray-end {
+  right: var(--tray-right);
+  height: var(--tray-h, auto);
+  transition: right var(--pl-panel-close) var(--pl-panel-ease);
+}
+
+.app-shell:not([data-bp="mobile"])[data-right="open"] .ws-tray-end {
   transition: right var(--pl-panel-open) var(--pl-panel-ease);
 }
 
 .ws-tray > *,
-.ws-tray-start > * {
+.ws-tray-start > *,
+.ws-tray-end > * {
   pointer-events: auto;
 }
 
-/* The "?" sits in the left group, after "Pro", instead of floating in the
-   corner. */
-.ws-stage .ws-tray-start .tour-launch {
+/* The "?" is the "Pro" tile's size (--cmp-h, plans.css .plan-pro), its
+   glyph scaled with it. */
+.ws-stage .ws-tray-end .tour-launch {
   position: static;
   flex: none;
+  width: var(--cmp-h, 48px);
+  height: var(--cmp-h, 48px);
 }
 
-/* Node Studio's zoom controls: between the "?" and Generate, one height with
-   the "?", centred on the row's line. */
+.ws-stage .ws-tray-end .tour-launch svg {
+  width: 46%;
+  height: 46%;
+}
+
+/* Node Studio's zoom controls: just left of the "?" (--cta-room,
+   MainWorkspace.jsx), centred on the row's line. */
 .ws-stage .ws-view-nodes .canvas-controls {
   box-sizing: border-box;
   height: 40px;
@@ -76,8 +97,63 @@
   transition: right var(--pl-panel-close) var(--pl-panel-ease);
 }
 
-.app-shell[data-bp="desktop"][data-right="open"] .ws-view-nodes .canvas-controls {
+.app-shell:not([data-bp="mobile"])[data-right="open"] .ws-view-nodes .canvas-controls {
   transition: right var(--pl-panel-open) var(--pl-panel-ease);
+}
+
+/* Tablets and laptops: in Node Studio the zoom controls take the Quick Grid
+   pager's place (workspace-theme.css .qg-pager): centred above the message
+   box at the pager's height off the bottom (the grid's bottom padding --qg-pb,
+   layout.css, plus the pager's 2px), on the pager's white backing at its
+   height (a 7px dot + 2 x 13px padding + 1px border = 35px) and corner.
+   Each lives in its own view, so switching views cross-fades the two on the
+   views' fade + 8px lift (layout.css .ws-view): one swaps for the other. */
+.app-shell:not([data-bp="mobile"]) .ws-stage .ws-view-nodes .canvas-controls {
+  --zc-h: 35px;
+  --zc-pad: 3px;
+  --zc-btn: calc(var(--zc-h) - 2 * var(--zc-pad) - 2px);
+  box-sizing: border-box;
+  flex-direction: row;
+  gap: 2px;
+  height: var(--zc-h);
+  padding: var(--zc-pad) 6px;
+  left: 50%;
+  right: auto;
+  bottom: calc(var(--tray-bottom, 22px) + var(--tray-h, 0px) + clamp(10px, 1.6cqw, 18px) + 2px);
+  translate: -50% 0;
+  color: var(--shell-ink);
+  background: #fff;
+  border: 1px solid #e3e3e7;
+  border-radius: calc(var(--zc-h) * var(--icon-btn-ratio, 0.35));
+  transition: none;
+}
+
+#root .app-shell:not([data-bp="mobile"]) .ws-view-nodes .canvas-controls {
+  box-shadow: none !important;
+}
+
+.app-shell:not([data-bp="mobile"]) .ws-stage .ws-view-nodes .canvas-controls button {
+  width: var(--zc-btn);
+  height: var(--zc-btn);
+  font-size: 18px;
+  border-radius: calc(var(--zc-btn) * var(--icon-btn-ratio, 0.35));
+}
+
+.app-shell:not([data-bp="mobile"]) .ws-stage .ws-view-nodes .canvas-controls .canvas-zoom-level {
+  width: calc(var(--zc-btn) * 1.7);
+  font-size: 12px;
+}
+
+/* Dark: the pager's dark backing (theme-dark.css .qg-pager-dots). */
+:root[data-theme="dark"] body #root .app-shell:not([data-bp="mobile"]) .ws-view-nodes .canvas-controls {
+  color: #e7e7ea;
+  background: #26272b;
+  border-color: #33343a;
+  box-shadow: none !important;
+}
+
+:root[data-theme="dark"] body #root .app-shell:not([data-bp="mobile"]) .ws-view-nodes .canvas-controls button:hover {
+  background: #33343a;
 }
 
 /* Narrow: the bolt keeps the left corner and the tray takes the rest of the
@@ -91,9 +167,10 @@
     --tray-gap: 10px;
   }
 
-  /* "Pro" and the "?" keep the left corner; the tray (Generate, filling the
-     rest) starts right after them. */
-  .ws-stage .ws-tray {
+  /* Phones: "Pro" keeps the left corner and the "?" the right; the tray
+     (Generate, filling the rest) runs between them (right edge: below).
+     Tablets keep the laptop's centred, one-card-wide message box. */
+  .app-shell[data-bp="mobile"] .ws-stage .ws-tray {
     left: calc(var(--tray-left) + var(--start-room, 0px));
   }
 
@@ -362,9 +439,9 @@
 /* ---------- Message composer (GenerateDock.jsx) ------------------------- */
 /* The bottom row's centrepiece: the message to adapt, in a white box with
    the green arrow (Generate) inset at its right end. The tray spans the row
-   and centres it; it never runs under "Pro" and the "?" on the left (their
-   width is --start-room, MainWorkspace.jsx), so it keeps the same room on
-   the right and stays centred. */
+   and centres it; it never runs under "Pro" (left) or the "?" (right) (their
+   widths are --start-room / --end-room, MainWorkspace.jsx), so it keeps the
+   wider of the two on both sides and stays centred. */
 .ws-stage .ws-tray {
   left: var(--tray-left);
   justify-content: center;
@@ -385,7 +462,7 @@
   box-sizing: border-box;
   /* Exactly one grid card wide (--card-w, MainWorkspace.jsx; 640px when no
      cards are laid out), centred in the tray. */
-  width: min(var(--card-w, 640px), 100% - 2 * var(--start-room, 0px));
+  width: min(var(--card-w, 640px), 100% - 2 * max(var(--start-room, 0px), var(--end-room, 0px)));
   align-self: center;
   height: var(--cmp-h);
   display: flex;
@@ -490,13 +567,15 @@
   border: 0;
 }
 
-/* Narrow: the composer fills the row after "Pro" and the "?". */
+/* Phones: the composer fills the row between "Pro" and the "?". (Tablets
+   keep it one card wide and centred, as on laptops.) */
 @container ws (max-width: 760px) {
-  .ws-stage .ws-tray {
+  .app-shell[data-bp="mobile"] .ws-stage .ws-tray {
     left: calc(var(--tray-left) + var(--start-room, 0px));
+    right: calc(var(--tray-right) + var(--end-room, 0px));
   }
 
-  .composer {
+  .app-shell[data-bp="mobile"] .composer {
     width: 100%;
   }
 }

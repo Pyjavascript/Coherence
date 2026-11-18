@@ -10,6 +10,7 @@ import { MEDIA_BY_KEY, GRID_WEBSITE_COMPONENTS } from "./constants.js";
 export function toDisplay(item) {
   if (item == null) return null;
   if (typeof item === "string") return { headline: item, sub: "" };
+  if (typeof item !== "object") return { headline: "", sub: "" };
   return { headline: item.headline || item.subject || "", sub: item.sub || item.preview || "" };
 }
 
@@ -86,10 +87,22 @@ export function trimToWords(text, max) {
 
 // Fewest / most words a user can set as a node's total length.
 export const minWordsFor = (limits) => Object.keys(limits || {}).length || 1;
-export const MAX_WORDS = 200;
+// The description's range: Node Studio's "Target Description Words" slider
+// (4-600), so a Grid card and a node take the same settings.
+export const MAX_WORDS = 600;
+export const MIN_DESCRIPTION_WORDS = 4;
+
+// Most words a user can set for a card's heading when it also has a
+// description (a heading on its own can go to MAX_WORDS, like the old total).
+export const MAX_HEADING_WORDS = 60;
+export const fieldMaxWords = (limits, key) => (key === "headline" && limits?.sub ? MAX_HEADING_WORDS : MAX_WORDS);
+export const fieldMinWords = (key) => (key === "sub" ? MIN_DESCRIPTION_WORDS : 1);
 
 // Default total word budget of a medium (sum of its field limits).
 export const defaultWords = (limits) => Object.values(limits || {}).reduce((sum, l) => sum + l.words, 0);
+
+// A field limit at a new word count (its character cap scales with it).
+const withWords = (l, words) => ({ ...l, words, ...(l.chars ? { chars: Math.round((l.chars * words) / l.words) } : {}) });
 
 // Rescales a medium's field limits to a user-set total, keeping their proportions
 // (character caps scale with them). total = null/undefined -> the defaults.
@@ -104,21 +117,65 @@ export function limitsFor(limits, total) {
       ? Math.max(1, left)
       : Math.min(left - rest, Math.max(1, Math.round((total * l.words) / base)));
     left -= words;
-    return [key, { ...l, words, ...(l.chars ? { chars: Math.round((l.chars * words) / l.words) } : {}) }];
+    return [key, withWords(l, words)];
   }));
 }
 
-// A Quick Grid card's effective field limits: its medium's defaults (the Website
-// card's renamed and re-budgeted for its component), rescaled to the card's word total.
-export function cardLimits(type, { words, component } = {}) {
-  let base = MEDIA_BY_KEY[type]?.limits;
+// A Quick Grid card's medium defaults: the Website card's renamed and
+// re-budgeted for its component.
+function baseLimits(type, component) {
+  const base = MEDIA_BY_KEY[type]?.limits;
   const comp = type === "website" ? GRID_WEBSITE_COMPONENTS[component] : null;
-  if (base && comp) {
-    base = Object.fromEntries(Object.entries(base).map(([key, l], i) => [
-      key, { ...l, label: comp.fields[i] || l.label, words: comp.words[i] || l.words },
-    ]));
-  }
-  return limitsFor(base, words);
+  if (!base || !comp) return base;
+  return Object.fromEntries(Object.entries(base).map(([key, l], i) => [
+    key, { ...l, label: comp.fields[i] || l.label, words: comp.words?.[i] || l.words },
+  ]));
+}
+
+// A card's `words` setting: per field, { headline, sub } (a field left out or
+// null keeps its default). Older saves hold one number, a total across the
+// fields, which is split in proportion.
+const fieldWord = (words, key) => {
+  const n = Math.round(Number(words?.[key]));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+// A Quick Grid card's effective field limits: its medium's defaults, with the
+// card's user-set word targets in place.
+export function cardLimits(type, { words, component } = {}) {
+  const base = baseLimits(type, component);
+  if (!base || words == null) return base;
+  if (typeof words === "number") return limitsFor(base, words);
+  return Object.fromEntries(Object.entries(base).map(([key, l]) => {
+    const n = fieldWord(words, key);
+    return [key, n ? withWords(l, n) : l];
+  }));
+}
+
+// The fields of a card whose length is enforced: { [field]: words }. As on a
+// Node Studio node, the description always is (its default or the user's
+// target); the heading only when the user set one. A Feature pointers list
+// has no enforced length, like the node's.
+export function cardTargets(type, settings = {}) {
+  const { words } = settings;
+  const limits = cardLimits(type, settings);
+  if (!limits) return {};
+  const pointers = type === "website" && settings.component === "pointers";
+  return Object.fromEntries(Object.entries(limits)
+    .filter(([key]) => (key === "sub" && !pointers) || typeof words === "number" || fieldWord(words, key))
+    .map(([key, l]) => [key, l.words]));
+}
+
+// A card's `words` setting with one field's target changed: clamped to the
+// field's range, and dropped when it matches the default. null = all defaults.
+export function setCardWords(type, settings, key, value) {
+  const base = baseLimits(type, settings.component);
+  if (!base?.[key]) return settings.words ?? null;
+  const current = cardLimits(type, settings);
+  const next = Object.fromEntries(Object.keys(base).map((k) => [k, current[k].words]));
+  next[key] = Math.min(fieldMaxWords(base, key), Math.max(fieldMinWords(key), Math.round(Number(value) || 0)));
+  const custom = Object.fromEntries(Object.entries(next).filter(([k, n]) => n !== base[k].words));
+  return Object.keys(custom).length ? custom : null;
 }
 
 // Checks a display item against a medium's length limits (see MEDIA in constants).

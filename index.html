@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>Brand Language OS</title>
     <script>
+      // iPhone / iPad: Safari zooms the page into any field whose text is
+      // under 16px, so the phone panel's 14px fields (sized like desktop's)
+      // would jump the page on tap. maximum-scale=1 stops that, and iOS still
+      // lets people pinch-zoom (it ignores maximum-scale for that). Only iOS
+      // gets it: Android would lose pinch-zoom.
+      (function () {
+        var ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        if (!ios) return;
+        var vp = document.querySelector('meta[name="viewport"]');
+        if (vp) vp.setAttribute("content", vp.getAttribute("content") + ",maximum-scale=1");
+      })();
+    </script>
+    <script>
       // Appearance (src/lib/theme.js), applied before the first paint.
       (function () {
         var pref = "light";

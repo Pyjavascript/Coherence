@@ -1,7 +1,16 @@
 
 
 import { Fragment, useState, useRef, useEffect, useLayoutEffect, useCallback, forwardRef, useImperativeHandle } from "react";
-import { NODE_CATS, COL_ORDER, PLATFORMS, WEBSITE_COMPONENTS, NODE_DEFAULT_WORDS, GEN_PLATFORMS_BY_KEY } from "../lib/constants";
+import {
+  NODE_CATS, COL_ORDER, PLATFORMS, WEBSITE_COMPONENTS, NODE_DEFAULT_WORDS, NODE_DEFAULT_HEADING_WORDS, NODE_MAX_HEADING_WORDS, GEN_PLATFORMS_BY_KEY,
+  MEDIA_BY_KEY,
+} from "../lib/constants";
+
+// Which nodes show a heading box plus a description box: the same media as
+// the Quick Grid (its MEDIA limits with a `sub`, which is every medium now),
+// so a grid card and its node always match.
+const GRID_KEY = { social: "marketing" };
+const hasDescription = (category) => Boolean(MEDIA_BY_KEY[GRID_KEY[category] || category]?.limits?.sub);
 import { generateNode as aiGenerateNode, describeError } from "../services/ai";
 import { Skeleton } from "./OutputCard";
 import host from "../hosts/browser";
@@ -59,7 +68,7 @@ const XIcon = () => (
 );
 
 const baseNode = (o) => ({
-  id: uid(), category: "email", label: "", brief: "", words: 60,
+  id: uid(), category: "email", label: "", brief: "", words: 60, headingWords: null,
   platform: undefined, component: "hero", pointerCount: 3, connections: [], variants: [], activeIdx: 0, generating: false,
   x: o.x ?? 0, y: o.y ?? 0, z: o.z ?? 10,
   ...o,
@@ -139,6 +148,60 @@ const EmptyOutput = ({ words }) => (
   </>
 );
 
+// Heading + description nodes (everything but a Feature pointers list): two
+// panels, as on a Quick Grid card. The heading's panel hugs its text; the
+// description's takes the rest, with the word count at its bottom-left, then
+// the banned-words check and the variant tabs.
+function SplitOutput({ node, banned, onVariant, id }) {
+  const idx = node.activeIdx || 0;
+  const v = node.variants[idx] || node.variants[0];
+  const words = node.words || NODE_DEFAULT_WORDS[node.category];
+  const live = { "aria-live": "polite" };
+
+  if (node.generating) {
+    return (
+      <div className="sn-card-split" id={id} aria-busy="true">
+        <div className="sn-card-panel sn-card-out sn-card-out-head"><div className="skel w60" /></div>
+        <div className="sn-card-panel sn-card-out sn-card-out-desc"><div className="skel" /><div className="skel" /><div className="skel w60" /></div>
+      </div>
+    );
+  }
+
+  if (!v) {
+    return (
+      <div className="sn-card-split" id={id}>
+        <div className="sn-card-panel sn-card-out sn-card-out-head">
+          <p className="sn-card-heading sn-card-empty-title">Generated heading</p>
+        </div>
+        <div className="sn-card-panel sn-card-out sn-card-out-desc">
+          <p className="sn-card-text sn-card-empty-title">Generated description appears here</p>
+          {words ? <div className="sn-card-meta">{words} words</div> : null}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="sn-card-split has-copy" id={id} {...live}>
+      <div className="sn-card-panel sn-card-out sn-card-out-head">
+        {v.headline && <h3 className="sn-card-heading">{v.headline}</h3>}
+      </div>
+      <div className="sn-card-panel sn-card-out sn-card-out-desc">
+        {v.body && <p className="sn-card-text">{v.body}</p>}
+        <div className="sn-card-meta">{wordCount(v)} / {node.words} words</div>
+        <BannedCheck copy={v} banned={banned} />
+        {node.variants.length > 1 && (
+          <div className="sn-vtabs sn-card-tabs">
+            {node.variants.map((_, i) => (
+              <button key={i} type="button" className={"sn-vtab" + (i === idx ? " on" : "")} aria-pressed={i === idx} onClick={() => onVariant(i)}>{i + 1}</button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // The generated copy: the headline as the heading, the body under it, then a
 // small word count. A placeholder until something has been generated.
 function NodeOutput({ node, banned, onVariant }) {
@@ -190,6 +253,7 @@ function StudioNode({
 }) {
   const cat = NODE_CATS[node.category];
   const comp = node.component || "hero";
+  const isPointers = node.category === "website" && comp === "pointers";
   const [leaving, setLeaving] = useState(false);
   const [copied, flashCopied] = useCopyFeedback();
   const bodyId = `${node.id}-body`;
@@ -272,8 +336,22 @@ function StudioNode({
               )}
             </>
           )}
+          {/* The headline and the body (description) each get a target; a
+              Feature pointers list has neither, so it keeps one slider. */}
+          {!isPointers && (
+            <div className="sn-field">
+              <WordsRange
+                label="Target Heading Words"
+                value={node.headingWords || NODE_DEFAULT_HEADING_WORDS[node.category] || 10}
+                min={1}
+                max={NODE_MAX_HEADING_WORDS}
+                onChange={(value) => onField("headingWords", value === NODE_DEFAULT_HEADING_WORDS[node.category] ? null : value)}
+              />
+            </div>
+          )}
           <div className="sn-field">
             <WordsRange
+              label={isPointers ? "Target Words" : "Target Description Words"}
               value={node.words || NODE_DEFAULT_WORDS[node.category] || 60}
               min={NODE_MIN_WORDS}
               max={NODE_MAX_WORDS}
@@ -283,9 +361,21 @@ function StudioNode({
         </div>
       ) : (
         <>
-          <div className={"sn-card-panel sn-card-out" + (hasCopy || node.generating ? " has-copy" : "")} id={bodyId} aria-live="polite">
-            <NodeOutput node={node} banned={banned} onVariant={onVariant} />
-          </div>
+          {/* A Feature pointers list (or a variant made as one) has no
+              heading / description, so it keeps the single panel. */}
+          {/* Two panels only when the output is (or will be) a heading plus
+              a description: a variant that came back without a body keeps
+              the single panel. */}
+          {!isPointers && hasDescription(node.category) && (() => {
+            const v = node.variants[node.activeIdx || 0] || node.variants[0];
+            return node.generating || !v || (!v.pointers && Boolean(v.body));
+          })() ? (
+            <SplitOutput node={node} banned={banned} onVariant={onVariant} id={bodyId} />
+          ) : (
+            <div className={"sn-card-panel sn-card-out" + (hasCopy || node.generating ? " has-copy" : "")} id={bodyId} aria-live="polite">
+              <NodeOutput node={node} banned={banned} onVariant={onVariant} />
+            </div>
+          )}
           <div className="sn-card-foot">
             <button
               type="button"
@@ -599,12 +689,12 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   };
 
   /* ----- node actions ----- */
-  // Top-bar "Add Node" inserts into an empty space
+  // Top-bar "Add Node" inserts into an empty space. New nodes start on their
+  // copy view, like every other node (the pencil opens their settings).
   const addNodes = (category, count) => {
     // Nodes are written for a brand, so one has to be picked (or started) first.
     if (ensureBrand && !ensureBrand()) return;
     const n = Math.max(1, Math.min(8, parseInt(count, 10) || 1));
-    let added = null;
 
     commit((list) => {
       const next = [...list];
@@ -612,11 +702,8 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
       for (let i = 0; i < n; i++) {
         next.push(makeNode(category, next, x, y + (i * 340)));
       }
-      added = next[next.length - 1].id;
       return next;
     });
-
-    if (added) setOpen(added, true);
   };
 
   // Where the next node of a column goes: below its last node, or at the top.
@@ -663,9 +750,8 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     return true;
   };
 
-  // Adds a node physically connected below the parent
+  // Adds a node physically connected below the parent (on its copy view).
   const handleAddChild = (parentId, category) => {
-    let added = null;
     commit((list) => {
       const parentIndex = list.findIndex((n) => n.id === parentId);
       if (parentIndex === -1) return list;
@@ -685,10 +771,8 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
         connections: [...parent.connections, newNode.id]
       };
 
-      added = newNode.id;
       return next;
     });
-    if (added) setOpen(added, true);
   };
 
   const deleteNode = (id) => {
@@ -1180,10 +1264,35 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     else if (skipped) setStatus(`Generated ${done} node${done === 1 ? "" : "s"}.${skipNote}`, "warn");
   };
 
+  // Each brand has its own canvas (App keeps them): snapshot() is this one as
+  // it stands, load() puts a brand's back (none = the starter nodes). A node
+  // still generating is kept as it was; if its copy lands after its brand is
+  // reopened it still fills the node (same id), and it's in History either way.
+  const snapshotCanvas = () => ({
+    nodes: nodesRef.current.map((n) => (n.generating ? { ...n, generating: false } : n)),
+    expanded: [...expanded],
+  });
+  const loadCanvas = (saved) => {
+    const next = saved?.nodes?.length ? saved.nodes : seedNodes();
+    // Sizes are measured afresh, so nothing shifts as the nodes remount.
+    sizesRef.current = {};
+    setSizes({});
+    commit(() => next);
+    setExpanded(new Set(saved?.expanded || []));
+    setPicked(new Set());
+    setSelectedKey(null);
+    setHoverKey(null);
+    setLinkDrag(null);
+    lastNodeRef.current = null;
+    zCounter.current = Math.max(10, ...next.map((n) => n.z || 10));
+  };
+
   useImperativeHandle(ref, () => ({
     addNode: (category) => addNodes(category, 1),
     generateAllNodes,
     restore: restoreNode,
+    snapshot: snapshotCanvas,
+    load: loadCanvas,
   }));
 
   const generateColumn = async (category) => {

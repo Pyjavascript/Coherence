@@ -76,19 +76,17 @@ function invoke(type, ctx, tier, params = {}) {
 /* ---------- response normalisation (handles malformed AI output) ---------- */
 function shapeItem(medium, v) {
   if (v == null) return null;
-  if (medium === "packaging" || medium === "marketing") {
-    if (typeof v === "string") return v.trim() || null;
-    if (typeof v === "object") return String(v.text || v.headline || "").trim() || null;
-    return String(v);
-  }
+  // A bare string (older answers, or a model that skips the object): a
+  // heading on its own.
+  if (typeof v === "string") return v.trim() || null;
   if (typeof v !== "object") return null;
   if (medium === "email") {
     const subject = v.subject || v.headline || "";
     const preview = v.preview || v.sub || "";
     return subject || preview ? { subject, preview } : null;
   }
-  const headline = v.headline || v.subject || "";
-  const sub = v.sub || v.preview || "";
+  const headline = v.headline || v.subject || v.text || "";
+  const sub = v.sub || v.preview || v.description || "";
   return headline || sub ? { headline, sub } : null;
 }
 function toItems(medium, value) {
@@ -115,7 +113,7 @@ const malformed = () => new AIError("The AI returned an unexpected format. Try a
 /* ---------- public API ---------- */
 // cards = [{ key, medium, settings }], one per Quick Grid card. key names the
 // card's copy in the answer ("website", "website_2", ...); settings =
-// { words, brief, component, pointerCount }. Costs one credit per card.
+// { words: { headline, sub } (per-field word targets), brief, component, pointerCount }. Costs one credit per card.
 // platforms = the composer's picked platform keys (optional) to write for.
 // Returns { [key]: items[] }.
 export async function generateQuickGrid({ ctx, variantCount, tier, cards, platforms }) {

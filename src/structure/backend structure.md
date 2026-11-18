@@ -84,22 +84,24 @@ These controls set *how* the brand sounds. **A control you leave empty adds noth
 
 ---
 
-## 5. Customer tab (coming soon) and hidden settings
+## 5. Customer tab
 
-The Customer tab is a placeholder for now. **But the settings that used to sit there are still in every prompt, with their default values:**
+Free controls at the top; **Advanced Behaviour** (Premium) in the gold section under them. On the free plan the Advanced controls show as a locked preview and a click opens the plans.
 
-| Hidden setting | Default sent | Line in the prompt |
-|---|---|---|
-| Funnel stage | `Discovery` | `Customer context: funnel stage = Discovery, …` |
-| Language mode | `Emotional` | `… language mode = Emotional, …` |
-| Audience | `Cold — scrolling, distracted` | `… audience posture = Cold — scrolling, distracted.` |
-| Desired emotion | `Curiosity` | `Desired emotional response: Curiosity.` |
-| Formality | `Conversational` | `Formality: Conversational.` |
-| CTA intensity | `Soft` | `CTA intensity: Soft.` |
-| Style pack | `Classic` | `Style pack — Classic: Balanced, versatile brand voice…` |
-| Pain point, objection, location, must-include, research notes | empty | Not sent. |
+| Control | Saved as | What it adds to the prompt | Effect on the answer |
+|---|---|---|---|
+| **Client Profile** | `profile` (`brands.customer_profile`) | `Customer profile (write to this person): Women 28-45 who…` | The copy is written to this person. Empty adds nothing. |
+| **Desired Emotions** (up to 3 tags; presets or your own) | `emo`, comma-separated | `Desired emotional response (how the reader should feel after reading): Comfort, Joy.` | How the reader should feel. Default `Curiosity`. |
+| **Funnel Stage** | `stage` | `funnel stage = Trust (the copy should reassure them with proof and answer their doubts)` | Decides whether the copy introduces, reassures, sells or brings them back. The jobs are `FUNNEL_STAGE_JOBS` in [constants.js](../../supabase/functions/_shared/constants.js). |
+| **Customer Language Preference** (Premium) | `formality` | `Customer vocabulary: Expert, the field's own technical terms…` | Everyday / Professional / Expert (`LANGUAGE_PREFS`). |
+| **CTA Strength** (Premium) | `cta` | `CTA strength: Right now, urgent: act immediately…` | Gentle / Clear / Loud / Right now (`CTA_STRENGTHS`). |
+| **Always Mention** (Premium) | `must` | `Every piece must include (work it in naturally): free shipping, 30-day returns` | Every piece includes these. |
+| **Research Notes** (Premium) | the brand's research notes | `Research context: - [Customer quote] …` | Opens the notes window; up to 8 notes go in. |
+| **Pixels Intelligence Layer** (Premium) | — | Nothing yet | **Coming soon:** document uploads, AI customer insights and "Fill from My Documents" are laid out in the panel, but their server side isn't built. |
 
-> ⚠️ **Worth knowing:** every brand is currently treated as "Discovery, Emotional, cold audience, soft CTA". When you build the Customer tab, these controls will start to change the copy noticeably. (The sample brand from the tour fills some of them in, so it behaves slightly differently.)
+Older brands saved the earlier values (`Conversational`, `Soft`, …). Those still go in as they are (`Formality: Conversational. CTA intensity: Soft.`) until someone picks a new option, and the panel shows them as their nearest new option.
+
+**Still hidden** (sent with their saved or default values): language mode (`Emotional`), audience posture (`Cold — scrolling, distracted`), style pack (`Classic`); pain point, objection and location are sent only when set.
 
 ---
 
@@ -127,7 +129,7 @@ The server accepts **only these three**. Any other model name is ignored. You ca
 | Card | Default rule sent to the AI |
 |---|---|
 | Packaging | 2–6 words only, no full sentence |
-| Marketing | one punchy campaign line under 12 words |
+| Social | one punchy campaign line under 12 words |
 | Advertising | headline under 8 words + supporting line under 12 |
 | Website | hero headline under 10 words + supporting sentence under 20 |
 | Email | subject under 8 words + preview under 14 |
@@ -163,13 +165,13 @@ These checks are automatic and **never cost an extra credit.**
  Sent to your card ✓
 ```
 
-**How word counts work:** if you set **20 words**, anything from **18 to 20** is accepted. The prompt asks for about 19, so a small overshoot still fits. Copy never goes *over* your number.
+**How word counts work:** each card has its own target per field: **Target Heading Words** and, when the medium has a second line (email preview, ad subtext, website support), **Target Description Words**. A one-line medium (packaging, social) shows a single **Target Words**. Each field is checked and trimmed on its own. If you set **20 words**, anything from **18 to 20** is accepted. The prompt asks for about 19, so a small overshoot still fits. Copy never goes *over* your number.
 
 ---
 
 ## 8. Real example: the full prompt
 
-This is the prompt the server actually builds for the **sample brand (Ember & Oak)**, with one Website card and one Email card. The email card has Target Words set to 20 and the job "Mention free shipping". Each line is tagged with the control it comes from.
+This is the prompt the server actually builds for the **sample brand (Ember & Oak)**, with one Website card and one Email card. The email card has Target Description Words set to 20 and the job "Mention free shipping". Each line is tagged with the control it comes from.
 
 ```text
 You are a brand language engine that adapts one constant message into channel-correct copy…
@@ -197,8 +199,8 @@ Return ONLY valid JSON…
 {"website":[{"headline":"...","sub":"..."}],"email":[{"subject":"...","preview":"..."}]}
 Constraints:
 - website: a hero headline under 10 words plus one supporting…        ← default length
-- email: subject of about 7 words plus preview of about 13 words      ← Target Words = 20
-  (user-set length, strict: 18-20 words in total…)
+- email: subject of about 8 words plus preview of 18-20 words         ← Target Description Words = 20
+  (user-set, strict: never more than 20; aim for about 19); count each field's words on its own…
 Per-output instructions (follow them for that output only):
 - email: job requirement: Mention free shipping                       ← card Job Requirement
 ```

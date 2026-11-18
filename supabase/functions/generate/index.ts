@@ -79,53 +79,71 @@ var INDUSTRY_LAYERS = {
   }
 };
 var SPECS = {
-  packaging: "2-6 words only, no full sentence, immediate and concrete",
-  marketing: "one short punchy campaign line under 12 words, sells identity not features",
-  advertising: "a headline under 8 words plus one supporting line under 12 words",
-  website: "a hero headline under 10 words plus one supporting sentence under 20 words",
-  email: "a subject line under 8 words plus a preview line under 14 words"
+  packaging: "the pack line is immediate and concrete, never a full sentence",
+  marketing: "the line sells identity, not features",
+  advertising: "the headline stops the scroll; the description backs it up",
+  website: "the hero headline leads; the description supports it",
+  email: "the subject line earns the open; the body is the email itself"
 };
+var NODE_DEFAULT_WORDS = {
+  email: 120,
+  social: 40,
+  website: 70,
+  packaging: 8,
+  advertising: 22
+};
+var NODE_DEFAULT_HEADING_WORDS = {
+  email: 8,
+  social: 10,
+  website: 10,
+  packaging: 4,
+  advertising: 8
+};
+var nodeLimits = (category, heading, description) => ({
+  headline: { label: heading, words: NODE_DEFAULT_HEADING_WORDS[category] },
+  sub: { label: description, words: NODE_DEFAULT_WORDS[category] }
+});
 var MEDIA = [
   {
     key: "email",
     label: "Email",
-    tag: "subject + preview",
+    tag: "subject + body",
     color: "#4653FF",
-    placeholder: "Subject line plus preview text.",
+    placeholder: "Subject line plus the email body.",
     full: true,
-    limits: { headline: { label: "Subject", words: 8, chars: 60 }, sub: { label: "Preview", words: 14, chars: 110 } }
+    limits: nodeLimits("email", "Subject", "Body")
   },
   {
     key: "marketing",
-    label: "Marketing",
-    tag: "<12 words",
+    label: "Social",
+    tag: "headline + description",
     color: "#1FB6C9",
-    placeholder: "One line. Identity over feature.",
-    limits: { headline: { label: "Campaign line", words: 12 } }
+    placeholder: "Headline plus the post copy.",
+    limits: nodeLimits("social", "Headline", "Description")
   },
   {
     key: "website",
     label: "Website",
     tag: "hero + support",
     color: "#12A08E",
-    placeholder: "Hero headline plus supporting line.",
-    limits: { headline: { label: "Hero", words: 10 }, sub: { label: "Support", words: 20 } }
+    placeholder: "Hero headline plus supporting copy.",
+    limits: nodeLimits("website", "Hero", "Support")
   },
   {
     key: "packaging",
     label: "Packaging",
-    tag: "2\u20136 words",
+    tag: "pack line + description",
     color: "#2C93D8",
-    placeholder: "What it is, felt instantly.",
-    limits: { headline: { label: "Pack line", words: 6 } }
+    placeholder: "Pack line plus a short description.",
+    limits: nodeLimits("packaging", "Pack line", "Description")
   },
   {
     key: "advertising",
     label: "Advertising",
     tag: "headline + subtext",
     color: "#B04FC7",
-    placeholder: "Headline plus one-line subtext.",
-    limits: { headline: { label: "Headline", words: 8 }, sub: { label: "Subtext", words: 12 } }
+    placeholder: "Headline plus subtext.",
+    limits: nodeLimits("advertising", "Headline", "Subtext")
   }
 ];
 var MEDIA_BY_KEY = Object.fromEntries(MEDIA.map((m) => [m.key, m]));
@@ -205,6 +223,7 @@ var GEN_PLATFORMS = [
 ];
 var GEN_PLATFORMS_BY_KEY = Object.fromEntries(GEN_PLATFORMS.map((p) => [p.key, p]));
 var platformsFor = (keys, field, value) => (keys || []).map((k) => GEN_PLATFORMS_BY_KEY[k]).filter((p) => p && p[field].includes(value));
+var NODE_MAX_HEADING_WORDS = 60;
 var WEBSITE_COMPONENTS = {
   hero: { label: "Hero (headline + support)" },
   pointers: { label: "Feature pointers (list)" },
@@ -213,11 +232,19 @@ var WEBSITE_COMPONENTS = {
   cta: { label: "CTA block" }
 };
 var GRID_WEBSITE_COMPONENTS = {
-  hero: { fields: ["Hero", "Support"], words: [10, 20], guide: "a hero headline plus one supporting sentence" },
+  hero: { fields: ["Hero", "Support"], guide: "a hero headline plus supporting copy" },
   pointers: { fields: ["Section title", "Pointers"], words: [6, 24], guide: "headline is a short section title; sub lists the feature pointers as short benefit-led phrases separated by ' \xB7 '" },
-  faq: { fields: ["Question", "Answer"], words: [10, 24], guide: "headline is a question a customer would ask; sub is a clear, direct answer" },
-  testimonial: { fields: ["Quote", "Attribution"], words: [24, 6], guide: "headline is a customer quote in their own voice; sub is the attribution (name and role)" },
-  cta: { fields: ["CTA line", "Button"], words: [10, 4], guide: "headline is the call-to-action line; sub is the button text" }
+  faq: { fields: ["Question", "Answer"], guide: "headline is a question a customer would ask; sub is a clear, direct answer" },
+  testimonial: { fields: ["Quote", "Testimonial"], guide: "headline is a short pull-quote from the customer; sub is the full testimonial in their own voice, ending with their name and role" },
+  cta: { fields: ["CTA line", "Supporting copy"], guide: "headline is the call-to-action line; sub is the copy that backs it up, ending with the button text" }
+};
+var FUNNEL_STAGE_JOBS = {
+  Discovery: "introduce the brand and earn a first look",
+  Consideration: "help them compare and see why this fits",
+  Trust: "reassure them with proof and answer their doubts",
+  Purchase: "sell: make the reason and the next step clear",
+  Experience: "help them get the most from what they bought",
+  Loyalty: "bring them back and make them feel valued"
 };
 var PERSONALITIES = [
   "Emotional",
@@ -238,6 +265,17 @@ var AUDIENCES = [
   "Returning \u2014 already a customer",
   "In-store \u2014 glancing at shelf"
 ];
+var LANGUAGE_PREFS = {
+  Everyday: "plain, everyday words anyone understands; no jargon",
+  Professional: "the vocabulary of someone at work: precise, businesslike, light on slang",
+  Expert: "the field's own technical terms, used precisely, without explaining the basics"
+};
+var CTA_STRENGTHS = {
+  Gentle: "a soft invitation with no pressure",
+  Clear: "a plain, direct ask",
+  Loud: "a bold, emphatic push",
+  "Right now": "urgent: act immediately, with a real reason why now"
+};
 var MAX_PILLARS = 3;
 var MAX_PILLAR_CHARS = 200;
 var DEFAULT_BRAND = {
@@ -254,11 +292,12 @@ var DEFAULT_BRAND = {
   stage: "Discovery",
   mode: "Emotional",
   audience: AUDIENCES[0],
+  profile: "",
   pain: "",
   emo: "Curiosity",
-  formality: "Conversational",
+  formality: "Everyday",
   objection: "",
-  cta: "Soft",
+  cta: "Gentle",
   banned: "",
   must: "",
   location: "",
@@ -276,15 +315,29 @@ var SAMPLE_BRAND = {
   stage: "Discovery",
   mode: "Emotional",
   audience: AUDIENCES[0],
+  profile: "Women 28-45 who light a candle to unwind after work. They care about natural ingredients and a scent that lasts.",
   pain: "Mass-market candles smell synthetic and burn out in a week.",
-  emo: "Comfort",
-  formality: "Conversational",
+  emo: "Comfort, Joy",
+  formality: "Everyday",
   objection: "Worried it won't be worth the price",
-  cta: "Soft",
+  cta: "Gentle",
   banned: "cheap, best-ever"
 };
 
 // supabase/functions/_shared/copyItems.js
+function toDisplay(item) {
+  if (item == null) return null;
+  if (typeof item === "string") return { headline: item, sub: "" };
+  if (typeof item !== "object") return { headline: "", sub: "" };
+  return { headline: item.headline || item.subject || "", sub: item.sub || item.preview || "" };
+}
+function applyEdit(item, field, text) {
+  if (typeof item === "string" || item == null) return field === "headline" ? text : item;
+  if ("subject" in item || "preview" in item) {
+    return { ...item, [field === "headline" ? "subject" : "preview"]: text };
+  }
+  return { ...item, [field]: text };
+}
 var countWords = (text) => String(text || "").trim().split(/\s+/).filter(Boolean).length;
 function wordRange(target) {
   const slack = Math.max(2, Math.round(target * 0.1));
@@ -320,8 +373,9 @@ function trimToWords(text, max) {
   const cut = words.join(" ").replace(/[,;:\-–—]+$/, "");
   return /[.!?…]["'”’)\]]*$/.test(cut) ? cut : `${cut}\u2026`;
 }
-var MAX_WORDS = 200;
+var MAX_WORDS = 600;
 var defaultWords = (limits) => Object.values(limits || {}).reduce((sum, l) => sum + l.words, 0);
+var withWords = (l, words) => ({ ...l, words, ...l.chars ? { chars: Math.round(l.chars * words / l.words) } : {} });
 function limitsFor(limits, total) {
   if (!limits || !total) return limits;
   const entries = Object.entries(limits);
@@ -331,19 +385,37 @@ function limitsFor(limits, total) {
     const rest = entries.length - i - 1;
     const words = rest === 0 ? Math.max(1, left) : Math.min(left - rest, Math.max(1, Math.round(total * l.words / base)));
     left -= words;
-    return [key, { ...l, words, ...l.chars ? { chars: Math.round(l.chars * words / l.words) } : {} }];
+    return [key, withWords(l, words)];
   }));
 }
-function cardLimits(type, { words, component } = {}) {
-  let base = MEDIA_BY_KEY[type]?.limits;
+function baseLimits(type, component) {
+  const base = MEDIA_BY_KEY[type]?.limits;
   const comp = type === "website" ? GRID_WEBSITE_COMPONENTS[component] : null;
-  if (base && comp) {
-    base = Object.fromEntries(Object.entries(base).map(([key, l], i) => [
-      key,
-      { ...l, label: comp.fields[i] || l.label, words: comp.words[i] || l.words }
-    ]));
-  }
-  return limitsFor(base, words);
+  if (!base || !comp) return base;
+  return Object.fromEntries(Object.entries(base).map(([key, l], i) => [
+    key,
+    { ...l, label: comp.fields[i] || l.label, words: comp.words?.[i] || l.words }
+  ]));
+}
+var fieldWord = (words, key) => {
+  const n = Math.round(Number(words?.[key]));
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+function cardLimits(type, { words, component } = {}) {
+  const base = baseLimits(type, component);
+  if (!base || words == null) return base;
+  if (typeof words === "number") return limitsFor(base, words);
+  return Object.fromEntries(Object.entries(base).map(([key, l]) => {
+    const n = fieldWord(words, key);
+    return [key, n ? withWords(l, n) : l];
+  }));
+}
+function cardTargets(type, settings = {}) {
+  const { words } = settings;
+  const limits = cardLimits(type, settings);
+  if (!limits) return {};
+  const pointers = type === "website" && settings.component === "pointers";
+  return Object.fromEntries(Object.entries(limits).filter(([key]) => key === "sub" && !pointers || typeof words === "number" || fieldWord(words, key)).map(([key, l]) => [key, l.words]));
 }
 
 // supabase/functions/_shared/prompts.js
@@ -359,6 +431,7 @@ function clean(ctx) {
     stage: b.stage,
     mode: b.mode,
     audience: b.audience,
+    profile: t(b.profile),
     pain: t(b.pain),
     emo: b.emo,
     formality: b.formality,
@@ -380,6 +453,14 @@ Brand personality: ${c.personality}. Every line should sound like this personali
 Warmth of the voice (${c.warmth}/100, cold to warm): ${warmthLabel(c.warmth)}.` : "") + (c.rules ? `
 Writing rules (follow every one): ${c.rules}` : "") + (c.voice ? `
 Voice sample (match its rhythm, vocabulary and attitude; never reuse its words): ${c.voice}` : "");
+var stageText = (c) => FUNNEL_STAGE_JOBS[c.stage] ? `${c.stage} (the copy should ${FUNNEL_STAGE_JOBS[c.stage]})` : c.stage;
+var customerLine = (c) => `Customer context: funnel stage = ${stageText(c)}, language mode = ${c.mode}, audience posture = ${c.audience}.` + (c.profile ? `
+Customer profile (write to this person): ${c.profile}` : "");
+var vocabText = (c) => LANGUAGE_PREFS[c.formality] ? `Customer vocabulary: ${c.formality}, ${LANGUAGE_PREFS[c.formality]}.` : `Formality: ${c.formality}.`;
+var ctaText = (c) => CTA_STRENGTHS[c.cta] ? `CTA strength: ${c.cta}, ${CTA_STRENGTHS[c.cta]}.` : `CTA intensity: ${c.cta}.`;
+var feelText = (c) => `Desired emotional response (how the reader should feel after reading): ${c.emo}.`;
+var mustLine = (c) => c.must ? `
+Every piece must include (work it in naturally): ${c.must}` : "";
 var pillarList = (c) => c.pillars.map((p, i) => `${i + 1}) ${p}`).join("; ");
 var pillarsLine = (c) => c.pillars.length ? `
 Brand pillars (every piece must reflect at least one of them and never contradict any): ${pillarList(c)}` : "";
@@ -400,13 +481,12 @@ Style pack \u2014 ${packOf(ctx).label}: ${packOf(ctx).rules}`;
   if (c.pain) extra += `
 Customer pain point: ${c.pain}`;
   extra += `
-Desired emotional response: ${c.emo}. Formality: ${c.formality}. CTA intensity: ${c.cta}.`;
+${feelText(c)} ${vocabText(c)} ${ctaText(c)}`;
   if (c.objection) extra += `
 Objection to pre-empt: ${c.objection}`;
   if (c.banned) extra += `
 Never use these words/claims: ${c.banned}`;
-  if (c.must) extra += `
-Try to naturally include: ${c.must}`;
+  extra += mustLine(c);
   extra += languageBlock(c);
   extra += localeBlock(c);
   extra += researchBlock(ctx.notes);
@@ -418,25 +498,32 @@ function buildBasePrompt(ctx) {
 Brand: ${c.name || "the brand"}
 Core belief (must stay true across every output): ${c.belief}${pillarsLine(c)}
 Message to adapt: ${c.message}
-Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience posture = ${c.audience}.${sharedExtras(ctx, c)}
+${customerLine(c)}${sharedExtras(ctx, c)}
 Never explain your choices. Never use quotation marks in the output text. Keep the core belief's point of view recognisable in every version, even though wording, length and register change per channel.${c.pillars.length ? " Let the brand pillars show through what each version says, without naming them as pillars." : ""}`;
 }
 var gridComponent = (medium, s) => medium === "website" && s?.component && s.component !== "hero" ? s.component : null;
 function lengthSpec(medium, s = {}) {
   const comp = gridComponent(medium, s);
-  if (!s.words && !comp) return SPECS[medium];
+  const targets = cardTargets(medium, s);
   const limits = cardLimits(medium, s);
   if (!limits) return SPECS[medium];
-  const parts = Object.values(limits).map((l) => `${l.label.toLowerCase()} of about ${l.words} words`);
+  const parts = Object.entries(limits).map(([key, l]) => {
+    const field = key === "headline" ? "headline" : "sub";
+    const label = l.label.toLowerCase();
+    const name = label === field ? field : `${field} (${label})`;
+    if (!targets[key]) return `${name} of about ${l.words} words`;
+    const { min, max } = wordRange(targets[key]);
+    return `${name} of ${min}-${max} words (strict: never more than ${max}; aim for about ${aimFor(targets[key])})`;
+  });
   let spec = parts.join(" plus ");
   if (comp) {
     const pointers = comp === "pointers" ? ` (exactly ${s.pointerCount || 3} pointers)` : "";
     spec = `a "${WEBSITE_COMPONENTS[comp].label}" website component${pointers}: ${GRID_WEBSITE_COMPONENTS[comp].guide}; ${spec}`;
+  } else if (SPECS[medium]) {
+    spec += `; ${SPECS[medium]}`;
   }
-  if (s.words) {
-    const { min, max } = wordRange(s.words);
-    spec += ` (user-set length, strict: ${min}-${max} words in total across its fields and never more than ${max}; aim for about ${aimFor(s.words)}; this overrides any default length)`;
-  }
+  if (targets.sub) spec += "; sub is the main copy: write enough to reach its length with concrete detail, benefits, proof or a clear call to action, never filler or repetition";
+  if (Object.keys(targets).length) spec += "; count each field's words on its own; these lengths override any shorter length the channel's conventions suggest";
   return spec;
 }
 function cardBrief(s = {}) {
@@ -449,14 +536,14 @@ function platformRules(picked) {
   return picked.map((p) => p.rules).join(" ") + both;
 }
 var GRID_MEDIA = ["packaging", "marketing", "advertising", "website", "email"];
-var itemShape = (medium) => medium === "packaging" || medium === "marketing" ? '"..."' : medium === "email" ? '{"subject":"...","preview":"..."}' : '{"headline":"...","sub":"..."}';
+var itemShape = () => '{"headline":"...","sub":"..."}';
 function buildQuickGridPrompt(ctx, n, cards, platforms = []) {
   const base = buildBasePrompt(ctx);
-  const rulesFor = (medium) => platformRules(platformsFor(platforms, "media", medium));
+  const rulesFor = (medium, settings) => platformRules(settings?.platform ? GEN_PLATFORMS.filter((pl) => pl.label === settings.platform) : platformsFor(platforms, "media", medium));
   if (cards.length === 1) {
     const [{ key, medium, settings }] = cards;
     const brief = cardBrief(settings);
-    const rules = rulesFor(medium);
+    const rules = rulesFor(medium, settings);
     return `${base}
 Generate exactly ${n} distinct variant(s) for the ${medium} medium only \u2014 different angles, not synonyms.
 Return ONLY this JSON, no markdown fences: {"${key}":[${itemShape(medium)}]}  (array length ${n})
@@ -467,7 +554,7 @@ Instructions for this ${medium} copy \u2014 ${brief}.` : ""}`;
   const label = ({ key, medium }) => key === medium ? key : `${key} (${medium})`;
   const shared = cards.some((c, i) => cards.findIndex((o) => o.medium === c.medium) !== i);
   const briefs = cards.map((c) => [c, cardBrief(c.settings)]).filter(([, b]) => b);
-  const targeted = cards.map((c) => [c, rulesFor(c.medium)]).filter(([, r]) => r);
+  const targeted = cards.map((c) => [c, rulesFor(c.medium, c.settings)]).filter(([, r]) => r);
   return `${base}
 Generate exactly ${n} distinct variant(s) for every output below \u2014 different angles, not synonyms of each other.${shared ? "\nSome outputs share a medium (e.g. website and website_2): give each its own angle, never the same line twice." : ""}
 Return ONLY valid JSON, no markdown fences, an array of length ${n} for every key:
@@ -488,27 +575,30 @@ Core belief (constant): ${c.belief}${pillarsLine(c)}
 Brand message reference: ${c.message || "(none supplied \u2014 infer from the belief)"}
 ${industryLine(c)}
 Style pack \u2014 ${packOf(ctx).label}: ${packOf(ctx).rules}
-Customer context: funnel stage = ${c.stage}, language mode = ${c.mode}, audience posture = ${c.audience}.`;
+${customerLine(c)}`;
   if (c.pain) p += `
 Customer pain point: ${c.pain}`;
   p += `
-Desired emotional response: ${c.emo}. Formality: ${c.formality}. CTA intensity: ${c.cta}.`;
+${feelText(c)} ${vocabText(c)} ${ctaText(c)}`;
   if (c.objection) p += `
 Objection to pre-empt: ${c.objection}`;
   if (c.banned) p += `
 Never use these words/claims: ${c.banned}`;
-  if (c.must) p += `
-Try to naturally include: ${c.must}`;
+  p += mustLine(c);
   p += languageBlock(c);
   p += localeBlock(c);
   p += researchBlock(ctx.notes);
   const words = node.words || 60;
   const range = wordRange(words);
+  const heading = node.headingWords ? wordRange(node.headingWords) : null;
+  const headingWords = NODE_DEFAULT_HEADING_WORDS[node.category] || 10;
+  const headingSpec = heading ? `The headline must be ${heading.min}-${heading.max} words and never more than ${heading.max}; aim for about ${aimFor(node.headingWords)} (set by the user, strict; count its words on its own).` : `The headline is a short line of about ${headingWords} words.`;
   p += `
 
 This node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
-Length (set by the user, strict): the body must be ${range.min}-${range.max} words and never more than ${range.max}; aim for about ${aimFor(words)}. The headline is not counted. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.`;
+Length (set by the user, strict): the body must be ${range.min}-${range.max} words and never more than ${range.max}; aim for about ${aimFor(words)}. The headline is not counted in it. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.
+${headingSpec}`;
   const rules = platformRules(node.platform ? GEN_PLATFORMS.filter((pl) => pl.label === node.platform) : platformsFor(platforms, "nodes", node.category));
   if (rules) p += `
 Platform \u2014 write it natively for this: ${rules}`;
@@ -552,7 +642,7 @@ Return ONLY valid JSON, no markdown fences: {"variants":[{"pointers":[{"title":"
   } else {
     p += `
 
-Return ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line. body is the main copy, ${range.min}-${range.max} words. Never use quotation marks inside the text. Never explain your choices.`;
+Return ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line${heading ? ` of ${heading.min}-${heading.max} words` : ""}. body is the main copy, ${range.min}-${range.max} words. Never use quotation marks inside the text. Never explain your choices.`;
   }
   return p;
 }
@@ -591,7 +681,7 @@ function buildCoherencePrompt(ctx, described) {
   return `You are a brand copy QA reviewer checking CTA-to-copy coherence.
 
 Brand core belief: ${c.belief || "(not set)"}${pillarsLine(c)}
-CTA intensity setting: ${c.cta}
+CTA setting: ${ctaText(c)}
 Copy under review (from: ${sourceLabel}):
 ${sampleCopy}
 
@@ -616,7 +706,8 @@ Brand name: ${c.name || "(not set)"}
 Core belief: ${c.belief || "(not set)"}${pillarsLine(c)}
 ${industryLine(c)}
 Style: ${packOf(ctx).rules}
-Desired emotional response: ${c.emo}. Formality: ${c.formality}.${languageBlock(c)}${localeBlock(c)}
+${feelText(c)} ${vocabText(c)}${c.profile ? `
+Who it's for: ${c.profile}` : ""}${languageBlock(c)}${localeBlock(c)}
 
 How to write it:
 - Build the hook from the brief's subject. If the brief and the voice guidance point at different products, follow the brief.
@@ -649,6 +740,7 @@ var BRAND_TEXT = {
   name: 200,
   belief: 2e3,
   message: 2e3,
+  profile: 1e3,
   pain: 1e3,
   objection: 1e3,
   banned: 1e3,
@@ -671,13 +763,26 @@ function cleanCtx(body) {
   const stylePack = STYLE_PACKS[body.stylePack] ? body.stylePack : "classic";
   return { brand, notes, stylePack };
 }
+function cleanGridWords(words, medium) {
+  if (words == null || words === "") return null;
+  if (typeof words !== "object") return int(words, 1, MAX_WORDS, null);
+  const fields = Object.keys(MEDIA_BY_KEY[medium]?.limits || {});
+  const out = {};
+  for (const key of fields) {
+    const n = int(obj(words)[key], 1, MAX_WORDS, null);
+    if (n) out[key] = n;
+  }
+  return Object.keys(out).length ? out : null;
+}
 function cleanGridSettings(input, medium) {
   const s = obj(input);
   return {
-    words: s.words == null || s.words === "" ? null : int(s.words, 1, MAX_WORDS, null),
+    words: cleanGridWords(s.words, medium),
     brief: str(s.brief, 1e3),
     component: medium === "website" && GRID_WEBSITE_COMPONENTS[s.component] ? s.component : "hero",
-    pointerCount: int(s.pointerCount, 2, 6, 3)
+    pointerCount: int(s.pointerCount, 2, 6, 3),
+    // The Social card's Platform, as on a Social node.
+    platform: medium === "marketing" && PLATFORMS.includes(s.platform) ? s.platform : null
   };
 }
 var CARD_KEY = /^([a-z]+)(_\d{1,2})?$/;
@@ -706,6 +811,8 @@ function cleanNode(input) {
     label: str(n.label, 120).trim() || cat.label,
     brief: str(n.brief, 2e3),
     words: int(n.words, 4, 600, 60),
+    // The headline's user-set length (null = no target; the body is `words`).
+    headingWords: n.headingWords == null || n.headingWords === "" ? null : int(n.headingWords, 1, NODE_MAX_HEADING_WORDS, null),
     platform: n.category === "social" && PLATFORMS.includes(n.platform) ? n.platform : null,
     component: WEBSITE_COMPONENTS[n.component] ? n.component : "hero",
     pointerCount: int(n.pointerCount, 2, 6, 3)
@@ -738,13 +845,21 @@ function offTarget(targets) {
     return words < min || words > max ? [{ label, words, min, max, target }] : [];
   });
 }
-var nodeLengthIssues = (node) => (data) => offTarget(list(obj(data).variants, MAX_NODE_VARIANTS).map((v, i) => ({ label: `variant ${i + 1} body`, text: obj(v).body, target: node.words })).filter((t2) => typeof t2.text === "string"));
-var allText = (item) => typeof item === "string" ? item : Object.values(obj(item)).filter((v) => typeof v === "string").join(" ");
-var gridLengthIssues = (cards) => (data) => offTarget(cards.filter((c) => c.settings.words).flatMap((c) => list(obj(data)[c.key], MAX_GRID_VARIANTS).map((item, i) => ({
-  label: `${c.key} item ${i + 1} (all its text fields together)`,
-  text: allText(item),
-  target: c.settings.words
-}))));
+var nodeLengthIssues = (node) => (data) => offTarget(list(obj(data).variants, MAX_NODE_VARIANTS).flatMap((v, i) => [
+  { label: `variant ${i + 1} body`, text: obj(v).body, target: node.words },
+  ...node.headingWords ? [{ label: `variant ${i + 1} headline`, text: obj(v).headline, target: node.headingWords }] : []
+]).filter((t2) => typeof t2.text === "string"));
+var jsonField = (medium, field) => field;
+var gridLengthIssues = (cards) => (data) => offTarget(cards.flatMap((c) => {
+  const targets = Object.entries(cardTargets(c.medium, c.settings));
+  if (!targets.length) return [];
+  const single = Object.keys(MEDIA_BY_KEY[c.medium]?.limits || {}).length === 1;
+  return list(obj(data)[c.key], MAX_GRID_VARIANTS).flatMap((item, i) => targets.map(([field, target]) => ({
+    label: single ? `${c.key} item ${i + 1}` : `${c.key} item ${i + 1} "${jsonField(c.medium, field)}"`,
+    text: toDisplay(item)?.[field],
+    target
+  })));
+}).filter((t2) => typeof t2.text === "string"));
 var clampNode = (node) => (data) => {
   const d = obj(data);
   if (!Array.isArray(d.variants)) return data;
@@ -752,29 +867,24 @@ var clampNode = (node) => (data) => {
     ...d,
     variants: d.variants.map((v) => {
       const o = obj(v);
-      return typeof o.body === "string" ? { ...o, body: trimToWords(o.body, node.words) } : v;
+      if (typeof o.body !== "string") return v;
+      const next = { ...o, body: trimToWords(o.body, node.words) };
+      if (node.headingWords && typeof o.headline === "string") next.headline = trimToWords(o.headline, node.headingWords);
+      return next;
     })
   };
 };
-function clampItem(item, max) {
-  if (typeof item === "string") return trimToWords(item, max);
-  const o = obj(item);
-  const keys = Object.keys(o).filter((k) => typeof o[k] === "string");
-  let over = countWords(keys.map((k) => o[k]).join(" ")) - max;
-  if (over <= 0) return item;
-  const next = { ...o };
-  for (const k of [...keys].reverse()) {
-    if (over <= 0) break;
-    const had = countWords(next[k]);
-    next[k] = trimToWords(next[k], Math.max(1, had - over));
-    over -= had - countWords(next[k]);
-  }
-  return next;
+function clampItem(item, targets) {
+  return targets.reduce((it, [field, max]) => {
+    const text = toDisplay(it)?.[field];
+    return typeof text === "string" && countWords(text) > max ? applyEdit(it, field, trimToWords(text, max)) : it;
+  }, item);
 }
 var clampGrid = (cards) => (data) => {
   const d = { ...obj(data) };
   for (const c of cards) {
-    if (c.settings.words && Array.isArray(d[c.key])) d[c.key] = d[c.key].map((item) => clampItem(item, c.settings.words));
+    const targets = Object.entries(cardTargets(c.medium, c.settings));
+    if (targets.length && Array.isArray(d[c.key])) d[c.key] = d[c.key].map((item) => clampItem(item, targets));
   }
   return d;
 };
@@ -939,15 +1049,18 @@ var BRAND_COLS = [
   "language",
   "personality",
   "writing_rules",
-  "voice_sample"
+  "voice_sample",
+  "customer_profile"
 ];
 var COL_GROUPS = [
   ["location", "language"],
   // 20261012
   ["pillars"],
   // 20261116
-  ["personality", "writing_rules", "voice_sample", "warmth"]
+  ["personality", "writing_rules", "voice_sample", "warmth"],
   // 20261117
+  ["customer_profile"]
+  // 20261118
 ];
 var OPTIONAL_COLS = COL_GROUPS.flat();
 function brandRow(input, skip) {

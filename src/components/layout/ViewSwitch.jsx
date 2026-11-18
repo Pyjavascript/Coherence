@@ -16,11 +16,11 @@ const NodesIcon = () => (
 );
 
 export const VIEWS = [
-  { key: "quick", label: "Grid", Icon: GridIcon },
-  { key: "nodes", label: "Node", Icon: NodesIcon },
+  { key: "quick", label: "Quick Grid", Icon: GridIcon },
+  { key: "nodes", label: "Node Studio", Icon: NodesIcon },
 ];
 
-// Grid | Node switch at the start of the toolbar: the current view's name on
+// Quick Grid | Node Studio switch at the start of the toolbar: the current view's name on
 // the left, then an icon-only tab per view with a sliding thumb behind the
 // active one. Both names are stacked in one cell so the box never changes
 // width; each tab carries its name as a label and tooltip.

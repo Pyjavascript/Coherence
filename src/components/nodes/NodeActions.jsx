@@ -109,8 +109,61 @@ export function CopyButton({ label, onCopy, disabled = false }) {
   );
 }
 
+const ArrowIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+
+// The card's bottom row, as on a Node Studio node (NodeStudio.jsx
+// .sn-card-foot): Copy on the left; regenerate and the green Generate arrow
+// on the right. The arrow generates this card alone (its first copy, or new
+// copy); regenerate needs copy to be there first.
+export function CardFoot({ label, busy, canCopy, canRegenerate, regenDisabled, regenTitle, onCopy, onRegenerate, onBlocked }) {
+  const run = () => {
+    if (regenDisabled) {
+      onBlocked?.();
+      return;
+    }
+    onRegenerate();
+  };
+
+  return (
+    <div className="sn-card-foot ncard-foot">
+      <CopyButton label={label} disabled={!canCopy} onCopy={onCopy} />
+      <div className="sn-card-actions">
+        <button
+          type="button"
+          className={"sn-card-btn sn-card-regen" + (busy ? " is-spinning" : "")}
+          title={regenTitle || (canRegenerate ? "Regenerate" : "Generate copy first to regenerate it")}
+          aria-label={`Regenerate ${label}`}
+          disabled={busy || !canRegenerate}
+          aria-disabled={regenDisabled || undefined}
+          onClick={run}
+        >
+          <RegenIcon />
+        </button>
+        <button
+          type="button"
+          className="sn-card-go"
+          title={regenTitle || (busy ? "Generating…" : "Generate")}
+          aria-label={busy ? "Generating" : canRegenerate ? `Generate ${label} again` : `Generate ${label}`}
+          aria-busy={busy || undefined}
+          aria-disabled={regenDisabled || undefined}
+          disabled={busy}
+          onClick={run}
+        >
+          {busy ? <span className="sn-card-spin" aria-hidden="true" /> : <ArrowIcon />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// showRegen: the header's regenerate. Off while the card shows its copy (the
+// bottom row has it then); on while the settings hide that row.
 export default function NodeActions({
-  label, busy, canRegenerate = true, settingsOpen, customised, onToggleSettings,
+  label, busy, canRegenerate = true, settingsOpen, customised, onToggleSettings, showRegen = true,
   regenDisabled, regenTitle, onRegenerate, onBlocked, onDuplicate, onDelete, onClose,
 }) {
   return (
@@ -127,7 +180,7 @@ export default function NodeActions({
           <SlidersIcon />
         </button>
       )}
-      <button
+      {showRegen && <button
         type="button"
         className={"ncard-action ncard-regen" + (busy ? " is-spinning" : "")}
         title={regenTitle || (canRegenerate ? `Regenerate ${label}` : "Generate copy first to regenerate it")}
@@ -143,7 +196,7 @@ export default function NodeActions({
         }}
       >
         <RegenIcon />
-      </button>
+      </button>}
       {/* MoreMenu's "⋯" button is switched off, and its empty wrapper still
           took a flex slot, doubling the gap between regenerate and ×. Render
           it again together with that button:

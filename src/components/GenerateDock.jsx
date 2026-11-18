@@ -2,7 +2,7 @@
 // the message composer: the brand's "Message to Adapt" (the one thing
 // Generate needs) and the arrow that generates it into every card. While it
 // runs, the arrow turns into a spinner. Enter sends; Shift + Enter is a new
-// line. ("Pro" and the "?" keep the bottom-left corner.)
+// line. ("Pro" keeps the bottom-left corner, the "?" the bottom-right.)
 
 const MAX_MESSAGE = 2000; // the generate function's cap on brand.message
 const PLACEHOLDER = "What would you like to generate";

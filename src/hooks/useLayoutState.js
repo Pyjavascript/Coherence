@@ -3,8 +3,10 @@ import { useBreakpoint } from "./useBreakpoint";
 
 // Single source of truth for the shell: which panels are open and which view
 // is active. On desktop both side panels sit inline (`leftOpen` / `rightOpen`,
-// persisted). Below desktop they become drawers (`drawer`, never persisted).
-// Either way only one is open at a time: opening one collapses the other.
+// persisted). Tablets keep the brand panel inline too (a column of the frame,
+// like desktop) while the rail becomes a drawer. Phones use drawers for both
+// (`drawer`, never persisted). Only one is open at a time: opening one
+// collapses the other.
 const KEY = "coherence.ui.v1";
 const VIEWS = ["quick", "nodes"];
 const DEFAULTS = { leftOpen: false, rightOpen: false, view: "quick", drawer: null };
@@ -27,11 +29,12 @@ function load() {
 const sideKey = (side) => (side === "left" ? "leftOpen" : "rightOpen");
 const otherKey = (side) => sideKey(side === "left" ? "right" : "left");
 
-// Inline panels: opening one closes the other; closing leaves the other alone.
+// Inline panels: opening one closes the other (an open drawer too);
+// closing leaves the other alone.
 function setInline(state, side, open) {
-  if (state[sideKey(side)] === open && (!open || !state[otherKey(side)])) return state;
+  if (state[sideKey(side)] === open && (!open || (!state[otherKey(side)] && !state.drawer))) return state;
   return open
-    ? { ...state, [sideKey(side)]: true, [otherKey(side)]: false }
+    ? { ...state, [sideKey(side)]: true, [otherKey(side)]: false, drawer: null }
     : { ...state, [sideKey(side)]: false };
 }
 
@@ -41,11 +44,14 @@ function reducer(state, action) {
     case "set": {
       if (inline) return setInline(state, side, action.open);
       const drawer = action.open ? side : state.drawer === side ? null : state.drawer;
-      return drawer === state.drawer ? state : { ...state, drawer };
+      if (drawer === state.drawer) return state;
+      // A drawer opening closes the inline brand panel (tablets).
+      return { ...state, drawer, ...(drawer ? { [otherKey(drawer)]: false } : null) };
     }
     case "toggle": {
       if (inline) return setInline(state, side, !state[sideKey(side)]);
-      return { ...state, drawer: state.drawer === side ? null : side };
+      const drawer = state.drawer === side ? null : side;
+      return { ...state, drawer, ...(drawer ? { [otherKey(drawer)]: false } : null) };
     }
     case "closeDrawer":
       return state.drawer ? { ...state, drawer: null } : state;
@@ -59,6 +65,9 @@ function reducer(state, action) {
 export function useLayoutState() {
   const bp = useBreakpoint();
   const inline = bp === "desktop";
+  // The brand panel sits inline everywhere but phones.
+  const rightInline = bp !== "mobile";
+  const inlineFor = useCallback((side) => (side === "right" ? rightInline : inline), [inline, rightInline]);
   const [state, dispatch] = useReducer(reducer, undefined, load);
 
   // Drawers never survive a breakpoint change.
@@ -72,9 +81,9 @@ export function useLayoutState() {
     }
   }, [state.leftOpen, state.rightOpen, state.view]);
 
-  const toggle = useCallback((side) => dispatch({ type: "toggle", side, inline }), [inline]);
-  const open = useCallback((side) => dispatch({ type: "set", side, open: true, inline }), [inline]);
-  const close = useCallback((side) => dispatch({ type: "set", side, open: false, inline }), [inline]);
+  const toggle = useCallback((side) => dispatch({ type: "toggle", side, inline: inlineFor(side) }), [inlineFor]);
+  const open = useCallback((side) => dispatch({ type: "set", side, open: true, inline: inlineFor(side) }), [inlineFor]);
+  const close = useCallback((side) => dispatch({ type: "set", side, open: false, inline: inlineFor(side) }), [inlineFor]);
   const closeDrawer = useCallback(() => dispatch({ type: "closeDrawer" }), []);
   const setView = useCallback((view) => dispatch({ type: "view", view }), []);
 
@@ -92,12 +101,13 @@ export function useLayoutState() {
   return {
     bp,
     inline,
+    rightInline,
     // Phones have Quick Grid only (no Grid | Node switch); the chosen view
     // comes back on a wider screen.
     view: bp === "mobile" ? "quick" : state.view,
-    drawer: inline ? null : state.drawer,
+    drawer: inline ? null : rightInline && state.drawer === "right" ? null : state.drawer,
     leftOpen: inline ? state.leftOpen : state.drawer === "left",
-    rightOpen: inline ? state.rightOpen : state.drawer === "right",
+    rightOpen: rightInline ? state.rightOpen : state.drawer === "right",
     toggle,
     open,
     close,

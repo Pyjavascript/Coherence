@@ -1475,6 +1475,14 @@
   line-height: 1.2;
 }
 
+/* The pack's description, under its line. */
+.pv-pack-sub {
+  max-width: 90%;
+  color: #5a4a35;
+  font-size: clamp(11px, 0.9vw, 13px);
+  line-height: 1.35;
+}
+
 /* Campaign poster */
 .pv-poster {
   min-height: 100%;

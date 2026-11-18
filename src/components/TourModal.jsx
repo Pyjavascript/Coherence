@@ -1,11 +1,11 @@
 import { Fragment, useCallback, useEffect, useId, useRef, useState } from "react";
 import { useDialogBehavior, useOverlayDismiss } from "./Modal";
-import art1 from "../assets/tour-modal/1-new.svg";
-import art2 from "../assets/tour-modal/2.svg";
-import art3 from "../assets/tour-modal/3.svg";
-import art4 from "../assets/tour-modal/4.svg";
+import art1 from "../assets/tour-modal/1-final-1.svg";
+import art2 from "../assets/tour-modal/2-final-2.svg";
+import art3 from "../assets/tour-modal/3-final-3.svg";
+import art4 from "../assets/tour-modal/4-final-4.svg";
 
-// Product tour: a row of step icons over one card (CCO + Beta, a heading, the
+// Product tour: a row of step icons over one card (CCO + the step's tag, a heading, the
 // step's illustration from src/assets/tour-modal). It plays by itself: each
 // step shows for STEP_MS, then the next; after the last one the tour fades
 // out. The icons jump to a step (and restart its time); arrow keys step;
@@ -56,10 +56,10 @@ const FigmaIcon = () => (
 );
 
 export const TOUR_STEPS = [
-  { key: "intro", label: "Introduction", Icon: CcIcon, art: art1, title: "Introducing Coherence Content Orchestration" },
-  { key: "grid", label: "Quick Grid", Icon: GridIcon, art: art2, title: "One Message Every Medium. Quick Generate Now Live" },
-  { key: "nodes", label: "Node Studio", Icon: NodesIcon, art: art3, title: "Advanced node control for seamless campaign management." },
-  { key: "figma", label: "Figma", Icon: FigmaIcon, art: art4, title: "Now generate and integrate designs directly into Figma." },
+  { key: "intro", label: "Introduction", tag: "Introduction", Icon: CcIcon, art: art1, title: ["Introducing", "Coherence Content", "Orchestration"] },
+  { key: "grid", label: "Quick Grid", tag: "Quick Grid", Icon: GridIcon, art: art2, title: ["One Message Every", "Medium. Quick Generate", "Now Live"] },
+  { key: "nodes", label: "Node Studio", tag: "Node Studio", Icon: NodesIcon, art: art3, title: ["Advanced node control", "for seamless campaign", "management."] },
+  { key: "figma", label: "Figma", tag: "Plugin", Icon: FigmaIcon, art: art4, title: ["Now generate and", "integrate designs directly", "into Figma."] },
 ];
 
 // Phones have no Node Studio (Grid only), so their tour skips its step.
@@ -138,23 +138,34 @@ export default function TourModal({ onClose, compact = false }) {
         <div className="tc-card">
           <div className="tc-head">
             <span className="tc-brand">CCO</span>
-            <span className="tc-badge">Beta</span>
+            <span className="tc-badge">{steps[step].tag}</span>
           </div>
 
           {/* Every step's heading shares one cell; only the active one is read
-              out. Each word is its own span, so the words can rise in one
-              after another (--i: the word's place). */}
+              out. Each heading is set in the design's three lines (title: one
+              string per line). Each word is its own span, so the words can
+              rise in one after another (--i: the word's place in the heading). */}
           <div className="tc-titles">
-            {steps.map((s, i) => (
-              <h2 key={s.key} id={i === step ? titleId : undefined} data-active={i === step} aria-hidden={i !== step}>
-                {s.title.split(" ").map((word, w) => (
-                  <Fragment key={w}>
-                    {w > 0 && " "}
-                    <span className="tc-word" style={{ "--i": w }}>{word}</span>
-                  </Fragment>
-                ))}
-              </h2>
-            ))}
+            {steps.map((s, i) => {
+              let at = 0;
+              return (
+                <h2 key={s.key} id={i === step ? titleId : undefined} data-active={i === step} aria-hidden={i !== step}>
+                  {s.title.map((line, l) => (
+                    <Fragment key={l}>
+                      {l > 0 && " "}
+                      <span className="tc-line">
+                        {line.split(" ").map((word, w) => (
+                          <Fragment key={w}>
+                            {w > 0 && " "}
+                            <span className="tc-word" style={{ "--i": at++ }}>{word}</span>
+                          </Fragment>
+                        ))}
+                      </span>
+                    </Fragment>
+                  ))}
+                </h2>
+              );
+            })}
           </div>
 
           <div className="tc-art" aria-hidden="true">

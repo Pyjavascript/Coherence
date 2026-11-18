@@ -239,24 +239,24 @@
   }
 }
 
-/* ---------- Desktop: the brand panel is a column of the navy frame ---------- */
+/* ---------- Laptops + tablets: the brand panel is a column of the navy frame */
 /* No floating card: the panel sits straight on the navy, full height, right
    of the board, like the rail on the left. Its slot (.shell-right) opens to
    the panel's width, so the board shrinks to make room, and the panel,
    pinned to the slot's left edge, slides in from the window's right edge as
    the slot grows. Same panel tokens as before (polish/tokens.css). */
-.app-shell[data-bp="desktop"] .shell-right {
+.app-shell:not([data-bp="mobile"]) .shell-right {
   width: 0;
   transition: width var(--pl-panel-close) var(--pl-panel-ease);
 }
 
-.app-shell[data-bp="desktop"][data-right="open"] .shell-right {
+.app-shell:not([data-bp="mobile"])[data-right="open"] .shell-right {
   width: calc(var(--rsb-w) + var(--gap));
   transition: width var(--pl-panel-open) var(--pl-panel-ease);
 }
 
-.app-shell[data-bp="desktop"] .rsb,
-.app-shell[data-bp="desktop"][data-right="open"] .rsb {
+.app-shell:not([data-bp="mobile"]) .rsb,
+.app-shell:not([data-bp="mobile"])[data-right="open"] .rsb {
   top: 0;
   bottom: 0;
   left: var(--gap);
@@ -266,37 +266,36 @@
   border-radius: 0;
 }
 
-#root .app-shell[data-bp="desktop"] .rsb {
+#root .app-shell:not([data-bp="mobile"]) .rsb {
   box-shadow: none !important;
 }
 
 /* The panel's title row is the toolbar's height and starts at its top, so
    the title and its buttons share the toolbar's centre line. */
-.app-shell[data-bp="desktop"] .rsb-scroll {
+.app-shell:not([data-bp="mobile"]) .rsb-scroll {
   padding-top: 0;
 }
 
-.app-shell[data-bp="desktop"] .rsb-head {
+.app-shell:not([data-bp="mobile"]) .rsb-head {
   min-height: var(--tb-h);
   align-items: center;
 }
 
 /* The board no longer runs under the panel, so the grid, the bottom row and
    the zoom controls keep their normal insets while it's open. */
-.app-shell[data-bp="desktop"][data-right="open"] .ws-stage {
+.app-shell:not([data-bp="mobile"])[data-right="open"] .ws-stage {
   --tray-right: var(--ws-gutter);
 }
 
-.app-shell[data-bp="desktop"][data-right="open"] .qg {
-  /* --qg-pr too: the strip's "next" arrow sits on this edge (.qg-arrow), and
-     layout.css still sets it to the old overlay width (panel + gaps), which
-     put the arrow in the middle of the cards. */
+.app-shell:not([data-bp="mobile"])[data-right="open"] .qg {
+  /* layout.css sets --qg-pr to the old overlay width (panel + gaps); reset
+     it to the gutter. */
   --qg-pr: var(--ws-gutter);
   padding-right: clamp(12px, 1.6vw, 24px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-shell[data-bp="desktop"] .shell-right {
+  .app-shell:not([data-bp="mobile"]) .shell-right {
     transition: none;
   }
 }
@@ -483,6 +482,31 @@
   scroll-snap-stop: always;
 }
 
+/* No cards: the carousel / strip layouts above would pin the empty card to the
+   top, edge to edge. Put back the centred layout from layout.css, with a side
+   gutter so the card floats clear of the board's edges. */
+.qg.is-empty.is-carousel,
+.qg.is-empty.is-strip {
+  display: grid;
+  place-items: center;
+  padding-left: var(--ws-gutter);
+  padding-right: var(--ws-gutter);
+}
+
+.app-shell[data-bp="mobile"] .qg.is-empty {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* Phone radius ladder: card 22, 48px control 16. */
+.app-shell[data-bp="mobile"] .qg-empty {
+  border-radius: 22px;
+}
+
+.app-shell[data-bp="mobile"] .qg-empty button {
+  border-radius: 16px;
+}
+
 /* ---------- Laptops / tablets: one row that scrolls sideways ------------------ */
 /* (QuickGrid.jsx is-strip.) The cards keep the grid's column width (3 across
    on laptops, 2 on tablets: --qg-cols, layout.css) at the full height; more
@@ -516,83 +540,33 @@
   display: none;
 }
 
+/* Fewer cards than fit across share the whole row (one card is full width,
+   two are half each); from --qg-cols cards up, each keeps the column width
+   and the rest scroll. --qg-n is the card count (QuickGrid.jsx). */
 .qg.is-strip .qg-grid > .ncard {
-  flex: 0 0 calc((100% - (var(--qg-cols) - 1) * var(--strip-gap)) / var(--qg-cols));
+  --qg-across: min(var(--qg-cols), var(--qg-n, var(--qg-cols)));
+  flex: 0 0 calc((100% - (var(--qg-across) - 1) * var(--strip-gap)) / var(--qg-across));
   min-width: 0;
   min-height: 0;
   scroll-snap-align: start;
 }
 
-/* Back / forward arrows, centred on the cards' height and sitting on the
-   row's left and right edges; each shows only while there are cards out of
-   view on its side. Green tiles with a white arrow, like the Generate button,
-   with the view switch's corner; the darker green on hover. */
-.qg-arrow {
-  --sz: 40px;
-  position: absolute;
-  z-index: 3;
-  top: calc((4px + 100% - var(--qg-pb, 0px)) / 2);
-  width: var(--sz);
-  height: var(--sz);
-  display: grid;
-  place-items: center;
-  padding: 0;
-  /* As the Generate arrow (composer.css .composer-send): the theme green with
-     a white arrow and its green glow. */
-  color: #fff;
-  background: var(--shell-green);
-  border: 0;
-  border-radius: var(--ws-switch-r);
-  box-shadow: 0 6px 16px -8px rgba(23, 179, 139, 0.7);
-  translate: 0 -50%;
-  cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease, scale 120ms ease;
-}
-
-.qg-arrow[hidden] {
-  display: none;
-}
-
-/* Centred on the cards' edge where the gutter allows; never closer than 4px to
-   the stage's side (the row clips anything past it). */
-.qg-arrow.is-prev {
-  left: max(4px, calc(var(--ws-gutter, 16px) - var(--sz) / 2));
-}
-
-.qg-arrow.is-next {
-  right: max(4px, calc(var(--qg-pr, var(--ws-gutter, 16px)) - var(--sz) / 2));
-}
-
-.qg-arrow svg {
-  width: 45%;
-  height: 45%;
-}
-
-.qg-arrow:hover {
-  color: #fff;
-  background: var(--shell-green-hover);
-  box-shadow: 0 8px 18px -8px rgba(23, 179, 139, 0.8);
-}
-
-.qg-arrow:active {
-  scale: 0.94;
-}
-
-.qg-arrow:focus-visible {
-  outline: 2px solid #74d4b8;
-  outline-offset: 2px;
-}
-
-/* Pager: a dot per card, centred; the current card's dot stretches into a
-   wide bar. One fixed colour, the Generate button's blue (--shell-blue):
-   solid for the bar, a pale tint for the rest. Each dot is also a button
-   that jumps to its card. */
+/* Pager: a dot per stop (phones: per card; laptops / tablets: per scroll
+   position), centred under the cards on a white backing so it doesn't
+   get lost on the board. Backing and dots take the app's squircle corner:
+   --icon-btn-ratio (0.35) of their own height, as squircle.css gives every
+   icon button. The dots are the Generate button's colour
+   (--shell-blue): a pale tint, and the current stop a wide solid bar. Each
+   dot is also a button that jumps to its stop. */
 .qg-pager {
-  --dot: 6px;
+  --dot: 7px;
+  --pager-pad-y: 13px;
+  --dot-ink: color-mix(in srgb, var(--shell-blue) 45%, #bfe9dc);
+  --dot-on: var(--shell-blue);
   flex: none;
   display: flex;
   justify-content: center;
-  padding: 16px 12px 4px;
+  padding: 14px 12px 2px;
 }
 
 .qg-pager-dots {
@@ -601,7 +575,12 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 11px;
+  padding: var(--pager-pad-y) 20px;
+  background: #fff;
+  border: 1px solid #e3e3e7;
+  /* The backing's height: a dot, its padding and the 1px border. */
+  border-radius: calc((var(--dot) + 2 * var(--pager-pad-y) + 2px) * var(--icon-btn-ratio, 0.35));
 }
 
 .qg-pager-dot {
@@ -610,30 +589,37 @@
   width: var(--dot);
   height: var(--dot);
   padding: 0;
-  /* Solid, and dark enough to read on the board's light blue bottom. */
-  background: color-mix(in srgb, var(--shell-blue) 45%, #bfe9dc);
+  background: var(--dot-ink);
   border: 0;
-  border-radius: var(--ui-r);
+  /* From the height, so the wide bar keeps the dots' corner. */
+  border-radius: calc(var(--dot) * var(--icon-btn-ratio, 0.35));
   cursor: pointer;
   transition:
     width 320ms var(--shell-ease),
     background-color 240ms ease;
 }
 
-/* A finger-sized hit area around each small dot. */
+.qg-pager-dot:hover:not([aria-current]) {
+  background: color-mix(in srgb, var(--shell-blue) 70%, #bfe9dc);
+}
+
+/* A finger-sized hit area around each small dot, over the backing's
+   padding and half of each gap. */
 .qg-pager-dot::after {
   content: "";
   position: absolute;
-  inset: -14px -3px;
+  inset: -13px -5px;
 }
 
+/* The current stop: a wide solid bar. */
 .qg-pager-dot[aria-current] {
-  width: calc(var(--dot) * 3.6);
-  background: var(--shell-blue);
+  width: calc(var(--dot) * 6.2);
+  background: var(--dot-on);
+  cursor: default;
 }
 
 .qg-pager-dot:focus-visible {
-  outline: 2px solid var(--shell-blue);
+  outline: 2px solid var(--dot-on);
   outline-offset: 3px;
 }
 

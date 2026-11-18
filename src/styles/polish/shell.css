@@ -115,27 +115,27 @@
 /* desktop: the floating panel slides out from behind the navy frame (past the
    window's right edge) to its place, and back the same way. Purely
    horizontal: no scale, so nothing appears to rise or jump. */
-.app-shell[data-bp=desktop] .rsb {
+.app-shell:not([data-bp=mobile]) .rsb {
   translate: calc(100% + var(--gap) + var(--shell-pad)) 0;
   transition:
     translate var(--pl-panel-close) var(--pl-panel-ease),
     transform var(--shell-dur) var(--shell-ease),
     visibility 0s linear var(--pl-panel-close);
 }
-.app-shell[data-bp=desktop][data-right=open] .rsb {
+.app-shell:not([data-bp=mobile])[data-right=open] .rsb {
   translate: 0 0;
   transition:
     translate var(--pl-panel-open) var(--pl-panel-ease),
     transform var(--shell-dur) var(--shell-ease),
     visibility 0s;
 }
-/* tablet/mobile drawer keeps its translateX, on the same tokens */
-.app-shell:not([data-bp=desktop]) .rsb {
+/* mobile drawer keeps its translateX, on the same tokens */
+.app-shell[data-bp=mobile] .rsb {
   transition:
     transform var(--pl-panel-close) var(--pl-panel-ease),
     visibility 0s linear var(--pl-panel-close);
 }
-.app-shell:not([data-bp=desktop])[data-right=open] .rsb {
+.app-shell[data-bp=mobile][data-right=open] .rsb {
   transition: transform var(--pl-panel-open) var(--pl-panel-ease), visibility 0s;
 }
 

@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { INDUSTRY_LAYERS, LANGUAGES, MAX_PILLARS, MAX_PILLAR_CHARS, PERSONALITIES, WARMTH_DEFAULT } from "../lib/constants";
 import { toast } from "../lib/brandPanelCopy";
 import { resizeImageFile } from "../lib/image";
-import { shortcut } from "../lib/shortcuts";
 import BrandSelect from "./Select";
 import BrandLogo from "./BrandLogo";
+import CustomerTab from "./CustomerTab";
 
 // The "Content Job" here is the same text as the composer at the bottom of
 // the workspace (brand.message): typing in either updates both.
@@ -156,6 +156,7 @@ function Pillars({ pillars, onChange }) {
 export default function BrandPanel({
   brand, onField, saving, focusRequest, canExport, generating, atGenLimit,
   onSave, onRegenerate, onCopyPrompt, onDownload, onStatus, onClose,
+  premium, onPremiumToggle, onUpgrade, notesCount, onOpenNotes,
 }) {
   const [tab, setTab] = useState("brand");
   const fileInputRef = useRef(null);
@@ -406,9 +407,16 @@ export default function BrandPanel({
         )}
 
         {tab === "customer" && (
-          <div className="bpx-soon" role="tabpanel" id="bp-tabpanel-customer" aria-labelledby="bp-tab-customer">
-            <p>Customer settings are coming soon.</p>
-          </div>
+          <CustomerTab
+            brand={brand}
+            onField={onField}
+            onStatus={onStatus}
+            premium={premium}
+            onPremiumToggle={onPremiumToggle}
+            onUpgrade={onUpgrade}
+            notesCount={notesCount}
+            onOpenNotes={onOpenNotes}
+          />
         )}
 
         <div className="bpx-bar">
@@ -432,10 +440,10 @@ export default function BrandPanel({
             <button
               type="button"
               className={"bpx-btn bpx-icon bpx-save" + (saving ? " is-busy" : "")}
-              aria-label={saving ? "Saving brand" : "Save brand"}
-              title={saving ? "Saving…" : `Save brand (${shortcut("S")})`}
+              aria-label={saving ? "Saving brand" : "Save and generate"}
+              title={saving ? "Saving…" : generating ? "Generating…" : "Save the brand and generate copy"}
               aria-busy={saving || undefined}
-              disabled={saving}
+              disabled={saving || generating}
               onClick={onSave}
             >
               {saving ? <span className="bpx-spin" aria-hidden="true" /> : <Icon d={ICONS.arrow} width={2.2} />}

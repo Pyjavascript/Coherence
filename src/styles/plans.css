@@ -413,6 +413,85 @@ html body .overlay > .plans-modal {
   .plans-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* Phones: the Monthly | Yearly switch, then the annual saving under it,
+     come up under the body copy, above the stacked plans, so the billing
+     choice is seen before scrolling through the cards. */
+  html body .overlay > .plans-modal {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .plans-modal > * {
+    flex: none;
+  }
+
+  .plans-modal > .plans-billing {
+    order: 1;
+    margin: 0 auto 8px;
+  }
+
+  .plans-modal > .plans-save {
+    order: 2;
+    margin: 0 0 clamp(18px, 4vw, 22px);
+  }
+
+  .plans-modal > .plans-grid {
+    order: 3;
+  }
+
+  /* Phones: the stacked plans get room to breathe (the sheet scrolls, so
+     height is no constraint): a wider gap between the cards, more padding
+     inside them, each part spaced out, and a full-size button. */
+  .plans-grid {
+    --pi: 10px;
+    --pm-card-r: 28px;
+    gap: 12px;
+  }
+
+  .plan-card {
+    --card-pad: 24px;
+    padding: 24px 22px 22px;
+  }
+
+  .plan-icon {
+    --sz: 48px;
+  }
+
+  .plan-chip {
+    --h: 32px;
+    padding: 0 13px 0 10px;
+  }
+
+  .plan-name {
+    margin-top: 28px;
+    font-size: 28px;
+    line-height: 1.1;
+  }
+
+  .plan-tagline {
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .plan-price {
+    margin-top: 28px;
+  }
+
+  .plan-price-amount {
+    font-size: 42px;
+  }
+
+  .plan-price-period {
+    font-size: 15px;
+  }
+
+  .plan-cta {
+    height: 52px;
+    margin-top: 24px;
+    font-size: 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

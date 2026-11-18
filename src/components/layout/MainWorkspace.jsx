@@ -4,12 +4,13 @@ import { TourButton } from "../TourModal";
 
 // Toolbar on top (it holds the view switch), both views stacked in the stage
 // (kept mounted so switching never loses or regenerates content), and the
-// bottom row: in the left corner trayStart (the "Pro" button, free plan only)
-// and the tour "?"; in the middle the tray: the message composer with its
-// Generate arrow (GenerateDock.jsx). The tray's height is kept in --tray-h so
-// the grid can leave room under it. Node Studio's zoom controls live in the
-// canvas, in the bottom-right corner. The composer keeps clear of the left
-// group (--start-room) on both sides, so it stays centred.
+// bottom row: in the left corner trayStart (the "Pro" button, free plan only);
+// in the right corner the tour "?"; in the middle the tray: the message
+// composer with its Generate arrow (GenerateDock.jsx). The tray's height is
+// kept in --tray-h so the grid can leave room under it. Node Studio's zoom
+// controls live in the canvas, just left of the "?" (--cta-room). The
+// composer keeps clear of both corners (--start-room / --end-room), the
+// wider one on both sides, so it stays centred.
 const ZOOM_GAP = 12; // composer.css --tray-gap
 
 // One Quick Grid column's width: the grid's content width split into --qg-cols
@@ -33,9 +34,11 @@ export default function MainWorkspace({ toolbar, view, views, inert, onHelp, tra
   const stageRef = useRef(null);
   const trayRef = useRef(null);
   const startRef = useRef(null);
-  // The bottom-left group: "Pro" (free plan only) and the tour "?" (always).
-  const hasStart = Boolean(trayStart || onHelp);
-  const hasPro = Boolean(trayStart); // its width changes the left group's
+  const endRef = useRef(null);
+  // The bottom-left group: "Pro" (free plan only). The tour "?" has the
+  // bottom-right corner to itself.
+  const hasStart = Boolean(trayStart);
+  const hasEnd = Boolean(onHelp);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -44,6 +47,7 @@ export default function MainWorkspace({ toolbar, view, views, inert, onHelp, tra
     const zoomEl = stage.querySelector(".ws-view-nodes .canvas-controls");
     const gridEl = stage.querySelector(".ws-view-quick .qg-grid");
     const startEl = startRef.current;
+    const endEl = endRef.current;
     const measure = () => {
       stage.style.setProperty("--tray-h", `${trayEl.offsetHeight}px`);
       // The composer is one grid column wide: the width one card has when its
@@ -57,6 +61,11 @@ export default function MainWorkspace({ toolbar, view, views, inert, onHelp, tra
       stage.style.setProperty("--zoom-room", `${zoomW ? zoomW + ZOOM_GAP : 0}px`);
       const startW = startEl?.offsetWidth || 0;
       stage.style.setProperty("--start-room", `${startW ? startW + ZOOM_GAP : 0}px`);
+      // The "?" in the right corner: the composer keeps clear of it, and
+      // Node Studio's zoom controls sit just left of it (--cta-room).
+      const endW = endEl?.offsetWidth || 0;
+      stage.style.setProperty("--end-room", `${endW ? endW + ZOOM_GAP : 0}px`);
+      stage.style.setProperty("--cta-room", `${endW ? endW + ZOOM_GAP : 0}px`);
     };
     const observer = new ResizeObserver(measure);
     observer.observe(trayEl);
@@ -64,6 +73,7 @@ export default function MainWorkspace({ toolbar, view, views, inert, onHelp, tra
     if (gridEl) observer.observe(gridEl);
     if (gridEl?.parentElement) observer.observe(gridEl.parentElement);
     if (startEl) observer.observe(startEl);
+    if (endEl) observer.observe(endEl);
     // Each card is watched too (cards settle into their columns after they
     // mount, without the grid itself resizing), including cards added later.
     const watchCards = () => gridEl?.querySelectorAll(":scope > .ncard").forEach((card) => observer.observe(card));
@@ -76,7 +86,7 @@ export default function MainWorkspace({ toolbar, view, views, inert, onHelp, tra
       observer.disconnect();
       cards?.disconnect();
     };
-  }, [hasStart, hasPro]);
+  }, [hasStart, hasEnd]);
 
   return (
     <main className="workspace" inert={inert ? "" : undefined}>
@@ -98,8 +108,12 @@ export default function MainWorkspace({ toolbar, view, views, inert, onHelp, tra
         {hasStart && (
           <div className="ws-tray-start" ref={startRef}>
             {trayStart}
+          </div>
+        )}
+        {hasEnd && (
+          <div className="ws-tray-end" ref={endRef}>
             {/* Tour "?": reopens the product tour. */}
-            {onHelp && <TourButton onClick={onHelp} />}
+            <TourButton onClick={onHelp} />
           </div>
         )}
         <div className="ws-tray" ref={trayRef}>

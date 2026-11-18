@@ -18,7 +18,10 @@ export default function BrandMark({ brand, className }) {
   const color = markColorOf(brand);
   return (
     <svg className={className} viewBox="0 0 50 50" fill="none" aria-hidden="true">
-      <rect width="50" height="50" rx="25" fill="white" />
+      {/* Square white plate: the box it sits in (rail avatar, preview
+          avatar) clips it to the app's squircle corner, the same shape as
+          an uploaded logo's badge. (A rounded rx here drew a circle.) */}
+      <rect width="50" height="50" fill="white" />
       <rect x="20.625" y="11.8477" width="8.76833" height="8.76833" fill={color} />
       <rect x="29.3828" y="20.6172" width="8.76833" height="8.76833" fill={color} />
       <rect x="20.625" y="29.3867" width="8.76833" height="8.76833" fill={color} />

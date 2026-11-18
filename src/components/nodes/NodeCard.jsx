@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import NodeHeader from "./NodeHeader";
-import NodeActions, { CopyButton } from "./NodeActions";
+import NodeActions, { CardFoot } from "./NodeActions";
 import NodeContent from "./NodeContent";
 import NodeSettings from "./NodeSettings";
 import BannedCheck from "./BannedCheck";
@@ -119,6 +119,7 @@ export default function NodeCard({
           label={title}
           busy={busy}
           canRegenerate={node.items.length > 0}
+          showRegen={settingsOpen}
           regenDisabled={regenDisabled || leaving}
           regenTitle={regenTitle}
           onRegenerate={onRegenerate}
@@ -147,17 +148,11 @@ export default function NodeCard({
             message={node.message}
             onRetry={onRegenerate}
             onEdit={onEdit ? (field, text) => onEdit(shown, field, text) : undefined}
-            // The copy box's bottom row: the banned-words check on the left (as
-            // on a Node Studio node), Copy in the bottom-right corner. Copy
-            // stays (disabled) while the copy regenerates, so nothing jumps.
-            footer={item && (
+            // The copy box's bottom row: the banned-words check (as on a Node
+            // Studio node). Empty (hidden) when there's nothing to flag.
+            footer={item && !busy && (
               <div className="ncard-box-foot">
-                {!busy ? <BannedCheck copy={item} banned={banned} className="ncard-banned" /> : <span />}
-                <CopyButton
-                  label={title}
-                  disabled={!canCopy}
-                  onCopy={() => onCopy([item.headline, item.sub].filter(Boolean).join("\n"))}
-                />
+                <BannedCheck copy={item} banned={banned} className="ncard-banned" />
               </div>
             )}
           />
@@ -192,6 +187,19 @@ export default function NodeCard({
               )}
             </div>
           )}
+          {/* Copy | regenerate, Generate: Node Studio's bottom row. It stays
+              (Copy disabled) while the copy regenerates, so nothing jumps. */}
+          <CardFoot
+            label={title}
+            busy={busy}
+            canCopy={canCopy}
+            canRegenerate={node.items.length > 0}
+            regenDisabled={regenDisabled || leaving}
+            regenTitle={regenTitle}
+            onCopy={() => onCopy([item.headline, item.sub].filter(Boolean).join("\n"))}
+            onRegenerate={onRegenerate}
+            onBlocked={onBlocked}
+          />
         </>
       )}
     </article>

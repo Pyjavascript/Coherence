@@ -262,7 +262,7 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 .ncard-vtab { border-radius: var(--ui-r); }
 .ws-view-nodes .canvas-surface { border-radius: var(--ui-r); }
 .ws-view-nodes .linkhint { border-radius: var(--ui-r); }
-.sn-col-dot { border-radius: var(--ui-r); }
+.sn-col-dot { border-radius: 50%; }
 .sn-col-gen { border-radius: var(--ui-r); }
 .sn-count { border-radius: var(--ui-r); }
 .sn-joint:before,.sn-joint:after { border-radius: var(--ui-r); }

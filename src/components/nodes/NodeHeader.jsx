@@ -37,7 +37,7 @@ export default function NodeHeader({ meta, label, onLabelChange, meter, limits, 
   return (
     <header className="ncard-head">
       <h2 className="ncard-pill">
-        <span className="ncard-icon" aria-hidden="true"><MediumIcon type={meta.key} /></span>
+        <span className="ncard-icon" aria-hidden="true"></span>
         {onLabelChange ? (
           <input
             className="ncard-pill-label ncard-title"

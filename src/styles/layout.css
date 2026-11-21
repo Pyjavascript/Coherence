@@ -2395,8 +2395,8 @@ body {
 }
 
 .ncard-icon {
-  width: 18px;
-  height: 18px;
+  width: 10px;
+  height: 10px;
   flex: none;
   display: grid;
   place-items: center;
@@ -2918,7 +2918,7 @@ body {
   width: 10px;
   height: 10px;
   flex: none;
-  border-radius: var(--ui-r);
+  border-radius: 50%;
   background: var(--cat);
 }
 

@@ -277,7 +277,13 @@ export default function Header({
           onClick={() => setAddMenuOpen((open) => !open)}
         >
           <span className="toolbar-add-spark" aria-hidden="true">
-            <i>+</i><i>+</i><i>+</i><i>+</i>
+            {[0, 1, 2, 3].map((item) => (
+              <span key={item}>
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M10 3.5v13M3.5 10h13" />
+                </svg>
+              </span>
+            ))}
           </span>
         </button>
         {addMenuOpen && canAdd && (
@@ -292,7 +298,20 @@ export default function Header({
                   setAddMenuOpen(false);
                 }}
               >
-                <span style={{ "--node-color": option.color }} aria-hidden="true">+</span>
+                <span style={{ "--node-color": option.color }} aria-hidden="true">
+                  <svg
+                    viewBox="0 0 20 20"
+                    width="12"
+                    height="12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    style={{ display: "block" }}
+                  >
+                    <path d="M10 3.5v13M3.5 10h13" />
+                  </svg>
+                </span>
                 {option.label}
               </button>
             ))}

@@ -45,13 +45,13 @@
   box-shadow: var(--pl-shadow-2) !important;
 }
 
-/* Category dot: gentle breathe only while the card is being edited */
-.ncard-dot { transform-origin: center; }
+/* Category icon: gentle breathe only while the card is being edited */
+.ncard-icon { transform-origin: center; }
 @keyframes grid-dot-breathe {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.18); opacity: .78; }
 }
-.ncard:has(.is-editable:focus, textarea:focus, input:focus, select:focus) .ncard-dot {
+.ncard:has(.is-editable:focus, textarea:focus, input:focus, select:focus) .ncard-icon {
   animation: grid-dot-breathe var(--pl-d-loop) var(--pl-ease-inout) infinite;
 }
 
@@ -343,7 +343,7 @@
 
 /* ---------- Reduced motion: drop decorative loops ------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  .ncard .ncard-dot,
+  .ncard .ncard-icon,
   .ws-topbar .toolbar-generate.is-busy,
   .ws-topbar .toolbar-generate[aria-busy=true] { animation: none; }
 }
@@ -395,7 +395,7 @@ html body .model-selector-check { width: 14px; height: 14px; }
 
 html body .ncard-head { --ncard-head-gap: clamp(8px, calc(var(--pl-u) * 3), 20px); gap: var(--ncard-head-gap); padding-left: clamp(2px, calc(var(--pl-u) * 1.4), 6px); }
 html body .ncard-pill { font-size: clamp(14px, calc(var(--pl-u) * 3.7), 18px); gap: clamp(7px, calc(var(--pl-u) * 2.2), 12px); }
-html body .ncard-dot { width: clamp(8px, calc(var(--pl-u) * 2.2), 11px); height: clamp(8px, calc(var(--pl-u) * 2.2), 11px); }
+html body .ncard-icon { width: clamp(16px, calc(var(--pl-u) * 4), 20px); height: clamp(16px, calc(var(--pl-u) * 4), 20px); }
 html body .ncard-actions { gap: clamp(5px, calc(var(--pl-u) * 1.6), 10px); }
 /* --ncard-act / --ncard-ctl: the sizes radius.css scales the corners from. */
 html body .ncard-action { --ncard-act: clamp(30px, calc(var(--pl-u) * 8.4), 40px); width: var(--ncard-act); height: var(--ncard-act); }

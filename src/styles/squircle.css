@@ -130,8 +130,6 @@ html body #root .ws-topbar .toolbar-node-menu button {
 html body #root .ws-topbar .toolbar-add-spark {
   --spark-dot: calc(var(--tb-h) * 0.26);
   --spark-gap: calc(var(--tb-h) * 0.08);
-  --spark-bar: calc(var(--spark-dot) * 0.5);
-  --spark-line: 1.5px;
   grid-template-columns: repeat(2, var(--spark-dot));
   gap: var(--spark-gap);
 }
@@ -140,32 +138,12 @@ html body #root .ws-topbar .toolbar-add-spark {
   html body #root .ws-topbar .toolbar-add-spark {
     --spark-dot: round(nearest, calc(var(--tb-h) * 0.26), 1px);
     --spark-gap: round(nearest, calc(var(--tb-h) * 0.08), 1px);
-    /* Even dots take even bars and odd dots odd ones, so each bar sits on
-       the dot's exact centre line. */
-    --spark-bar: calc(var(--spark-dot) - 2 * round(down, calc(var(--spark-dot) / 4), 1px));
   }
 }
 
-/* 2px bars once the dots reach 15px (60px buttons), 1.5px below. */
-@media (min-width: 1500px) and (min-height: 860px) {
-  html body #root .ws-topbar .toolbar-add-spark {
-    --spark-line: 2px;
-  }
-}
-
-html body #root .ws-topbar .toolbar-add-spark i {
+html body #root .ws-topbar .toolbar-add-spark > span {
   width: var(--spark-dot);
   height: var(--spark-dot);
-}
-
-html body #root .ws-topbar .toolbar-add-spark i::before {
-  width: var(--spark-bar);
-  height: var(--spark-line);
-}
-
-html body #root .ws-topbar .toolbar-add-spark i::after {
-  width: var(--spark-line);
-  height: var(--spark-bar);
 }
 
 /* ==========================================================================

@@ -1711,42 +1711,24 @@ body {
   gap: 2px;
 }
 
-.ws-topbar .toolbar-add-spark i {
+.ws-topbar .toolbar-add-spark > span {
   width: 14px;
   height: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.ws-topbar .toolbar-add-spark > span > svg {
   display: block;
-  font-style: normal;
+  width: 84%;
+  height: 84%;
+  overflow: visible;
 }
 
-/* The "+" in the Add Node dots and the menu dots is drawn as two bars: the
-   font's "+" glyph sits off-centre (low and to one side) in such small circles.
-   Whole-pixel sizes (even dot, 8px x 2px bars) keep the bars on the pixel grid,
-   so they stay crisp and exactly centred. font-size 0 hides the text "+". */
-.ws-topbar .toolbar-add-spark i,
-.ws-topbar .toolbar-node-menu button span {
-  position: relative;
-  font-size: 0;
-}
-
-/* inset 0 + margin auto centres each fixed-size bar in its dot. */
-.ws-topbar .toolbar-add-spark i::before,
-.ws-topbar .toolbar-add-spark i::after,
-.ws-topbar .toolbar-node-menu button span::before,
-.ws-topbar .toolbar-node-menu button span::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 8px;
-  height: 2px;
-  background: #fff;
-  border-radius: var(--ui-r);
-}
-
-.ws-topbar .toolbar-add-spark i::after,
-.ws-topbar .toolbar-node-menu button span::after {
-  width: 2px;
-  height: 8px;
+.ws-topbar .toolbar-add-spark > span > svg path {
+  stroke: #fff;
+  stroke-width: 3.4;
+  stroke-linecap: round;
 }
 
 .ws-topbar .model-selector-trigger {
@@ -1994,20 +1976,9 @@ body {
     gap: 3px;
   }
 
-  .ws-topbar .toolbar-add-spark i {
+  .ws-topbar .toolbar-add-spark > span {
     width: 11px;
     height: 11px;
-  }
-
-  /* Slimmer "+" so each dot reads as a coloured disc with a fine cross. */
-  .ws-topbar .toolbar-add-spark i::before {
-    width: 5px;
-    height: 1.5px;
-  }
-
-  .ws-topbar .toolbar-add-spark i::after {
-    width: 1.5px;
-    height: 5px;
   }
 
   /* Phones: the menu drops down as one white card with the options stacked. */
@@ -2423,12 +2394,21 @@ body {
   color: var(--shell-muted);
 }
 
-.ncard-dot {
-  width: clamp(8px, 0.7vw, 11px);
-  height: clamp(8px, 0.7vw, 11px);
+.ncard-icon {
+  width: 18px;
+  height: 18px;
   flex: none;
-  border-radius: var(--ui-r);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
   background: var(--node-color, var(--shell-ink));
+  color: #fff;
+}
+
+.ncard-icon svg {
+  display: block;
+  width: 80%;
+  height: 80%;
 }
 
 /* The hint gives way before the node label does. */

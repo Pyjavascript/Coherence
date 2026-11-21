@@ -2118,7 +2118,7 @@ body {
   gap: 4px;
 }
 
-.toolbar-add-spark i {
+.toolbar-add-spark > span {
   width: 13px;
   height: 13px;
   display: flex;
@@ -2128,9 +2128,9 @@ body {
   background: #2C93D8;
 }
 
-.toolbar-add-spark i:nth-child(2) { background: #B04FC7; }
-.toolbar-add-spark i:nth-child(3) { background: #12A08E; }
-.toolbar-add-spark i:nth-child(4) { background: #4653FF; }
+.toolbar-add-spark > span:nth-child(2) { background: #B04FC7; }
+.toolbar-add-spark > span:nth-child(3) { background: #12A08E; }
+.toolbar-add-spark > span:nth-child(4) { background: #4653FF; }
 
 .toolbar-node-menu {
   position: absolute;
@@ -3305,7 +3305,7 @@ body {
     gap: 3px;
   }
 
-  .toolbar-add-spark i {
+  .toolbar-add-spark > span {
     width: 10px;
     height: 10px;
   }

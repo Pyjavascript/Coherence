@@ -46,10 +46,14 @@
   --ctl-fluid: min(4vw, 7vh);
   --ctl-h: clamp(var(--ctl-min), var(--ctl-fluid), var(--ctl-max));
   --ui-icon: var(--ctl-h);
+  /* The rail's tiles (profile, credits, brands, the "+" box): the size of
+     the top bar's selected Grid/Node tab (--ws-tab: the bar's height less
+     its 4px inset each side), centred in the rail's --ui-icon slots. */
+  --lnav-tile: calc(var(--ui-icon) - 8px);
   --shell-pad: 20px;
-  /* The navy bands above and below the workspace: the same height, so the
-     frame is even top and bottom; the bottom one holds the credit line. */
-  --shell-band: 32px;
+  /* No frame round the workspace: the board fills the window edge to edge
+     (the bands above and below it, and the credit line, are gone). */
+  --shell-band: 0px;
   --lnav-pad: clamp(12px, 1.35vw, 20px);
   /* The rail's inset on each side of its content. The shell's left padding
      (this, not --shell-pad) sits before the icons, so the rail only adds the
@@ -57,6 +61,9 @@
   --lnav-side: 20px;
   --lnav-closed: calc(var(--ui-icon) + var(--lnav-side) * 2);
   --lnav-row-gap: clamp(15px, 1.2vw, 18px);
+  /* The space between the toolbar's boxes (model picker | menu). The rail
+     uses it too, between its stacked boxes (laptops + tablets). */
+  --bar-gap: clamp(8px, 0.9vw, 14px);
 
   /* The open rail is exactly [icon][gap][labels][--lnav-side], so the space
      right of the labels matches the shell's --lnav-side on the left.
@@ -158,90 +165,26 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
-  padding: var(--shell-band) var(--shell-pad) var(--shell-band) 0;
+  /* No frame: the board fills the window; the rail and the brand panel sit
+     inside it. */
+  padding: 0;
   background: var(--shell-frame);
   overflow: hidden;
-}
-
-/* "Built by …": quiet white text (medium weight), centred in the bottom
-   band. 14px on laptops; it scales down on tablets and phones (below). */
-.shell-credit {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
-  height: var(--shell-band);
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1em;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1;
-  white-space: nowrap;
-  pointer-events: none;
-  user-select: none;
-}
-
-/* The Pixels mark before the credit, a little taller than the text and
-   scaling with it on every breakpoint. */
-.shell-credit-mark {
-  flex: none;
-  width: 1.3em;
-  height: 1.3em;
-}
-
-/* Laptops: a slightly taller band, so the line has air around it (the top
-   band matches). */
-.app-shell[data-bp="desktop"] {
-  --shell-band: 30px;
-}
-
-.app-shell[data-bp="tablet"] {
-  --shell-band: 34px;
-}
-
-.app-shell[data-bp="tablet"] .shell-credit {
-  font-size: 14px;
-}
-
-/* Laptops: centred under the workspace (the canvas), not the window: in
-   from the rail on the left, and on the right from the shell's padding plus
-   the brand panel's column while it's open (workspace-theme.css). */
-.app-shell[data-bp="desktop"] .shell-credit {
-  left: var(--lnav-closed);
-  right: var(--shell-pad);
-  /* Moves with the panels, on their timing (polish/tokens.css). */
-  transition:
-    left var(--pl-panel-open) var(--pl-panel-ease),
-    right var(--pl-panel-open) var(--pl-panel-ease);
-}
-
-.app-shell[data-bp="desktop"][data-left="open"] .shell-credit {
-  left: var(--lnav-open);
-}
-
-.app-shell[data-bp="desktop"][data-right="open"] .shell-credit {
-  right: calc(var(--shell-pad) + var(--rsb-w) + var(--gap));
 }
 
 /* ==========================================================================
    Left dock + rail
    ========================================================================== */
 
+/* Zero-width anchor at the board's left edge: the rail floats over the board
+   from here as a card (like the brand panel on the right) instead of taking
+   room beside it. The board makes room for it with its left padding
+   (workspace-theme.css), so the content keeps the space it always had. */
 .shell-left {
   position: relative;
   z-index: 30;
   flex: 0 0 auto;
-  width: var(--lnav-closed);
-  transition: width var(--shell-dur) var(--shell-ease);
-}
-
-.app-shell[data-bp="desktop"][data-left="open"] .shell-left {
-  width: var(--lnav-open);
+  width: 0;
 }
 
 .app-shell[data-drawer="left"] .shell-left {
@@ -274,49 +217,55 @@ body {
   width: var(--lnav-open);
 }
 
-/* Laptops + tablets: the rail runs the full window height, but its icons sit
-   on the workspace's own lines: the toggle centred on the toolbar row, the
-   last brand centred on the bottom (composer) row. BrandSidebar measures the
-   two rows' centres (--lnav-line-top / --lnav-line-bottom); each icon slot is
-   --ui-icon tall, so the padding is that centre less half a slot. Until it's
-   measured: the toggle glyph's top on the workspace's top edge and the last
-   brand's bottom on its bottom edge. */
+/* Laptops + tablets: the rail is a theme-colour card, one gutter in from the
+   window's top, left and bottom edges: its top on the toolbar's top, its
+   bottom on the bottom row's (the "Pro" button's) bottom. The icons sit
+   --bar-gap inside it (the toolbar's box gap, which also spaces them). Its
+   corners are the toolbar boxes' own (--ws-switch-r: the view switch, model
+   picker and menu), so the card reads as one of them. Window edge | card | content | window edge are one gutter apart
+   (the workspace's left padding, workspace-theme.css). It always stays
+   collapsed (useLayoutState.js). */
+.app-shell:not([data-bp="mobile"]) {
+  --lnav-inset: var(--bar-gap);
+  --lnav-closed: calc(var(--ui-icon) + var(--lnav-inset) * 2);
+  /* The workspace's horizontal inset follows the window (like the vertical
+     one), not the workspace, so it matches the card's inset from the window
+     edge exactly. */
+  --ws-gutter: var(--ws-gutter-y);
+  /* Re-derived here: on :root it was resolved from :root's own gutter. */
+  --tb-pad-x: var(--ws-gutter);
+}
+
 .app-shell:not([data-bp="mobile"]) .lnav {
-  padding-top: calc(var(--lnav-line-top, calc(var(--shell-band) + var(--lnav-glyph) / 2)) - var(--ui-icon) / 2);
-  padding-bottom: calc(var(--lnav-line-bottom, calc(var(--shell-band) + var(--ui-icon) / 2)) - var(--ui-icon) / 2);
+  top: var(--tb-pad-top);
+  bottom: var(--ws-gutter-y);
+  left: var(--ws-gutter-y);
+  padding: var(--lnav-inset);
+  /* The same corner-to-width proportion as the toolbar's boxes, so the card
+     reads as one of them. Those are --ws-switch-r on --tb-h (20px on 52px);
+     the rail is --tb-h + 2 x --lnav-inset wide (80px there), ~1.5x as wide,
+     so its corner is ~1.5x theirs. (The same px corner looked squarer on
+     the wider card.) */
+  border-radius: calc(var(--ws-switch-r) * 1.5);
 }
 
 /* The brand list's 4px inner padding (room for focus rings) would lift the
-   last brand off the line; cancel it at the bottom. */
+   last brand off the card's inset; cancel it at the bottom. */
 .app-shell:not([data-bp="mobile"]) .lnav-brands {
   margin-bottom: -4px;
-}
-
-/* Tablet: the rail stays collapsed in flow; expanding it overlays the workspace. */
-.app-shell[data-bp="tablet"] .lnav[data-open="true"] {
-  border-radius: var(--ui-r);
 }
 
 /* Mobile: off-canvas drawer. */
 /* Phones: an equal navy frame on all four sides (the right panel reuses it). */
 .app-shell[data-bp="mobile"] {
   --mobile-pad: 15px;
-  /* Top and bottom: the same band as larger screens (a touch shorter), so
-     the credit line fits under the workspace. The bottom band is the credit's
-     band PLUS the phone's home-indicator / gesture-bar area (safe-area inset),
-     so the credit sits in the band, above the gesture bar, never over the
-     workspace. */
-  --shell-band: 28px;
+  /* No frame: the board fills the screen, clear only of the notch and the
+     home indicator / gesture bar (safe-area insets). */
   padding:
-    max(var(--shell-band), env(safe-area-inset-top))
-    max(var(--mobile-pad), env(safe-area-inset-right))
-    calc(var(--shell-band) + env(safe-area-inset-bottom, 0px))
-    max(var(--mobile-pad), env(safe-area-inset-left));
-}
-
-.app-shell[data-bp="mobile"] .shell-credit {
-  bottom: env(safe-area-inset-bottom, 0px);
-  font-size: 12px;
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
 }
 
 .app-shell[data-bp="mobile"] .shell-left {
@@ -329,7 +278,8 @@ body {
   bottom: 0;
   width: min(240px, 68vw);
   padding-inline: var(--lnav-pad);
-  border-radius: var(--ui-r);
+  /* Phones: the drawer runs edge to edge, so square corners. */
+  border-radius: 0;
   transform: translateX(-100%);
 }
 
@@ -458,7 +408,7 @@ body {
   width: var(--lnav-glyph);
   height: var(--lnav-glyph);
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -469,6 +419,40 @@ body {
 
 .lnav[data-open="true"] .lnav-glyph-bar {
   transform: translateX(6px);
+}
+
+/* The CC logo at the top of the rail (BrandSidebar.jsx RailLogo): a full
+   icon box like every other row (transparent, so only the mark shows), with
+   the white "CC" 60% of an icon wide, centred in it. The card's inset is
+   measured to the box, the same as to the profile tile or the last brand.
+   Not a control: no hover. */
+.lnav .lnav-brandmark {
+  cursor: default;
+  /* The mark is small and lifted inside its box, so the empty space under
+     it plus the column gap read as a wide gap to the profile. Pull the
+     profile up 8px so the logo sits with the controls beneath it. */
+  margin-bottom: -8px;
+}
+
+#root .app .lnav .lnav-brandmark:hover {
+  background: transparent;
+}
+
+.lnav .lnav-brandmark:active .lnav-slot > * {
+  scale: none;
+}
+
+.lnav-mark {
+  display: block;
+  width: calc(var(--ui-icon) * 0.6);
+  height: auto;
+  aspect-ratio: 32.3 / 26;
+  /* The mark is wider than tall, so centred in its square slot it sat
+     lower than it sat in from the sides (27px down vs 24px in, on a 52px
+     icon). Lifted by half that difference ((width - height) / 2 =
+     0.6 x (1 - 26/32.3) / 2 = 0.0585 x the icon), so the card's padding
+     reads the same above it as either side of it. */
+  translate: 0 calc(var(--ui-icon) * -0.0585);
 }
 
 .lnav-toggle:hover {
@@ -507,13 +491,27 @@ body {
 /* Top group: the open/close toggle, profile, credits used and the free-hook
    bolt, from the top of the rail down. */
 .lnav-top {
+  --lnav-top-gap: clamp(12px, 0.8vw, 16px);
   position: relative;
   z-index: 2;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: clamp(12px, 0.8vw, 16px);
+  gap: var(--lnav-top-gap);
 }
+
+/* Laptops + tablets: the logo, profile and credits are spaced like the
+   toolbar's boxes (model picker | menu), and so are the brands at the
+   bottom. */
+.app-shell:not([data-bp="mobile"]) .lnav-top {
+  --lnav-top-gap: var(--bar-gap);
+}
+
+.app-shell:not([data-bp="mobile"]) .lnav-brand-list {
+  gap: var(--bar-gap);
+}
+
+
 
 /* Add Brand's band (the rail's middle row). */
 .lnav-centre {
@@ -549,11 +547,13 @@ body {
 
 /* Collapsed rail: the row is only as wide as the logo, so the white row
    behind it can't show. The selected brand wears a green ring instead, with
-   a gap of the rail's colour, its logo drawn a little smaller inside it
-   (corner kept parallel). Drawn inside the row, which clips its overflow. */
+   a gap of the rail's colour, its logo inside it at the same tile size as
+   every other icon (ring + gap = the 4px tile inset, like the top bar's
+   selected tab in its box; corner kept parallel). Drawn inside the row,
+   which clips its overflow. */
 .lnav[data-open="false"] .lnav-item {
   --lnav-ring: 2px;
-  --lnav-ring-gap: 3px;
+  --lnav-ring-gap: 2px;
 }
 
 /* #root .app + !important: the app's "no shadows" reset (#root .app * {
@@ -578,8 +578,8 @@ body {
 }
 
 .lnav-avatar {
-  width: var(--ui-icon);
-  height: var(--ui-icon);
+  width: var(--lnav-tile);
+  height: var(--lnav-tile);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -620,8 +620,8 @@ body {
 }
 
 .lnav-icon {
-  width: var(--ui-icon);
-  height: var(--ui-icon);
+  width: var(--lnav-tile);
+  height: var(--lnav-tile);
   display: grid;
   place-items: center;
   border-radius: var(--ws-switch-r);
@@ -653,8 +653,8 @@ body {
 
 .lnav .rail-credits-meter {
   position: relative;
-  width: var(--ui-icon);
-  height: var(--ui-icon);
+  width: var(--lnav-tile);
+  height: var(--lnav-tile);
   flex: none;
   border: 0;
   border-radius: var(--ws-switch-r);
@@ -1592,7 +1592,8 @@ body {
   flex-direction: column;
   overflow: hidden;
   overflow: clip;
-  border-radius: var(--ui-r);
+  /* Square: it fills the window, with no frame round it. */
+  border-radius: 0;
   /* The canvas board: src/styles/background.svg (sky blue at the top, through
      pale cream and mint, to deep teal at the bottom), stretched to the board. */
   background: #d1e3f1 url("./background.svg") center / 100% 100% no-repeat;
@@ -1656,7 +1657,7 @@ body {
   align-items: center;
   /* Space between the toolbar's boxes. workspace-theme.css also uses it to
      fold the menu button away without the model picker jumping. */
-  --tb-gap: clamp(8px, 0.9vw, 14px);
+  --tb-gap: var(--bar-gap);
   gap: var(--tb-gap);
 }
 

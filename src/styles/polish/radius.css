@@ -204,7 +204,7 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
   .canvas-surface[data-mode=quick] .frame-body { border-radius: var(--ui-r); }
 }
 .app-shell[data-bp=tablet] .lnav[data-open=true] { border-radius: var(--ui-r); }
-.app-shell[data-bp=mobile] .lnav { border-radius: var(--ui-r); }
+.app-shell[data-bp=mobile] .lnav { border-radius: 0; }
 /* Left rail: icon tiles, their rows and the usage ring are rounded squares
    (--ui-icon-r), not circles. The ring's layers stay concentric. Brand
    avatars take the profile icon's corner too. */
@@ -229,7 +229,6 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 .rsb .bp-copy { border-radius: var(--ui-r); }
 .rsb .bp-card-hook { border-radius: var(--ui-r); }
 .rsb .bp-card-hook .bp-gen-btn { border-radius: var(--ui-r); }
-.workspace { border-radius: var(--ui-r); }
 /* Add, model picker and menu button: the view switch's corner (tokens.css --ws-switch-r). */
 .ws-topbar .toolbar-add-node,.ws-topbar .toolbar-icon-btn,.ws-topbar .model-selector-trigger { border-radius: var(--ws-switch-r); }
 .ws-topbar .toolbar-generate { border-radius: var(--ui-r); }

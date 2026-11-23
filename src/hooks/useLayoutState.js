@@ -2,11 +2,10 @@ import { useCallback, useEffect, useReducer } from "react";
 import { useBreakpoint } from "./useBreakpoint";
 
 // Single source of truth for the shell: which panels are open and which view
-// is active. On desktop both side panels sit inline (`leftOpen` / `rightOpen`,
-// persisted). Tablets keep the brand panel inline too (a column of the frame,
-// like desktop) while the rail becomes a drawer. Phones use drawers for both
-// (`drawer`, never persisted). Only one is open at a time: opening one
-// collapses the other.
+// is active. On laptops and tablets the brand panel floats inline
+// (`rightOpen`, persisted) and the rail stays collapsed: it never opens. Phones
+// use drawers for both (`drawer`, never persisted). Only one is open at a
+// time: opening one collapses the other.
 const KEY = "coherence.ui.v1";
 const VIEWS = ["quick", "nodes"];
 const DEFAULTS = { leftOpen: false, rightOpen: false, view: "quick", drawer: null };
@@ -15,10 +14,11 @@ const DEFAULTS = { leftOpen: false, rightOpen: false, view: "quick", drawer: nul
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
-    // Saved before panels were exclusive, both may be open: keep the brand panel.
     return {
       ...DEFAULTS,
-      leftOpen: Boolean(raw.leftOpen) && !raw.rightOpen,
+      // The rail no longer opens inline (leftOpen below); an old saved
+      // "open" is dropped.
+      leftOpen: false,
       rightOpen: Boolean(raw.rightOpen),
     };
   } catch {
@@ -81,8 +81,14 @@ export function useLayoutState() {
     }
   }, [state.leftOpen, state.rightOpen, state.view]);
 
-  const toggle = useCallback((side) => dispatch({ type: "toggle", side, inline: inlineFor(side) }), [inlineFor]);
-  const open = useCallback((side) => dispatch({ type: "set", side, open: true, inline: inlineFor(side) }), [inlineFor]);
+  // The left rail only opens as the phone drawer (see leftOpen below).
+  const canOpen = useCallback((side) => side === "right" || bp === "mobile", [bp]);
+  const toggle = useCallback((side) => {
+    if (canOpen(side)) dispatch({ type: "toggle", side, inline: inlineFor(side) });
+  }, [inlineFor, canOpen]);
+  const open = useCallback((side) => {
+    if (canOpen(side)) dispatch({ type: "set", side, open: true, inline: inlineFor(side) });
+  }, [inlineFor, canOpen]);
   const close = useCallback((side) => dispatch({ type: "set", side, open: false, inline: inlineFor(side) }), [inlineFor]);
   const closeDrawer = useCallback(() => dispatch({ type: "closeDrawer" }), []);
   const setView = useCallback((view) => dispatch({ type: "view", view }), []);
@@ -106,7 +112,9 @@ export function useLayoutState() {
     // comes back on a wider screen.
     view: bp === "mobile" ? "quick" : state.view,
     drawer: inline ? null : rightInline && state.drawer === "right" ? null : state.drawer,
-    leftOpen: inline ? state.leftOpen : state.drawer === "left",
+    // The rail never opens on laptops or tablets (it works collapsed); only
+    // the phone drawer opens it.
+    leftOpen: bp === "mobile" && state.drawer === "left",
     rightOpen: rightInline ? state.rightOpen : state.drawer === "right",
     toggle,
     open,

@@ -4635,13 +4635,25 @@
   border-radius: var(--ui-r);
 }
 
-/* Collapsed rail: "+" washes like every other rail row. Open rail: the white
-   box fades in on hover (layout.css). The selector outranks the generic rail
-   wash above. */
+/* Collapsed rail: "+" washes like every other rail row, in a box the rail's
+   tile size (--lnav-tile, layout.css): the slot's 4px padding clips the
+   wash. Open rail: the white box fades in on hover (layout.css). The
+   selector outranks the generic rail wash above. */
 .lnav[data-open="false"] .lnav-add:hover,
 .lnav[data-open="false"] .lnav-add:active {
   color: #fff;
-  background: var(--hover-on-dark);
+  background: transparent;
+}
+
+.lnav[data-open="false"] .lnav-add .lnav-slot {
+  box-sizing: border-box;
+  padding: calc((var(--ui-icon) - var(--lnav-tile)) / 2);
+  background-clip: content-box;
+  border-radius: calc(var(--ws-switch-tab-r) + (var(--ui-icon) - var(--lnav-tile)) / 2);
+}
+
+.lnav[data-open="false"] .lnav-add:is(:hover, :active) .lnav-slot {
+  background-color: var(--hover-on-dark);
 }
 
 .lnav[data-open="true"] .lnav-add:hover {

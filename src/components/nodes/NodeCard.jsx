@@ -16,7 +16,15 @@ const PencilIcon = () => (
   </svg>
 );
 
-const StarIcon = ({ filled }) => (
+// Shown in the pencil's place while the settings are open: × closes them.
+// Drawn like the card's own close × (NodeActions.jsx CloseIcon).
+const CloseIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+    <path d="M7 7l10 10M17 7L7 17" />
+  </svg>
+);
+
+const StarIcon =({ filled }) => (
   <svg viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
     <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />
   </svg>
@@ -116,7 +124,7 @@ export default function NodeCard({
             title={settingsOpen ? "Hide settings" : "Settings"}
             onClick={toggleSettings}
           >
-            <PencilIcon />
+            {settingsOpen ? <CloseIcon /> : <PencilIcon />}
           </button>
         )}
       >

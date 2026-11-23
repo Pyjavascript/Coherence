@@ -190,20 +190,33 @@
   overflow: visible;
 }
 
+/* Node Studio's canvas also runs left under the rail card, to the window's
+   edge (--ws-inset-left: the workspace's left padding), so nodes panned left
+   pass behind the card and show in the gutter beside it, as they do under
+   the toolbar. Square corners: the window's own. */
 .app-shell[data-bp] .ws-view-nodes .canvas-surface {
-  inset: calc(-1 * var(--bar-h)) 0 0 0;
+  inset: calc(-1 * var(--bar-h)) 0 0 calc(-1 * var(--ws-inset-left, 0px));
+  border-radius: 0;
 }
 
 /* The canvas starts under the bar, so its content is pushed down by the bar's
-   height: the first view still starts one gutter below the bar. The grid
-   (its own scroller) starts one gutter below too; its 4px headroom
-   (polish/grid.css: margin-top -4px, padding-top 4px) is kept on top. */
+   height. Both views start the toolbar's box gap (model picker | menu,
+   layout.css --bar-gap) below the bar, the same gap the cards keep between
+   them and the rail keeps under its logo. The grid (its own scroller) keeps
+   its 4px headroom (polish/grid.css: margin-top -4px, padding-top 4px) on
+   top. */
 .app-shell[data-bp] .ws-view-nodes .canvas-world .nodebar {
-  padding-top: calc(var(--bar-h) + var(--ws-gutter-y));
+  padding-top: calc(var(--bar-h) + var(--bar-gap));
+}
+
+/* ...and its content moves right by the same amount, so it starts where it
+   did (one gutter past the rail card). */
+.app-shell[data-bp] .ws-view-nodes .canvas-world :is(.nodebar, .nodecanvas) {
+  margin-left: var(--ws-inset-left, 0px);
 }
 
 .app-shell[data-bp] .qg {
-  padding-top: calc(var(--ws-gutter-y) + 4px);
+  padding-top: calc(var(--bar-gap) + 4px);
 }
 
 /* Toolbar boxes are the rail logo's height (--ui-icon), so the bar and the
@@ -251,19 +264,47 @@
    container sizes (cqw, @container ws) are measured inside the padding, so
    the toolbar, the grid's column count, the cards' type and the bottom row
    get the same width as before; the panel sits over the padding. */
+/* The left rail sits inside the board the same way (layout.css .lnav): the
+   board takes the rail's inset from the window edge plus its width as left
+   padding. The toolbar, grid and bottom row then start one gutter
+   (--ws-gutter) after the rail, so window edge | rail | content | window
+   edge are all one gutter apart. The rail never opens on laptops or
+   tablets, so this is always its collapsed width. */
+.app-shell:not([data-bp="mobile"]) {
+  --ws-inset-left: calc(var(--ws-gutter-y) + var(--lnav-closed));
+}
+
 .app-shell:not([data-bp="mobile"]) .workspace {
+  padding-left: var(--ws-inset-left);
   padding-right: 0;
-  transition: padding-right var(--pl-panel-close) var(--pl-panel-ease);
+  transition:
+    padding-left var(--shell-dur) var(--shell-ease),
+    padding-right var(--pl-panel-close) var(--pl-panel-ease);
 }
 
 .app-shell:not([data-bp="mobile"])[data-right="open"] .workspace {
   padding-right: calc(var(--rsb-w) + var(--gap));
-  transition: padding-right var(--pl-panel-open) var(--pl-panel-ease);
+  transition:
+    padding-left var(--shell-dur) var(--shell-ease),
+    padding-right var(--pl-panel-open) var(--pl-panel-ease);
 }
 
 /* The app clears every shadow under #root; the floating card gets its own
    back (theme-dark.css has the dark one). */
 #root .app-shell:not([data-bp="mobile"]) .rsb {
+  box-shadow:
+    0 28px 64px -24px rgb(17 60 73 / 0.6),
+    0 10px 28px rgb(17 60 73 / 0.2) !important;
+}
+
+/* ---------- Laptops + tablets: the rail card ------------------------------- */
+/* The theme colour, like the brand panel on the right, with the same lift
+   (theme-dark.css has the dark card). Its glyphs stay white (layout.css). */
+.app-shell:not([data-bp="mobile"]) .lnav {
+  background: var(--shell-frame);
+}
+
+#root .app-shell:not([data-bp="mobile"]) .lnav {
   box-shadow:
     0 28px 64px -24px rgb(17 60 73 / 0.6),
     0 10px 28px rgb(17 60 73 / 0.2) !important;

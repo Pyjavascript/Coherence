@@ -1,7 +1,5 @@
 import { useLayoutEffect, useRef } from "react";
 import { LIMITS } from "../lib/clientId";
-// Rail logo hidden for now (see the commented-out .lnav-head below).
-// import { Logo } from "../assets/globalAssets";
 import { profileOf } from "./ProfileModal";
 import BrandMark from "./BrandMark";
 import BrandLogo from "./BrandLogo";
@@ -57,51 +55,16 @@ function useFitLabels(rootRef, profileName) {
   }, [rootRef, profileName]);
 }
 
-// The rail's icons sit on the workspace's own lines: the toggle centred on
-// the toolbar row (Grid / view switch), the last brand centred on the bottom
-// row (the composer). Measured, since both rows' sizes follow the viewport and
-// several stylesheets; exposed as --lnav-line-top / --lnav-line-bottom (each
-// row's centre, from the rail's top / bottom edge) for layout.css.
-function useWorkspaceLines(rootRef) {
-  useLayoutEffect(() => {
-    const rail = rootRef.current;
-    if (!rail) return undefined;
-    let frame = 0;
-    const centre = (el) => {
-      const box = el.getBoundingClientRect();
-      return box.height ? box.top + box.height / 2 : null;
-    };
-    const measure = () => {
-      frame = 0;
-      const box = rail.getBoundingClientRect();
-      const top = document.querySelector(".ws-topbar-start");
-      const bottom = document.querySelector(".ws-tray > :last-child");
-      const topY = top && centre(top);
-      const bottomY = bottom && centre(bottom);
-      if (topY != null) rail.style.setProperty("--lnav-line-top", `${topY - box.top}px`);
-      else rail.style.removeProperty("--lnav-line-top");
-      if (bottomY != null) rail.style.setProperty("--lnav-line-bottom", `${box.bottom - bottomY}px`);
-      else rail.style.removeProperty("--lnav-line-bottom");
-    };
-    const schedule = () => { if (!frame) frame = requestAnimationFrame(measure); };
-    measure();
-    document.fonts?.ready.then(schedule);
-    window.addEventListener("resize", schedule);
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
-    if (observer) {
-      observer.observe(rail);
-      [".workspace", ".ws-topbar", ".ws-tray"].forEach((sel) => {
-        const el = document.querySelector(sel);
-        if (el) observer.observe(el);
-      });
-    }
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("resize", schedule);
-      observer?.disconnect();
-    };
-  }, [rootRef]);
-}
+// The CC logo (src/assets/sidebar/logo.svg) without its tile: the white "CC"
+// straight on the rail's theme-colour card. The viewBox is cropped to the
+// mark, so CSS sizes the "CC" itself; it sits centred in a full, transparent
+// icon box (layout.css .lnav-mark).
+const RailLogo = () => (
+  <svg className="lnav-mark" viewBox="8.85 12 32.3 26" fill="#fff" aria-hidden="true">
+    <path d="M14.06 12h10.4v5.2h-10.4zM8.85 17.2h5.2v15.6h-5.2zM14.06 32.8h10.4V38h-10.4z" />
+    <path d="M35.87 12h5.28v5.2h-5.28zM30.67 17.2h5.2v15.6h-5.2zM35.87 32.8h5.28V38h-5.28z" />
+  </svg>
+);
 
 const ProfileIcon = ({ src }) => (
   <span className="lnav-icon lnav-profile">
@@ -117,7 +80,7 @@ const ProfileIcon = ({ src }) => (
 );
 
 export default function BrandSidebar({
-  open, drawer, closeInHead = false, onToggle, brands, brandsLoaded = true, currentId, onSelect, onNew, user, onLogin, onSignup, onProfile, onUsage, usage,
+  open, closeInHead = false, brands, brandsLoaded = true, currentId, onSelect, onNew, user, onLogin, onSignup, onProfile, onUsage, usage,
 }) {
   // No brands yet: Add Brand drops into its (always centred) slot. Not while
   // the list is still loading, so it doesn't animate for people who do have
@@ -132,7 +95,6 @@ export default function BrandSidebar({
   const profileName = profile ? profile.displayName || user.email : "";
   const rootRef = useRef(null);
   useFitLabels(rootRef, profileName);
-  useWorkspaceLines(rootRef);
 
   const addRow = (
     <Row
@@ -141,9 +103,10 @@ export default function BrandSidebar({
       title={tip("Add brand")}
       onClick={() => onNew("regular")}
       icon={
-        // Same glyph box as Minimize's icon (its square spans 3.5–20.5), so
-        // the two sit centred in their slots at the same size.
-        <svg className="lnav-glyph" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17" /></svg>
+        // The rail's glyph box (layout.css .lnav-glyph), centred in its slot:
+        // a bare white "+" on the card. Drawn on Node Studio's "+" grid
+        // (22 units, 15-unit bars, 2.4 stroke) so the two pluses match.
+        <svg className="lnav-glyph" viewBox="0 0 22 22" fill="none" aria-hidden="true"><path d="M11 3.5v15M3.5 11h15" /></svg>
       }
       label="Add Brand"
       fit
@@ -152,41 +115,16 @@ export default function BrandSidebar({
 
   return (
     <aside className="lnav" ref={rootRef} data-open={open} aria-label="Workspace navigation">
-      {/* Logo + product name: hidden for now (the open/close toggle starts
-          the rail instead).
-      <div className="lnav-head">
-        <span className="lnav-slot">
-          <span className="lnav-logo"><img src={Logo} alt="" /></span>
-        </span>
-        <span className="lnav-label lnav-title rail-product-name" style={labelOrder(0)} data-fit>Coherence Content<br />Orchestration</span>
-      </div>
-      */}
-
-      {/* Top: the open/close toggle, then the profile and credits used, side
-          by side in the column. */}
+      {/* Top: the CC logo (laptops and tablets: the rail never opens, so it
+          has no open/close toggle), then the profile and credits used, side
+          by side in the column. Phones show the logo in the top bar instead,
+          and the drawer closes by tapping the scrim beside it (or Escape). */}
       <div className="lnav-top">
-      {/* Phones: no close control at all; the drawer closes by tapping the
-          scrim beside it (or Escape). */}
-      {!closeInHead && <Row
-        order={0}
-        className="lnav-toggle"
-        aria-expanded={open}
-        aria-label={drawer ? "Close navigation" : open ? "Collapse sidebar" : "Expand sidebar"}
-        title={drawer ? undefined : open ? "Collapse sidebar" : "Expand sidebar"}
-        onClick={onToggle}
-        icon={
-          drawer ? (
-            <svg className="lnav-glyph" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
-          ) : (
-            <svg className="lnav-glyph" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
-              <path className="lnav-glyph-bar" d="M9 4v16" />
-            </svg>
-          )
-        }
-        label="Minimize"
-        fit
-      />}
+      {!closeInHead && (
+        <div className="lnav-row lnav-brandmark" role="img" aria-label="Coherence Content Orchestration">
+          <span className="lnav-slot"><RailLogo /></span>
+        </div>
+      )}
 
       {user ? (
         <Row

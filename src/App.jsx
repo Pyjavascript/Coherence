@@ -13,7 +13,7 @@ import UsageModal from "./components/UsageModal";
 import TourModal from "./components/TourModal";
 import PlansModal, { PlanProButton } from "./components/PlansModal";
 import CanvasViewport from "./components/CanvasViewport";
-import MessageComposer, { COMPOSER_INPUT_ID } from "./components/GenerateDock";
+import MessageComposer, { openComposer } from "./components/GenerateDock";
 import LeftSidebar from "./components/layout/LeftSidebar";
 import RightSidebar from "./components/layout/RightSidebar";
 import MainWorkspace from "./components/layout/MainWorkspace";
@@ -132,7 +132,7 @@ export default function App() {
   const [messageFlagged, setMessageFlagged] = useState(false);
   const focusMessage = useCallback(() => {
     setMessageFlagged(true);
-    document.getElementById(COMPOSER_INPUT_ID)?.focus();
+    openComposer();
   }, []);
   useEffect(() => {
     if (ws.brand.message?.trim()) setMessageFlagged(false);
@@ -436,9 +436,7 @@ export default function App() {
         <LeftSidebar hidden={layout.bp === "mobile" && !layout.leftOpen}>
           <BrandSidebar
             open={layout.leftOpen || layout.bp === "mobile"}
-            drawer={!layout.inline && layout.leftOpen}
             closeInHead={layout.bp === "mobile"}
-            onToggle={() => layout.toggle("left")}
             brands={ws.brands}
             brandsLoaded={ws.brandsLoaded}
             currentId={ws.currentId}
@@ -467,6 +465,7 @@ export default function App() {
               generating={isGeneratingAll || quick.busy}
               generatingDetail={generatingDetail}
               atGenLimit={atGenLimit}
+              hasPro={!premium}
             />
           }
           trayStart={premium ? null : <PlanProButton onClick={() => setShowPlans(true)} />}
@@ -512,14 +511,6 @@ export default function App() {
         </RightSidebar>
 
         <div className="shell-scrim" data-visible={Boolean(layout.drawer)} onClick={layout.closeDrawer} aria-hidden="true" />
-
-        {/* Sits in the navy band under the workspace (layout.css). */}
-        <p className="shell-credit">
-          <svg className="shell-credit-mark" viewBox="3.5 0 21.15 21" fill="#fff" aria-hidden="true">
-            <path d="M15.578 6v3h-3.002V6zM15.578 12v3h-3.002v-3zM24.648 12v3h-3.002v-3zM3.508 12v3h3.002v-3zM15.602 0v3h3.002V0zM12.555 0v3H9.552V0zM18.604 12h-3.002V9h3.002zM21.628 18h-3.003v-3h3.003zM6.529 18h3.002v-3H6.529zM18.622 5.988h3.003v-3h-3.003zM9.542 5.988H6.539v-3h3.003zM18.604 21h-3.002v-3h3.002zM9.552 21h3.003v-3H9.552zM21.646 9h3.002V6h-3.002zM6.51 9H3.508V6H6.51zM12.557 12H9.555V9h3.002z" />
-          </svg>
-          Built by Pixels Creative Technologies
-        </p>
       </div>
 
       {showTour && (

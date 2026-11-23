@@ -378,7 +378,9 @@ html body .model-selector-check { width: 14px; height: 14px; }
 
 .qg-grid {
   --pl-u: calc(var(--pl-cardw) / 100);   /* 1% of a column */
-  gap: clamp(10px, 1.6cqw, 18px);
+  /* Between cards: the toolbar's box gap (model picker | menu, layout.css
+     --bar-gap). The phone carousel sets its own. */
+  gap: var(--bar-gap);
 }
 .qg { padding-left: var(--ws-gutter); padding-right: var(--ws-gutter); }
 

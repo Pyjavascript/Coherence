@@ -303,7 +303,8 @@ function StudioNode({
           title={settingsOpen ? "Hide settings" : "Settings"}
           onClick={onToggle}
         >
-          <PencilIcon />
+          {/* Pencil opens the settings; while they show, a × closes them. */}
+          {settingsOpen ? <XIcon /> : <PencilIcon />}
         </button>
         <div className="sn-card-actions">
           {settingsOpen && regenButton}

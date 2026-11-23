@@ -157,7 +157,9 @@
 }
 
 /* Close: top-right, its right edge on the illustration's right edge and its
-   centre on the tag's centre line. Same grey as the tag; corner 0.35 x its
+   centre on the tag's centre line. Styled like the other popups' close
+   (Plans, Profile, Usage): the theme-colour cross with no background, and
+   the Plans close's soft grey (--shell-tint) on hover. Corner 0.35 x its
    size, like the app's other icon buttons. */
 .tc-close {
   position: absolute;
@@ -170,8 +172,8 @@
   display: grid;
   place-items: center;
   padding: 0;
-  color: #4b5358;
-  background: #eceef0;
+  color: var(--shell-ink);
+  background: transparent;
   border: 0;
   border-radius: calc(var(--tc-x) * 0.35);
   cursor: pointer;
@@ -180,7 +182,7 @@
 
 .tc-close:hover {
   color: var(--shell-ink);
-  background: #e1e4e7;
+  background: var(--shell-tint);
 }
 
 .tc-close:active {
@@ -193,8 +195,8 @@
 }
 
 .tc-close svg {
-  width: 45%;
-  height: 45%;
+  width: 50%;
+  height: 50%;
 }
 
 /* The heading sits 50 above the illustration; the room left above it is

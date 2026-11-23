@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useId, useRef, useState } from "react";
-import { useDialogBehavior, useOverlayDismiss } from "./Modal";
+import { CloseBar, useDialogBehavior, useOverlayDismiss } from "./Modal";
 import art1 from "../assets/tour-modal/1-final-1.svg";
 import art2 from "../assets/tour-modal/2-final-2.svg";
 import art3 from "../assets/tour-modal/3-final-3.svg";
@@ -140,9 +140,7 @@ export default function TourModal({ onClose, compact = false }) {
             <span className="tc-brand">CCO</span>
             <span className="tc-badge">{steps[step].tag}</span>
             <button type="button" className="tc-close" onClick={leave} aria-label="Close tour" title="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-                <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
-              </svg>
+              <CloseBar />
             </button>
           </div>
 

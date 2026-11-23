@@ -9,7 +9,7 @@ import art4 from "../assets/tour-modal/4-final-4.svg";
 // step's illustration from src/assets/tour-modal). It plays by itself: each
 // step shows for STEP_MS, then the next; after the last one the tour fades
 // out. The icons jump to a step (and restart its time); arrow keys step;
-// Esc or a click outside closes it. Opens on a browser's first visit and from
+// the card's top-right cross, Esc or a click outside closes it. Opens on a browser's first visit and from
 // the "?" in the workspace's bottom-left corner. Sizes: tour-cards.css.
 
 const STEP_MS = 5000;
@@ -139,6 +139,11 @@ export default function TourModal({ onClose, compact = false }) {
           <div className="tc-head">
             <span className="tc-brand">CCO</span>
             <span className="tc-badge">{steps[step].tag}</span>
+            <button type="button" className="tc-close" onClick={leave} aria-label="Close tour" title="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+              </svg>
+            </button>
           </div>
 
           {/* Every step's heading shares one cell; only the active one is read

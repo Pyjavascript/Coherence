@@ -71,7 +71,6 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 .canvas-controls { border-radius: var(--ui-r); }
 .canvas-controls button { border-radius: var(--ui-r); }
 .toolbar-add-node { border-radius: var(--ws-switch-r); }
-.toolbar-add-spark > span { border-radius: 50%; }
 .toolbar-node-menu { border-radius: var(--ui-r); }
 .toolbar-node-menu button { border-radius: var(--ui-r); }
 .toolbar-node-menu button span { border-radius: var(--ui-r); }
@@ -234,7 +233,6 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
 /* Add, model picker and menu button: the view switch's corner (tokens.css --ws-switch-r). */
 .ws-topbar .toolbar-add-node,.ws-topbar .toolbar-icon-btn,.ws-topbar .model-selector-trigger { border-radius: var(--ws-switch-r); }
 .ws-topbar .toolbar-generate { border-radius: var(--ui-r); }
-.ws-topbar .toolbar-add-spark > span { border-radius: 50%; }
 .ws-topbar .toolbar-node-menu button span:before,.ws-topbar .toolbar-node-menu button span:after { border-radius: var(--ui-r); }
 .toolbar-spinner { border-radius: var(--ui-r); }
 .ws-topbar .toolbar-node-menu button { border-radius: var(--ui-r); }

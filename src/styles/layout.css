@@ -1599,8 +1599,8 @@ body {
   /* The dot grid in Quick Grid and Node Studio (not inside cards): faint
      white dots, --dot-gap apart (Node Studio scales the gap with its zoom,
      CanvasViewport.jsx DOT_GAP). */
-  --dot-color: rgb(255 255 255 / 0.4);
-  --dot-gap: 50px;
+  --dot-color: rgb(255 255 255 / 0.28);
+  --dot-gap: 24px;
 }
 
 /* A slow drift of soft light over the gradient, so the background feels alive
@@ -1706,28 +1706,19 @@ body {
   cursor: not-allowed;
 }
 
-.ws-topbar .toolbar-add-spark {
-  grid-template-columns: repeat(2, 14px);
-  gap: 2px;
-}
-
-.ws-topbar .toolbar-add-spark > span {
-  width: 14px;
-  height: 14px;
-  display: grid;
-  place-items: center;
-}
-
-.ws-topbar .toolbar-add-spark > span > svg {
+/* The four "+" dots: one SVG filling the square button (Header.jsx), so
+   they scale with --tb-h and stay exactly centred at any display scaling. */
+.ws-topbar .toolbar-add-dots {
   display: block;
-  width: 84%;
-  height: 84%;
-  overflow: visible;
+  flex: none;
+  width: 100%;
+  height: 100%;
 }
 
-.ws-topbar .toolbar-add-spark > span > svg path {
+.ws-topbar .toolbar-add-dots path {
+  fill: none;
   stroke: #fff;
-  stroke-width: 3.4;
+  stroke-width: 3.7;
   stroke-linecap: round;
 }
 
@@ -1970,17 +1961,6 @@ body {
 }
 
 @container ws (max-width: 520px) {
-  /* Phones: smaller dots, so the grid stays ~55% of the shorter button. */
-  .ws-topbar .toolbar-add-spark {
-    grid-template-columns: repeat(2, 11px);
-    gap: 3px;
-  }
-
-  .ws-topbar .toolbar-add-spark > span {
-    width: 11px;
-    height: 11px;
-  }
-
   /* Phones: the menu drops down as one white card with the options stacked. */
   .ws-topbar .toolbar-node-menu {
     top: calc(100% + 8px);
@@ -2187,8 +2167,8 @@ body {
      --qg-pb / --qg-pr: the bottom / right padding. */
   --qg-pb: calc(var(--tray-bottom, 22px) + var(--tray-h, 0px) + clamp(10px, 1.6cqw, 18px));
   padding: 0 clamp(12px, 1.6vw, 24px) var(--qg-pb);
-  background-image: radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px);
-  background-size: var(--dot-gap, 50px) var(--dot-gap, 50px);
+  background-image: radial-gradient(var(--dot-color, rgb(255 255 255 / 0.28)) 1.1px, transparent 1.4px);
+  background-size: var(--dot-gap, 24px) var(--dot-gap, 24px);
   background-attachment: local;
   /* Moves in step with the brand panel (polish/shell.css), on the shared panel
      tokens: closing, the cards widen at the panel's pace and only fill the
@@ -2817,7 +2797,7 @@ body {
   height: auto;
   border-radius: var(--ui-r);
   background-color: transparent;
-  background-image: radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px);
+  background-image: radial-gradient(var(--dot-color, rgb(255 255 255 / 0.28)) 1.1px, transparent 1.4px);
   background-size: var(--canvas-dot-size) var(--canvas-dot-size);
   background-position: var(--canvas-dot-x) var(--canvas-dot-y);
 }

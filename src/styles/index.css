@@ -1872,7 +1872,7 @@ body {
     linear-gradient(135deg, #f6f7ff 0%, #e7ebff 42%, #b8c7ff 100%);
   background-color: #d8e0ff;
   background-image:
-    radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px),
+    radial-gradient(var(--dot-color, rgb(255 255 255 / 0.28)) 1.1px, transparent 1.4px),
     radial-gradient(ellipse at 94% 103%, rgba(93, 126, 255, 0.9), transparent 58%),
     linear-gradient(135deg, #f6f7ff 0%, #e7ebff 42%, #b8c7ff 100%);
   background-size: var(--canvas-dot-size) var(--canvas-dot-size), auto, auto;
@@ -2111,26 +2111,6 @@ body {
 .toolbar-panel-toggle:hover {
   background: #113c49;
 }
-
-.toolbar-add-spark {
-  display: grid;
-  grid-template-columns: repeat(2, 13px);
-  gap: 4px;
-}
-
-.toolbar-add-spark > span {
-  width: 13px;
-  height: 13px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: var(--ui-r);
-  background: #2C93D8;
-}
-
-.toolbar-add-spark > span:nth-child(2) { background: #B04FC7; }
-.toolbar-add-spark > span:nth-child(3) { background: #12A08E; }
-.toolbar-add-spark > span:nth-child(4) { background: #4653FF; }
 
 .toolbar-node-menu {
   position: absolute;
@@ -3300,16 +3280,6 @@ body {
     font-size: 12px;
   }
 
-  .toolbar-add-spark {
-    grid-template-columns: repeat(2, 10px);
-    gap: 3px;
-  }
-
-  .toolbar-add-spark > span {
-    width: 10px;
-    height: 10px;
-  }
-
   .canvas-topbar-right,
   .canvas-topbar-actions {
     gap: 6px;
@@ -3895,7 +3865,7 @@ body {
   border-radius: var(--ui-r);
   background:
     radial-gradient(ellipse at 94% 103%, rgba(93, 126, 255, 0.9), transparent 58%),
-    radial-gradient(var(--dot-color, rgba(255, 255, 255, 0.55)) 0.75px, transparent 0.9px),
+    radial-gradient(var(--dot-color, rgb(255 255 255 / 0.28)) 1.1px, transparent 1.4px),
     linear-gradient(135deg, #f6f7ff 0%, #e7ebff 42%, #b8c7ff 100%);
   background-size: auto, 18px 18px, auto;
 }

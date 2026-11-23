@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
 // The dot grid's gap at 100% zoom: the same as Quick Grid's (layout.css --dot-gap).
-const DOT_GAP = 50;
+const DOT_GAP = 24;
 const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 // On a phone, the share of the screen's width the first card opens at.
 const PHONE_CARD_SHARE = 0.72;

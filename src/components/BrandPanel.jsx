@@ -88,7 +88,6 @@ function Pillars({ pillars, onChange }) {
               title={`${pillar}\n\nClick to edit`}
               onClick={() => open(index)}
             >
-              <span className="bpx-pillar-title">Pillar {index + 1}</span>
               <span className="bpx-pillar-text">{pillar}</span>
             </button>
             <button

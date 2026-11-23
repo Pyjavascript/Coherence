@@ -43,11 +43,16 @@ export default function NodeCard({
   const [settingsOpen, setSettingsOpen] = useState(false);
   // The card's height when the settings open, kept as its minimum while they
   // show: the settings scroll inside it (enhancements.css .ncard-settings)
-  // instead of the card (and its grid row) growing or shrinking.
+  // instead of the card (and its grid row) growing or shrinking. Cards in a
+  // multi-column grid are size-contained (workspace-theme.css .is-rows): their
+  // row alone sets their height, so they need no lock, and one would keep the
+  // card from following its row if the grid reflows while the settings show.
   const cardRef = useRef(null);
   const [lockH, setLockH] = useState(null);
   const toggleSettings = () => {
-    if (!settingsOpen) setLockH(cardRef.current?.offsetHeight || null);
+    const card = cardRef.current;
+    const contained = card && /size|strict/.test(getComputedStyle(card).contain);
+    if (!settingsOpen) setLockH(contained ? null : card?.offsetHeight || null);
     setSettingsOpen((open) => !open);
   };
   const bodyId = `${node.id}-body`;

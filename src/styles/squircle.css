@@ -119,33 +119,6 @@ html body #root .ws-topbar .toolbar-node-menu button {
   }
 }
 
-/* ---------- Add Node / Add Grid: the four "+" dots -----------------------
-   The dots and the gap between them are fractions of the button (--tb-h:
-   48px on phones up to 60px), snapped to whole pixels so the "+" bars stay
-   crisp: 13px dots / 4px gap at 48-52px, 15px / 5px at 60px. The 2 x 2 grid
-   is ~62% of the button, centred, with clear air between the dots on every
-   screen (it was 14px dots 2px apart on desktop, almost touching). This
-   replaces the per-breakpoint sizes in index.css, layout.css and
-   workspace-theme.css. */
-html body #root .ws-topbar .toolbar-add-spark {
-  --spark-dot: calc(var(--tb-h) * 0.26);
-  --spark-gap: calc(var(--tb-h) * 0.08);
-  grid-template-columns: repeat(2, var(--spark-dot));
-  gap: var(--spark-gap);
-}
-
-@supports (width: round(nearest, 1px, 1px)) {
-  html body #root .ws-topbar .toolbar-add-spark {
-    --spark-dot: round(nearest, calc(var(--tb-h) * 0.26), 1px);
-    --spark-gap: round(nearest, calc(var(--tb-h) * 0.08), 1px);
-  }
-}
-
-html body #root .ws-topbar .toolbar-add-spark > span {
-  width: var(--spark-dot);
-  height: var(--spark-dot);
-}
-
 /* ==========================================================================
    Phones: one size-and-corner ladder, each step derived from the one above,
    so nested curves run parallel (outer corner = inner corner + inset).

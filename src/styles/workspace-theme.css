@@ -239,35 +239,34 @@
   }
 }
 
-/* ---------- Laptops + tablets: the brand panel is a column of the navy frame */
-/* No floating card: the panel sits straight on the navy, full height, right
-   of the board, like the rail on the left. Its slot (.shell-right) opens to
-   the panel's width, so the board shrinks to make room, and the panel,
-   pinned to the slot's left edge, slides in from the window's right edge as
-   the slot grows. Same panel tokens as before (polish/tokens.css). */
-.app-shell:not([data-bp="mobile"]) .shell-right {
-  width: 0;
-  transition: width var(--pl-panel-close) var(--pl-panel-ease);
+/* ---------- Laptops + tablets: the brand panel floats over the board -------- */
+/* The panel is a card over the board's right side (layout.css: --gap inside
+   the board's top, right and bottom edges), sliding in from past the window's
+   right edge (polish/shell.css). The board keeps its full width and its
+   background runs on under the panel.
+
+   The grid still makes room exactly as it did when the panel was a column
+   beside the board: while the panel is open the board takes the panel's width
+   (+ --gap) as right padding. The board is the `ws` size container, and
+   container sizes (cqw, @container ws) are measured inside the padding, so
+   the toolbar, the grid's column count, the cards' type and the bottom row
+   get the same width as before; the panel sits over the padding. */
+.app-shell:not([data-bp="mobile"]) .workspace {
+  padding-right: 0;
+  transition: padding-right var(--pl-panel-close) var(--pl-panel-ease);
 }
 
-.app-shell:not([data-bp="mobile"])[data-right="open"] .shell-right {
-  width: calc(var(--rsb-w) + var(--gap));
-  transition: width var(--pl-panel-open) var(--pl-panel-ease);
+.app-shell:not([data-bp="mobile"])[data-right="open"] .workspace {
+  padding-right: calc(var(--rsb-w) + var(--gap));
+  transition: padding-right var(--pl-panel-open) var(--pl-panel-ease);
 }
 
-.app-shell:not([data-bp="mobile"]) .rsb,
-.app-shell:not([data-bp="mobile"])[data-right="open"] .rsb {
-  top: 0;
-  bottom: 0;
-  left: var(--gap);
-  right: auto;
-  translate: none;
-  background: transparent;
-  border-radius: 0;
-}
-
+/* The app clears every shadow under #root; the floating card gets its own
+   back (theme-dark.css has the dark one). */
 #root .app-shell:not([data-bp="mobile"]) .rsb {
-  box-shadow: none !important;
+  box-shadow:
+    0 28px 64px -24px rgb(17 60 73 / 0.6),
+    0 10px 28px rgb(17 60 73 / 0.2) !important;
 }
 
 /* The panel's title row is the toolbar's height and starts at its top, so
@@ -281,8 +280,9 @@
   align-items: center;
 }
 
-/* The board no longer runs under the panel, so the grid, the bottom row and
-   the zoom controls keep their normal insets while it's open. */
+/* The board's padding already keeps its content clear of the panel, so the
+   grid, the bottom row and the zoom controls keep their normal insets while
+   it's open. */
 .app-shell:not([data-bp="mobile"])[data-right="open"] .ws-stage {
   --tray-right: var(--ws-gutter);
 }
@@ -295,7 +295,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-shell:not([data-bp="mobile"]) .shell-right {
+  .app-shell:not([data-bp="mobile"]) .workspace {
     transition: none;
   }
 }
@@ -386,16 +386,6 @@
   height: 54%;
 }
 
-.app-shell[data-bp="mobile"] .ws-topbar .toolbar-add-spark {
-  grid-template-columns: repeat(2, 13px);
-  gap: 3px;
-}
-
-.app-shell[data-bp="mobile"] .ws-topbar .toolbar-add-spark > span {
-  width: 13px;
-  height: 13px;
-}
-
 /* The logo at the start of the bar (phones, in place of the Grid | Node
    switch): a square the size of the boxes beside it, and the button that
    opens the navigation. */
@@ -472,11 +462,10 @@
   scroll-snap-stop: always;
 }
 
-/* No cards: the carousel / strip layouts above would pin the empty card to the
+/* No cards: the carousel layout above would pin the empty card to the
    top, edge to edge. Put back the centred layout from layout.css, with a side
    gutter so the card floats clear of the board's edges. */
-.qg.is-empty.is-carousel,
-.qg.is-empty.is-strip {
+.qg.is-empty.is-carousel {
   display: grid;
   place-items: center;
   padding-left: var(--ws-gutter);
@@ -497,52 +486,22 @@
   border-radius: 16px;
 }
 
-/* ---------- Laptops / tablets: one row that scrolls sideways ------------------ */
-/* (QuickGrid.jsx is-strip.) The cards keep the grid's column width (3 across
-   on laptops, 2 on tablets: --qg-cols, layout.css) at the full height; more
-   cards continue to the right instead of starting a new row. The row snaps
-   card by card. The 4px padding (offset by the negative margin, so the cards'
-   width doesn't change) keeps the cards' shadows from being clipped. */
-.qg.is-strip {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+/* ---------- Laptops / tablets: rows of cards that stack down ---------------- */
+/* (QuickGrid.jsx is-rows.) The first row fills across (3 on laptops, 2 on
+   tablets: --qg-cols, layout.css); a card past it starts a new row below, and
+   from a third row on the grid scrolls down (layout.css .qg, --row-fit).
+   Every card is exactly its row's height: size containment keeps its content
+   (the copy, or the settings the pencil opens) from stretching the row, so
+   opening a card's settings never changes its height; the copy box and the
+   settings scroll inside the card instead (.ncard-body, enhancements.css
+   .ncard-settings). Narrow stages (one column) keep content-height cards. */
+@container ws (min-width: 640px) {
+  .qg.is-rows .qg-grid > .ncard {
+    contain: size;
+  }
 }
 
-.qg.is-strip .qg-grid {
-  --strip-gap: clamp(10px, 1.6cqw, 18px);
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  align-items: stretch;
-  gap: var(--strip-gap);
-  margin: -4px;
-  padding: 4px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: 4px;
-  scrollbar-width: none;
-}
-
-.qg.is-strip .qg-grid::-webkit-scrollbar {
-  display: none;
-}
-
-/* Fewer cards than fit across share the whole row (one card is full width,
-   two are half each); from --qg-cols cards up, each keeps the column width
-   and the rest scroll. --qg-n is the card count (QuickGrid.jsx). */
-.qg.is-strip .qg-grid > .ncard {
-  --qg-across: min(var(--qg-cols), var(--qg-n, var(--qg-cols)));
-  flex: 0 0 calc((100% - (var(--qg-across) - 1) * var(--strip-gap)) / var(--qg-across));
-  min-width: 0;
-  min-height: 0;
-  scroll-snap-align: start;
-}
-
-/* Pager: a dot per stop (phones: per card; laptops / tablets: per scroll
-   position), centred under the cards on a white backing so it doesn't
+/* Pager (phones): a dot per card, centred under the cards on a white backing so it doesn't
    get lost on the board. Backing and dots take the app's squircle corner:
    --icon-btn-ratio (0.35) of their own height, as squircle.css gives every
    icon button. The dots are the Generate button's colour
@@ -649,15 +608,8 @@
   height: 10px;
 }
 
+/* Option dots: the SVG draws the circle and its "+" (Header.jsx), so the
+   span is only the size box. */
 .ws-topbar .toolbar-node-menu button > span {
-  position: relative;
-}
-
-.ws-topbar .toolbar-node-menu button > span > svg {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 60%;
-  height: 60%;
-  display: block;
+  background: none;
 }

@@ -57,14 +57,10 @@
 }
 
 /* ---------- Brand panel ----------------------------------------------------- */
-/* Navy in light; a dark panel a step above the frame here. */
+/* Navy in light; a dark panel a step above the frame here (desktop floats it
+   over the board as a card: workspace-theme.css). */
 :root[data-theme="dark"] .rsb {
   background: var(--dk-panel);
-}
-/* Desktop: the panel is a column of the frame (workspace-theme.css), so it
-   takes the frame's colour. */
-:root[data-theme="dark"] .app-shell:not([data-bp="mobile"]) .rsb {
-  background: transparent;
 }
 
 /* ---------- Elevation ------------------------------------------------------- */

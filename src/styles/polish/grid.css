@@ -45,16 +45,6 @@
   box-shadow: var(--pl-shadow-2) !important;
 }
 
-/* Category icon: gentle breathe only while the card is being edited */
-.ncard-icon { transform-origin: center; }
-@keyframes grid-dot-breathe {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.18); opacity: .78; }
-}
-.ncard:has(.is-editable:focus, textarea:focus, input:focus, select:focus) .ncard-icon {
-  animation: grid-dot-breathe var(--pl-d-loop) var(--pl-ease-inout) infinite;
-}
-
 /* ---------- Card icon buttons (regenerate / copy / more / settings) ------- */
 .ncard-action {
   transition:
@@ -343,7 +333,6 @@
 
 /* ---------- Reduced motion: drop decorative loops ------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  .ncard .ncard-icon,
   .ws-topbar .toolbar-generate.is-busy,
   .ws-topbar .toolbar-generate[aria-busy=true] { animation: none; }
 }

@@ -162,6 +162,14 @@ function ModelSelector({ tier, onTier }) {
   );
 }
 
+// Add Node / Add Grid dots on a 100-unit button: centres 20 + 13 and 80 - 13.
+const ADD_DOTS = [
+  [33, 33, "#2C93D8"],
+  [67, 33, "#B04FC7"],
+  [33, 67, "#12A08E"],
+  [67, 67, "#4653FF"],
+];
+
 // Drawn on Node Studio's "+" grid (22 units, 15-unit bars, 2.4 stroke) and
 // shown at the same share of its button, so the lines match that plus.
 const PanelIcon = () => (
@@ -276,15 +284,18 @@ export default function Header({
           title={canAdd ? undefined : addDisabledTitle}
           onClick={() => setAddMenuOpen((open) => !open)}
         >
-          <span className="toolbar-add-spark" aria-hidden="true">
-            {[0, 1, 2, 3].map((item) => (
-              <span key={item}>
-                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <path d="M10 3.5v13M3.5 10h13" />
-                </svg>
-              </span>
+          {/* One SVG the size of the button: dots 26% of it, 8% apart, so the
+              2 x 2 sits 20% in from every edge. As separate boxes they were
+              snapped to device pixels apart from the button, which left them
+              a pixel or two off centre at 125% / 150% display scaling. */}
+          <svg className="toolbar-add-dots" viewBox="0 0 100 100" aria-hidden="true">
+            {ADD_DOTS.map(([x, y, color]) => (
+              <g key={color}>
+                <circle cx={x} cy={y} r="13" fill={color} />
+                <path d={`M${x} ${y - 7.1}v14.2M${x - 7.1} ${y}h14.2`} />
+              </g>
             ))}
-          </span>
+          </svg>
         </button>
         {addMenuOpen && canAdd && (
           <div className={"toolbar-node-menu" + (addMenuOverflows ? " is-overflowing" : "")} role="menu" aria-label={addLabel} ref={addMenuListRef}>
@@ -298,18 +309,12 @@ export default function Header({
                   setAddMenuOpen(false);
                 }}
               >
-                <span style={{ "--node-color": option.color }} aria-hidden="true">
-                  <svg
-                    viewBox="0 0 20 20"
-                    width="12"
-                    height="12"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    style={{ display: "block" }}
-                  >
-                    <path d="M10 3.5v13M3.5 10h13" />
+                {/* Same dot as the Add button's: circle and "+" in one SVG,
+                    at the same proportions, so the "+" is exactly centred. */}
+                <span aria-hidden="true">
+                  <svg className="toolbar-add-dots" viewBox="0 0 26 26">
+                    <circle cx="13" cy="13" r="13" fill={option.color} />
+                    <path d="M13 5.9v14.2M5.9 13h14.2" />
                   </svg>
                 </span>
                 {option.label}

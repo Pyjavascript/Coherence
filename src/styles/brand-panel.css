@@ -39,12 +39,12 @@
      layout.css), the same as every button. */
   --bp-field-h: var(--ctl-h);
   /* Core promise + content job: 1.75 controls tall (84px at 48, 105px at
-     60); pillar cards 2.25 (108px / 135px), room for a title and three
-     lines. Both grow further when the panel has spare height. */
+     60); pillar cards 2.25 (108px / 135px), room for four lines of a
+     pillar. Both grow further when the panel has spare height. */
   --bpx-tall: calc(var(--ctl-h) * 1.75);
   --bpx-pillar-h: calc(var(--ctl-h) * 2.25);
   /* The least they shrink to on a short window (so the panel never needs
-     to scroll): about two lines of text, and a pillar title + two lines. */
+     to scroll): about two lines of text, and three lines of a pillar. */
   --bpx-tall-min: calc(var(--ctl-h) * 1.25);
   --bpx-pillar-min: calc(var(--ctl-h) * 1.25 + 16px);
   /* One type size for labels, field text, tabs and buttons. */
@@ -325,18 +325,23 @@
   outline-color: var(--shell-green);
 }
 
-/* The written pillar: the whole card is a button that opens the editor. */
+/* The written pillar: the whole card is a button that opens the editor,
+   showing only the pillar's text, centred. It is a size container, so the
+   text can show as many lines as the card has room for (below) and never
+   runs out of its bottom, at any window height. Its font size is the
+   text's, so the line thresholds (in em) match the text. */
 #root .bpx .bpx-pillar-body {
+  container-type: size;
+  --pl-lh: 1.35;
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Title and text sit together in the middle of the card, a clear gap
-     between them ("safe": a short card clips the end, never the title). */
-  justify-content: safe center;
-  gap: clamp(6px, 1vh, 10px);
-  padding: clamp(8px, 1.2vh, 12px) 6px;
+  justify-content: center;
+  padding: clamp(8px, 1.2vh, 12px) 10px;
+  font-size: 14px;
   color: inherit;
   background: transparent;
   border: 0;
@@ -349,28 +354,38 @@
   background: var(--bpx-field-hover);
 }
 
-#root .bpx .bpx-pillar-title {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
 #root .bpx .bpx-pillar-text {
+  --lines: 4;
   display: -webkit-box;
   max-width: 100%;
   overflow: hidden;
-  font-size: 14px;
+  font-size: inherit;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: var(--pl-lh);
+  letter-spacing: -0.01em;
   overflow-wrap: break-word;
-  /* Longer pillars end in "…" after three lines (hover shows the full
-     text; clicking opens it in the editor). The max-height is a backstop:
-     wherever the clamp doesn't take, the text still stops cleanly after
-     those lines instead of running out of the card's bottom. */
+  text-wrap: pretty;
+  /* Longer pillars end in "…" after as many lines as fit (hover shows the
+     full text; clicking opens it in the editor). The max-height is a
+     backstop: wherever the clamp doesn't take, the text still stops
+     cleanly after those lines instead of running out of the card. */
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  max-height: calc(3 * 1.35em);
+  -webkit-line-clamp: var(--lines);
+  line-clamp: var(--lines);
+  max-height: calc(var(--lines) * var(--pl-lh) * 1em);
+}
+
+/* Lines that fit the card's inner height (n lines = n x 1.35em). */
+@container (height < 5.4em) {
+  #root .bpx .bpx-pillar-text { --lines: 3; }
+}
+
+@container (height < 4.05em) {
+  #root .bpx .bpx-pillar-text { --lines: 2; }
+}
+
+@container (height < 2.7em) {
+  #root .bpx .bpx-pillar-text { --lines: 1; }
 }
 
 #root .bpx .bpx-pillar-body:focus-visible,
@@ -1446,16 +1461,6 @@
   --bpx-label-text: 16px;
 }
 
-/* Short windows (most laptops): pillar text clamps at two lines so the
-   cards can shrink and the panel still fits without scrolling. */
-@media (max-height: 860px) {
-  #root .bpx .bpx-pillar-text {
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    max-height: calc(2 * 1.35em);
-  }
-}
-
 /* Small screens (short laptop windows, phones): a compact panel. Text steps
    down to 13px and the spacing tightens, so every field keeps its own room
    and the Brand and Language tabs fit above the buttons without scrolling.
@@ -1471,7 +1476,7 @@
     --bpx-row-gap: 8px;
     --bpx-pillar-gap: 6px;
     --bpx-tall-min: var(--ctl-h);
-    --bpx-pillar-min: 68px; /* 6px padding + title + two 13px lines */
+    --bpx-pillar-min: 68px; /* padding + three 12px lines */
     padding-top: 10px;
     padding-bottom: 10px;
   }
@@ -1480,23 +1485,17 @@
     font-size: 20px;
   }
 
-  /* Pillar cards on a short screen: a 13px title and two 12px lines of the
-     pillar, centred with even padding, all inside the ~70px card. */
+  /* Pillar cards on a short screen: the pillar in 12px lines, centred
+     with even padding, as many lines as the ~70px card holds. */
   #root .app-shell[data-bp] .bpx .bpx-pillar-body {
-    gap: 4px;
+    --pl-lh: 1.3;
     padding: 7px 8px;
+    font-size: 12px;
   }
 
-  #root .app-shell[data-bp] .bpx .bpx-pillar-title,
   #root .app-shell[data-bp] .bpx .bpx-pillar-add {
     font-size: 13px;
     line-height: 1.2;
-  }
-
-  #root .app-shell[data-bp] .bpx .bpx-pillar-text {
-    font-size: 12px;
-    line-height: 1.3;
-    max-height: calc(2 * 1.3em);
   }
 
   /* Laptops only (phones keep the taller boxes): every text box is one
@@ -1536,12 +1535,7 @@
 /* Narrow phones: tighter pillar cards so three still fit a row. */
 @media (max-width: 380px) {
   #root .bpx .bpx-pillar-body {
-    gap: 8px;
-    padding: 12px 4px;
-  }
-
-  #root .bpx .bpx-pillar-text,
-  #root .bpx .bpx-pillar-title {
+    padding: 12px 6px;
     font-size: 13px;
   }
 
@@ -1640,21 +1634,14 @@
 }
 
 #root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-pillar-body {
-  gap: 6px;
-  padding: 12px 8px;
+  --pl-lh: 1.35;
+  padding: 12px 10px;
+  font-size: 14px;
 }
 
-#root .app-shell[data-bp="mobile"] .rsb .bpx :is(.bpx-pillar-title, .bpx-pillar-add) {
+#root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-pillar-add {
   font-size: 14px;
   line-height: 1.25;
-}
-
-#root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-pillar-text {
-  font-size: 13px;
-  line-height: 1.35;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  max-height: calc(3 * 1.35em);
 }
 
 #root .app-shell[data-bp="mobile"] .rsb .bpx .bpx-warmth-scale {

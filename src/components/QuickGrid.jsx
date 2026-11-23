@@ -274,34 +274,42 @@ const FIT_ROWS = 2;
 // spans the whole row.
 const weightOf = (full, cols) => (full && cols < 3 ? cols : 1);
 
-// Packs cards into rows in order (a full-width card takes its weight's worth
-// of room). While everything fits on one row, the cards share its whole
-// width: three take a third each, two half each, one the full width. Once
-// there's more than one row, every card is one column wide (a third at three
-// across), so a card added below is the same size as the ones above it.
+// Packs cards into rows in order, and every row fills the full width (its
+// cards share it equally), so the grid never has a gap at a row's end.
+// Rows of as many as fit across (3 on laptops); the cards left over at the end
+// share the whole last row, so a lone card there is one big full-width card.
+// At three across: 3 = one row, 4 = 3 + 1, 5 = 3 + 2, 6 = 3 + 3, 7 = 3 + 3 + 1.
+// A full-width card (weight above 1, narrow stages only) takes its weight's
+// worth of a row, so those rows are packed greedily instead.
 // Returns each card's track span and the row count.
 const packRows = (fulls, cols) => {
+  const weights = fulls.map((full) => weightOf(full, cols));
   const rows = [];
-  fulls.forEach((full, i) => {
-    const weight = weightOf(full, cols);
-    const row = rows[rows.length - 1];
-    if (row && row.weight + weight <= cols) {
-      row.cards.push([i, weight]);
-      row.weight += weight;
-    } else {
-      rows.push({ weight, cards: [[i, weight]] });
+  if (weights.every((w) => w === 1)) {
+    const per = Math.max(1, cols);
+    for (let i = 0; i < weights.length; i += per) {
+      const size = Math.min(per, weights.length - i);
+      rows.push({ weight: size, cards: Array.from({ length: size }, (_, k) => [i + k, 1]) });
     }
-  });
-  const oneRow = rows.length === 1;
+  } else {
+    weights.forEach((weight, i) => {
+      const row = rows[rows.length - 1];
+      if (row && row.weight + weight <= cols) {
+        row.cards.push([i, weight]);
+        row.weight += weight;
+      } else {
+        rows.push({ weight, cards: [[i, weight]] });
+      }
+    });
+  }
   const spans = [];
   rows.forEach((row) => row.cards.forEach(([i, weight]) => {
-    spans[i] = oneRow ? TRACKS / row.cards.length : (TRACKS / cols) * weight;
+    spans[i] = (TRACKS * weight) / row.weight;
   }));
   return { spans, rows: Math.max(1, rows.length) };
 };
 
-// The card in view (phones) or the leftmost one in view (laptops / tablets),
-// from the row's scroll position.
+// The card in view on the phone carousel, from the strip's scroll position.
 const slideAt = (strip) => {
   const first = strip.firstElementChild;
   if (!first) return 0;
@@ -314,25 +322,20 @@ const slideAt = (strip) => {
 // forward. The pager under them shows where you are: a dot per card, the
 // current one a wide bar, on a grey squircle backing (tap a dot to jump to
 // that card).
-// Laptops / tablets (strip): the same idea, as many cards across as fit (3 on
-// laptops, 2 on tablets, layout.css --qg-cols) at the full height. Cards past
-// those sit to the right and the row scrolls sideways (trackpad, wheel with
-// Shift, or the pager's dots); a newly added card scrolls into view.
-// The same pager sits under the row once there are more cards than fit: a
-// dot per scroll stop (the leftmost card in view), so the last dot is the
-// row scrolled to its end.
+// Laptops / tablets: a grid of as many cards across as fit (3 on laptops, 2 on
+// tablets, layout.css --qg-cols). The first row fills across; a card past it
+// starts a new row below. One row is the stage's full height, two share it,
+// and a third row and beyond keep that height and the grid scrolls down. A
+// newly added card scrolls into view.
 export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
   const gridRef = useRef(null);
   const [slide, setSlide] = useState(0);
   const count = quick.nodes.length;
   const current = Math.min(slide, Math.max(0, count - 1));
-  const strip = !carousel && count > 0;
   // Cards across (layout.css --qg-cols, from the stage width).
   const [cols, setCols] = useState(1);
-  // The pager's stops: phones, one per card; laptops / tablets, one per
-  // scroll position (none while every card fits).
-  const stops = carousel ? count : strip ? Math.max(0, count - cols + 1) : 0;
-  const scrolls = strip && stops > 1;
+  // The pager's stops: phones only, one per card.
+  const stops = carousel ? count : 0;
   const at = Math.min(current, Math.max(0, stops - 1));
 
   const goTo = (index, smooth = true) => {
@@ -343,11 +346,10 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
     setSlide(index);
   };
 
-  // Track the card in view (phones) or the leftmost one (laptops / tablets) as
-  // the row scrolls.
+  // Track the card in view as the phone carousel scrolls.
   useEffect(() => {
     const strip = gridRef.current;
-    if ((!carousel && !scrolls) || !strip) return undefined;
+    if (!carousel || !strip) return undefined;
     let frame = 0;
     const onScroll = () => {
       cancelAnimationFrame(frame);
@@ -359,7 +361,7 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
       strip.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(frame);
     };
-  }, [carousel, scrolls]);
+  }, [carousel]);
 
   const { spans } = packRows(quick.nodes.map((n) => n.width === "full"), cols);
   useFlip(gridRef, quick.nodes.map((n, i) => `${n.id}:${spans[i]}`).join("|"));
@@ -404,8 +406,19 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
       goTo(index);
       return;
     }
-    // Laptops / tablets: scroll the row so the new card is the last one in view.
-    goTo(Math.max(0, index - (cols - 1)));
+    // Laptops / tablets: scroll the grid down just far enough to show the new
+    // card's row (it may have started a new row below the fold). Waits a frame
+    // so the grid has laid the card out.
+    const frame = requestAnimationFrame(() => {
+      const box = scroller.getBoundingClientRect();
+      const card = el.getBoundingClientRect();
+      const pad = parseFloat(getComputedStyle(scroller).paddingBottom) || 0;
+      const below = card.bottom - (box.bottom - pad);
+      const above = card.top - box.top;
+      if (below > 0) scroller.scrollBy({ top: Math.min(below, above), behavior: "smooth" });
+      else if (above < 0) scroller.scrollBy({ top: above, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [quick.lastAdded]);
 
   const copyOutput = async (text) => {
@@ -420,7 +433,7 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
   };
 
   return (
-    <div className={"qg" + (quick.nodes.length ? "" : " is-empty") + (carousel ? " is-carousel" : "") + (strip ? " is-strip" : "")}>
+    <div className={"qg" + (quick.nodes.length ? "" : " is-empty") + (carousel ? " is-carousel" : " is-rows")}>
       {!quick.nodes.length && (
         <div className="qg-empty">
           <h2>No cards on the grid</h2>
@@ -461,9 +474,7 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
                 key={n.id}
                 type="button"
                 className="qg-pager-dot"
-                aria-label={carousel
-                  ? `${n.label || MEDIA_BY_KEY[n.type]?.label || "Card"} (${i + 1} of ${count})`
-                  : `Cards ${i + 1} to ${i + Math.min(cols, count)} of ${count}`}
+                aria-label={`${n.label || MEDIA_BY_KEY[n.type]?.label || "Card"} (${i + 1} of ${count})`}
                 aria-current={i === at || undefined}
                 onClick={() => goTo(i)}
               />

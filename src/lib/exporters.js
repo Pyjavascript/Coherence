@@ -49,7 +49,7 @@ export function gridToText(nodes, ctx) {
     const lines = ordered(node).map(({ item, index, fav }) => {
       const d = toDisplay(item);
       const tag = node.items.length > 1 ? `${fav ? "★ " : ""}Variant ${index + 1}: ` : fav ? "★ " : "";
-      return [`${tag}${d.headline}`, d.sub ? `  ${d.sub}` : ""].filter(Boolean).join("\n");
+      return [`${tag}${d.headline}`, ...[d.sub, d.sub2].filter(Boolean).map((x) => `  ${x}`)].join("\n");
     });
     return `== ${labelOf(node)} ==\n${lines.join("\n\n")}`;
   });
@@ -64,7 +64,7 @@ export function gridToMarkdown(nodes, ctx) {
     const lines = ordered(node).map(({ item, index, fav }) => {
       const d = toDisplay(item);
       const tag = node.items.length > 1 ? `${fav ? "★ " : ""}Variant ${index + 1}: ` : fav ? "★ " : "";
-      return [`**${tag}${d.headline}**`, d.sub].filter(Boolean).join("  \n");
+      return [`**${tag}${d.headline}**`, d.sub, d.sub2].filter(Boolean).join("  \n");
     });
     return `## ${labelOf(node)}\n\n${lines.join("\n\n")}`;
   });
@@ -79,12 +79,12 @@ export function gridToCsv(nodes, ctx) {
     ["Brand setting", "Value"],
     ...brandSettings(ctx),
     [],
-    ["Medium", "Variant", "Favourite", "Headline", "Supporting line"],
+    ["Medium", "Variant", "Favourite", "Headline", "Supporting line", "Supporting line 2"],
   ];
   nodes.forEach((node) => {
     ordered(node).forEach(({ item, index, fav }) => {
       const d = toDisplay(item);
-      rows.push([labelOf(node), index + 1, fav ? "yes" : "", d.headline, d.sub]);
+      rows.push([labelOf(node), index + 1, fav ? "yes" : "", d.headline, d.sub, d.sub2]);
     });
   });
   // BOM so Excel opens UTF-8 (em dashes, curly quotes) correctly.

@@ -1,24 +1,28 @@
 import { MEDIA_BY_KEY, GRID_WEBSITE_COMPONENTS } from "./constants.js";
+import { compactHeading, descCount, splitWords } from "./layouts.js";
 
 // Helpers for the generated-copy item shapes returned by services/ai:
 //   packaging / marketing      -> "string"
 //   email                      -> { subject, preview }
-//   advertising / website      -> { headline, sub }
-//   Node Studio variants       -> { headline, body } | { pointers: [{ title, detail }] }
+//   advertising / website      -> { headline, sub, sub2? }
+//   Node Studio variants       -> { headline, body, body2? } | { pointers: [{ title, detail }] }
+// sub2 / body2: the second description, for a layout with two description
+// boxes (layouts.js).
 
-// Normalises Quick Grid items into { headline, sub }.
+// Normalises Quick Grid items into { headline, sub, sub2 }.
 export function toDisplay(item) {
   if (item == null) return null;
-  if (typeof item === "string") return { headline: item, sub: "" };
-  if (typeof item !== "object") return { headline: "", sub: "" };
-  return { headline: item.headline || item.subject || "", sub: item.sub || item.preview || "" };
+  if (typeof item === "string") return { headline: item, sub: "", sub2: "" };
+  if (typeof item !== "object") return { headline: "", sub: "", sub2: "" };
+  return { headline: item.headline || item.subject || "", sub: item.sub || item.preview || "", sub2: item.sub2 || "" };
 }
 
 // Writes an edited display field back into the item's own shape.
 export function applyEdit(item, field, text) {
   if (typeof item === "string" || item == null) return field === "headline" ? text : item;
   if ("subject" in item || "preview" in item) {
-    return { ...item, [field === "headline" ? "subject" : "preview"]: text };
+    const key = { headline: "subject", sub: "preview" }[field] || field;
+    return { ...item, [key]: text };
   }
   return { ...item, [field]: text };
 }
@@ -28,9 +32,9 @@ export function itemToText(item) {
   if (item == null) return "";
   if (typeof item === "string") return item;
   if (Array.isArray(item.pointers)) return item.pointers.map((p) => `${p.title} — ${p.detail}`).join("\n");
-  if ("body" in item) return [item.headline, item.body].filter(Boolean).join("\n\n");
+  if ("body" in item) return [item.headline, item.body, item.body2].filter(Boolean).join("\n\n");
   const d = toDisplay(item);
-  return [d.headline, d.sub].filter(Boolean).join("\n");
+  return [d.headline, d.sub, d.sub2].filter(Boolean).join("\n");
 }
 
 export const countWords = (text) => String(text || "").trim().split(/\s+/).filter(Boolean).length;
@@ -166,6 +170,48 @@ export function cardTargets(type, settings = {}) {
     .map(([key, l]) => [key, l.words]));
 }
 
+// The card's layout (layouts.js), unless it's a Feature pointers list, which
+// keeps its single description.
+export const cardLayout = (type, settings = {}) =>
+  (type === "website" && settings.component === "pointers" ? 0 : settings.layout ?? 0);
+
+// A card's field limits per box of its layout: cardLimits, with each of the
+// layout's description boxes (sub, sub2) given the description's full word
+// target. The settings' sliders use cardLimits (one description target).
+export function boxLimits(type, settings = {}) {
+  const limits = cardLimits(type, settings);
+  const layout = cardLayout(type, settings);
+  if (!limits?.sub || descCount(layout) < 2) return limits;
+  const [a, b] = splitWords(limits.sub.words, layout);
+  const { sub, ...rest } = limits;
+  return { ...rest, sub: withWords(sub, a), sub2: withWords({ ...sub, label: `${sub.label} 2` }, b) };
+}
+
+// cardTargets per box: each description box always has the full description
+// target; the heading when the user set one.
+export function boxTargets(type, settings = {}) {
+  const targets = cardTargets(type, settings);
+  const limits = boxLimits(type, settings);
+  if (!limits?.sub2 || !targets.sub) return targets;
+  return { ...targets, sub: limits.sub.words, sub2: limits.sub2.words };
+}
+
+// A Node Studio node's description fields and their word targets, by its
+// layout: [["body", words]] or [["body", words], ["body2", words]], each box
+// at the node's full word target. A Feature pointers node keeps one.
+export function nodeBodyTargets(node = {}) {
+  const words = node.words || 60;
+  const layout = node.category === "website" && node.component === "pointers" ? 0 : node.layout ?? 0;
+  if (descCount(layout) < 2) return [["body", words]];
+  const [a, b] = splitWords(words, layout);
+  return [["body", a], ["body2", b]];
+}
+
+// The heading's default length in a layout whose heading box is small (half
+// width, or a thin bar): about 60% of the medium's, at least 2 words.
+export const compactHeadingWords = (words, layout) =>
+  (compactHeading(layout) ? Math.max(2, Math.round(words * 0.6)) : words);
+
 // A card's `words` setting with one field's target changed: clamped to the
 // field's range, and dropped when it matches the default. null = all defaults.
 export function setCardWords(type, settings, key, value) {
@@ -191,6 +237,7 @@ export function measure(display, limits) {
   const fields = [
     ["headline", limits?.headline],
     ["sub", limits?.sub],
+    ["sub2", limits?.sub2],
   ];
   let words = 0;
   let maxWords = 0;

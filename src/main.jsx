@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./lib/theme.js";
+import "./lib/keyboard.js";
 import "./styles/index.css";
 import "./styles/layout.css";
 import "./styles/enhancements.css";

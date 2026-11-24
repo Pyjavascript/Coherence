@@ -1,121 +1,108 @@
-// Click-to-edit text (single paragraph: Enter saves, Esc cancels). Remounts (key)
-// whenever the committed value changes, so React never reconciles against DOM
-// the browser edited.
-function EditableText({ className, value, label, onCommit }) {
-  if (!onCommit) return <p className={className}>{value}</p>;
-  return (
-    <p
-      key={value}
-      className={className + " is-editable"}
-      contentEditable="plaintext-only"
-      suppressContentEditableWarning
-      role="textbox"
-      aria-label={label}
-      tabIndex={0}
-      title="Click to edit · Enter to save · Esc to cancel"
-      onKeyDown={(e) => {
-        // Keep Enter/Esc here: they shouldn't also trigger app shortcuts (Ctrl+Enter = Generate).
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.stopPropagation();
-          e.currentTarget.blur();
-        } else if (e.key === "Escape") {
-          e.stopPropagation();
-          e.currentTarget.textContent = value;
-          e.currentTarget.blur();
-        }
-      }}
-      onBlur={(e) => {
-        const next = e.currentTarget.textContent.replace(/\s+/g, " ").trim();
-        if (!next) e.currentTarget.textContent = value;
-        else if (next !== value) onCommit(next);
-      }}
-    >
-      {value}
-    </p>
-  );
-}
+import EditableText from "../EditableText";
+import CopyLayout from "../CopyLayout";
+import { GRID_DESC_FIELDS, descCount } from "../../lib/layouts";
 
 const countWords = (text) => String(text || "").trim().split(/\s+/).filter(Boolean).length;
 
 // A medium with a heading and a description (email, website, advertising):
-// two boxes, the heading's sized to its text and the description's filling
-// the rest, with its word count at the bottom-left.
-function SplitContent({ meta, status, item, version, onEdit, footer }) {
+// the card's layout tile (lib/layouts.js) drawn in its proportions. The first
+// box is the heading; the others are descriptions ("sub", then "sub2"), each
+// with its own word count at the bottom-left. The banned-words check (footer)
+// sits in the biggest description box.
+// meta.limits are the card's per-box limits (copyItems boxLimits).
+function SplitContent({ meta, status, item, version, onEdit, footer, layout }) {
   const labels = meta.limits || {};
-  const target = labels.sub?.words;
   const busy = status === "loading";
   const edit = busy || !onEdit ? undefined : onEdit;
+  const fields = ["headline", ...GRID_DESC_FIELDS.slice(0, descCount(layout))];
+  // A second description written for another layout, while this one has a
+  // single description box: shown under the first, so nothing is hidden.
+  const extra = item && fields.length < 3 && item.sub2 ? "sub2" : null;
+  const state = item ? " is-generated" + (busy ? " is-refreshing" : "") : "";
+  let footerUsed = false;
 
-  if (busy && !item) {
+  const renderBox = (i, box, style) => {
+    const field = fields[i];
+    const head = i === 0;
+    const className = "ncard-body " + (head ? "ncard-body-head" : "ncard-body-desc") + (box.large ? " is-large" : "") + state;
+    const target = labels[field]?.words;
+
+    if (busy && !item) {
+      return (
+        <div key={field} className={className} style={style}>
+          {head ? <div className="ncard-skel w70" /> : (
+            <>
+              <div className="ncard-skel" />
+              {box.large && <div className="ncard-skel" />}
+              <div className="ncard-skel w40" />
+            </>
+          )}
+        </div>
+      );
+    }
+
+    if (!item) {
+      return (
+        <div key={field} className={className} style={style}>
+          <p className={(head ? "ncard-headline" : "ncard-sub") + " ncard-placeholder"}>
+            {head ? "Generated heading" : "Generated description appears here"}
+          </p>
+          {!head && target ? <div className="ncard-words">{target} words</div> : null}
+        </div>
+      );
+    }
+
+    const shown = [field, ...(!head && field === "sub" && extra ? [extra] : [])];
+    const words = shown.reduce((n, f) => n + countWords(item[f]), 0);
+    const withFooter = !head && box.large && !footerUsed;
+    if (withFooter) footerUsed = true;
     return (
-      <div className="ncard-split" aria-busy="true">
-        <div className="ncard-body ncard-body-head"><div className="ncard-skel w70" /></div>
-        <div className="ncard-body ncard-body-desc">
-          <div className="ncard-skel" />
-          <div className="ncard-skel" />
-          <div className="ncard-skel w40" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!item) {
-    return (
-      <div className="ncard-split">
-        <div className="ncard-body ncard-body-head">
-          <p className="ncard-headline ncard-placeholder">Generated heading</p>
-        </div>
-        <div className="ncard-body ncard-body-desc">
-          <p className="ncard-sub ncard-placeholder">Generated description appears here</p>
-          {target ? <div className="ncard-words">{target} words</div> : null}
-        </div>
-      </div>
-    );
-  }
-
-  const state = " is-generated" + (busy ? " is-refreshing" : "");
-  return (
-    <div className="ncard-split" aria-live="polite" aria-busy={busy}>
-      <div className={"ncard-body ncard-body-head" + state}>
+      <div key={field} className={className} style={style}>
         <div className="ncard-copy" key={version}>
-          <EditableText
-            className="ncard-headline"
-            value={item.headline}
-            label={`${meta.label} ${labels.headline?.label || "headline"}`}
-            onCommit={edit && ((text) => edit("headline", text))}
-          />
-        </div>
-      </div>
-      <div className={"ncard-body ncard-body-desc" + state}>
-        <div className="ncard-copy" key={version}>
-          {item.sub ? (
+          {shown.map((f) => (item[f] ? (
             <EditableText
-              className="ncard-sub"
-              value={item.sub}
-              label={`${meta.label} ${labels.sub?.label || "supporting line"}`}
-              onCommit={edit && ((text) => edit("sub", text))}
+              key={f}
+              className={head ? "ncard-headline" : "ncard-sub"}
+              value={item[f]}
+              label={`${meta.label} ${labels[f]?.label || (head ? "headline" : "description")}`}
+              onCommit={edit && ((text) => edit(f, text))}
             />
-          ) : null}
+          ) : !head ? (
+            // A box this copy has nothing for yet (written for another layout).
+            <p key={f} className="ncard-sub ncard-placeholder">Generate again to fill this box</p>
+          ) : null))}
         </div>
-        <div className="ncard-words">
-          {target ? `${countWords(item.sub)} / ${target} words` : `${countWords(item.sub)} words`}
-        </div>
-        {footer}
+        {!head && (
+          <div className="ncard-words">
+            {target ? `${words} / ${target} words` : `${words} words`}
+          </div>
+        )}
+        {withFooter && footer}
       </div>
-    </div>
+    );
+  };
+
+  return (
+    <CopyLayout
+      layout={layout}
+      className="ncard-split"
+      aria-live={item ? "polite" : undefined}
+      aria-busy={busy || undefined}
+      renderBox={renderBox}
+    />
   );
 }
 
 // Body of a node: placeholder, skeleton, error, or the generated copy.
 // `version` changes every time new content lands, re-running the fade-in.
 // footer: shown under the generated copy, bottom-right (the Copy button).
-export default function NodeContent({ meta, status, item, version, message, onRetry, onEdit, footer }) {
-  // Two boxes only when the backend gives this medium a description (its
+// layout: the card's "Select a layout" tile (lib/layouts.js).
+export default function NodeContent({ meta, status, item, version, message, onRetry, onEdit, footer, layout = 0 }) {
+  // Boxes only when the backend gives this medium a description (its
   // limits have a `sub`), and, once copy is in, only if a description came back.
   const split = Boolean(meta.limits?.sub) && !(status === "error" && !item) && (!item || Boolean(item.sub));
   if (split) {
-    return <SplitContent meta={meta} status={status} item={item} version={version} onEdit={onEdit} footer={footer} />;
+    return <SplitContent meta={meta} status={status} item={item} version={version} onEdit={onEdit} footer={footer} layout={layout} />;
   }
 
   if (status === "loading" && !item) {

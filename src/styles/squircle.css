@@ -154,12 +154,13 @@ html body #root .app-shell[data-bp="mobile"] .ws-topbar .toolbar-logo-tile {
   rx: calc(50px / 3);
 }
 
-/* Bottom row: PRO, the message box and "?" match the top bar. */
-html body #root .app-shell[data-bp="mobile"] :is(.plan-pro, .composer[data-open="true"], .tour-launch) {
-  border-radius: var(--ph-r) !important;
+/* Bottom row: the open message box takes the cards' corner (it opens one
+   card wide, right under them). */
+html body #root .app-shell[data-bp="mobile"] .composer[data-open="true"] {
+  border-radius: var(--ph-card-r) !important;
 }
 
-/* The send arrow, inset 4px in the message box. */
+/* The send arrow: the cards' in-card button corner. */
 html body #root .app-shell[data-bp="mobile"] .ws-tray .composer .composer-send {
   border-radius: var(--ph-sub-r) !important;
 }

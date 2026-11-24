@@ -943,6 +943,11 @@
   overscroll-behavior: contain;
 }
 
+/* Fields keep their full height; the whole panel scrolls instead. */
+.ncard.is-settings .ncard-settings > .sn-field {
+  flex: none;
+}
+
 @keyframes ncard-settings-down {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: none; }
@@ -973,6 +978,71 @@
 .ncard-sheet-trigger[aria-pressed="true"]:hover {
   color: var(--shell-green-hover);
   background: rgb(23 179 139 / 0.16);
+}
+
+/* "Select a layout": five white tiles in a row, each showing its blocks;
+   the picked one gets a green ring. */
+.ncard-layouts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(6px, calc(var(--pl-u, 3.6px) * 2.2), 10px);
+}
+
+.ncard-layout {
+  aspect-ratio: 6 / 5;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  padding: 16% 14%;
+  background: #fff;
+  border: 0;
+  border-radius: calc(var(--sn-field-h, 44px) * 0.3);
+  box-shadow: inset 0 0 0 1.5px transparent;
+  cursor: pointer;
+  transition: box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.ncard-layout svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ncard-layout rect {
+  fill: #dbe5ec;
+  transition: fill 150ms ease;
+}
+
+.ncard-layout:hover {
+  box-shadow: inset 0 0 0 1.5px #dfe3f2;
+}
+
+.ncard-layout.is-on {
+  box-shadow: inset 0 0 0 2px var(--shell-green);
+}
+
+.ncard-layout.is-on rect {
+  fill: rgb(23 179 139 / 0.28);
+}
+
+.ncard-layout:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 2px;
+}
+
+/* The foot's Close (in Copy's place while the settings show), on a grid card
+   and on a Node Studio node: same size and corner as Copy, in red. */
+#root .app .sn-card-foot .sn-card-copy:is(.ncard-settings-close, .sn-card-close-settings) {
+  color: #fff;
+  background: #ef5b5b;
+}
+
+#root .app .sn-card-foot .sn-card-copy:is(.ncard-settings-close, .sn-card-close-settings):hover {
+  background: #e04848;
+}
+
+#root .app .sn-card-foot .sn-card-copy:is(.ncard-settings-close, .sn-card-close-settings):active {
+  scale: var(--pl-press-scale, 0.97);
 }
 
 .ncard-settings-actions {
@@ -1071,23 +1141,15 @@
 
 /* ---------- Node card: inline editing ---------- */
 
-.ncard-copy .is-editable {
-  margin-inline: -6px;
-  padding: 2px 6px;
-  border-radius: var(--ui-r);
+/* Edited in place: just the text cursor and caret, no wash, fill or ring on
+   hover or while editing. */
+.ncard-copy .is-editable,
+.ncard-copy .is-editable:hover,
+.ncard-copy .is-editable:focus {
   outline: none;
   cursor: text;
-  transition: background-color 150ms ease, box-shadow 150ms ease;
-}
-
-.ncard-copy .is-editable:hover {
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: 0 0 0 1px rgba(17, 60, 73, 0.08);
-}
-
-.ncard-copy .is-editable:focus {
-  background: #fff;
-  box-shadow: 0 0 0 2px var(--node-color, #74d4b8);
+  background: none;
+  box-shadow: none;
 }
 
 /* ---------- Node card: variants + favourite ---------- */
@@ -4605,9 +4667,9 @@
   transform: none;
 }
 
-/* Inline-editable text. */
-.ws-view-nodes .sn-title:hover,
-.ncard-copy .is-editable:hover {
+/* Inline-editable node titles. (A card's generated copy shows no hover
+   wash: .ncard-copy .is-editable, above.) */
+.ws-view-nodes .sn-title:hover {
   background: var(--hover-light);
   box-shadow: none;
 }

@@ -261,13 +261,16 @@ export default function Header({
   return (
     <header className="ws-topbar">
       <div className="ws-topbar-start" ref={addMenuRef}>
-        {/* Phones: the logo is also the navigation toggle. */}
+        {/* Phones: the logo slides the rail in. While it's open the logo
+            folds away (the rail's own logo closes it). */}
         {compact && (
           <button
             type="button"
             className="toolbar-logo"
-            aria-label={navOpen ? "Close navigation" : "Open navigation"}
+            aria-label="Open navigation"
             aria-expanded={navOpen}
+            aria-hidden={navOpen || undefined}
+            tabIndex={navOpen ? -1 : undefined}
             onClick={onToggleNav}
           >
             <BarLogo />
@@ -325,21 +328,7 @@ export default function Header({
       </div>
       <div className="ws-topbar-end">
         <ModelSelector tier={tier} onTier={onTier} />
-        {/* The panel toggle: a navy rounded box at the end of the toolbar. */}
-        <div className={"toolbar-panel-notch" + (hidePanelToggle ? " is-hidden" : "")}>
-          <button
-            type="button"
-            className={"toolbar-icon-btn toolbar-panel-btn" + (panelOpen ? " is-active" : "")}
-            tabIndex={hidePanelToggle ? -1 : undefined}
-            aria-hidden={hidePanelToggle || undefined}
-            aria-label={panelOpen ? "Close brand panel" : "Open brand panel"}
-            aria-expanded={panelOpen}
-            aria-controls="brand-panel"
-            onClick={onTogglePanel}
-          >
-            <PanelIcon />
-          </button>
-        </div>
+        
 
       </div>
     </header>

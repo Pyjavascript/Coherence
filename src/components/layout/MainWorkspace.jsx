@@ -1,16 +1,12 @@
 import { useEffect, useRef } from "react";
 import { VIEWS } from "./ViewSwitch";
-import { TourButton } from "../TourModal";
 
 // Toolbar on top (it holds the view switch), both views stacked in the stage
 // (kept mounted so switching never loses or regenerates content), and the
-// bottom row, centred: the message composer (GenerateDock.jsx, a Dynamic
-// Island) with trayStart (the "Pro" button, free plan only) on its left and
-// the tour "?" on its right. While the island is closed the two hide behind
-// it; opening it, they slide out to sit beside it (composer.css). Each side
-// is an equal flexible slot, so the island stays centred whatever is in them.
-// In the bottom-right corner, the "Built by" credit. The tray's height is
-// kept in --tray-h so the grid can leave room under it.
+// bottom row, centred: the dock (GenerateDock.jsx: pricing, generate, and
+// the message box it opens into). In the bottom-right corner, the "Built by"
+// credit (on phones, centred under the dock). The tray's height is kept in
+// --tray-h so the grid can leave room under it.
 
 // One Quick Grid column's width: the grid's content width split into --qg-cols
 // columns (layout.css) less the gaps between them. Works while the grid is
@@ -39,7 +35,7 @@ function layoutLeft(el) {
   return x;
 }
 
-export default function MainWorkspace({ toolbar, view, views, inert, onHelp, tray, trayStart }) {
+export default function MainWorkspace({ toolbar, view, views, inert, tray }) {
   const stageRef = useRef(null);
   const trayRef = useRef(null);
 
@@ -57,13 +53,13 @@ export default function MainWorkspace({ toolbar, view, views, inert, onHelp, tra
     const creditEl = stage.querySelector(".ws-credit");
     const measure = () => {
       stage.style.setProperty("--tray-h", `${trayEl.offsetHeight}px`);
-      // Room for the credit only if the open row still fits beside it: the
-      // box at least MIN_BOX wide plus "Pro" and the "?" (each the row's
-      // height) with their gaps. Otherwise the credit steps out.
-      const creditW = creditEl?.offsetWidth || 0;
+      // Room for the credit only if the open box still fits beside it (at
+      // least MIN_BOX wide). Otherwise the credit steps out. Phones put the
+      // credit under the dock instead, so the row needs no room for it.
+      const phone = stage.closest(".app-shell")?.dataset.bp === "mobile";
+      const creditW = phone ? 0 : creditEl?.offsetWidth || 0;
       const room = creditW ? creditW + CREDIT_GAP : 0;
-      const tiles = 2 * (trayEl.offsetHeight + CREDIT_GAP);
-      const fits = room > 0 && trayEl.offsetWidth - 2 * room >= MIN_BOX + tiles;
+      const fits = phone || (room > 0 && trayEl.offsetWidth - 2 * room >= MIN_BOX);
       stage.style.setProperty("--credit-room", `${fits ? room : 0}px`);
       stage.dataset.credit = fits ? "on" : "off";
       if (surfaceEl) {
@@ -109,6 +105,18 @@ export default function MainWorkspace({ toolbar, view, views, inert, onHelp, tra
     <main className="workspace" inert={inert ? "" : undefined}>
       {toolbar}
       <div className="ws-stage" data-view={view} ref={stageRef}>
+        {/* The bottom-right corner: who built it, the logo beside two lines.
+            First in the stage so, on the Quick Grid, the views (drawn after
+            it) cover it: cards scrolling down pass over it (composer.css). */}
+        <p className="ws-credit">
+          <svg className="ws-credit-mark" viewBox="3.5 0 21.15 21" fill="currentColor" aria-hidden="true">
+            <path d="M15.578 6v3h-3.002V6zM15.578 12v3h-3.002v-3zM24.648 12v3h-3.002v-3zM3.508 12v3h3.002v-3zM15.602 0v3h3.002V0zM12.555 0v3H9.552V0zM18.604 12h-3.002V9h3.002zM21.628 18h-3.003v-3h3.003zM6.529 18h3.002v-3H6.529zM18.622 5.988h3.003v-3h-3.003zM9.542 5.988H6.539v-3h3.003zM18.604 21h-3.002v-3h3.002zM9.552 21h3.003v-3H9.552zM21.646 9h3.002V6h-3.002zM6.51 9H3.508V6H6.51zM12.557 12H9.555V9h3.002z" />
+          </svg>
+          <span className="ws-credit-text">
+            <span className="ws-credit-by">Built by</span>
+            <span className="ws-credit-name">Pixels Creative Technologies</span>
+          </span>
+        </p>
         {VIEWS.map((v) => (
           <section
             key={v.key}
@@ -123,25 +131,8 @@ export default function MainWorkspace({ toolbar, view, views, inert, onHelp, tra
           </section>
         ))}
         <div className="ws-tray" ref={trayRef}>
-          <div className="ws-tray-side is-start">
-            {trayStart && <span className="ws-tray-pop">{trayStart}</span>}
-          </div>
           {tray}
-          <div className="ws-tray-side is-end">
-            {/* Tour "?": reopens the product tour. */}
-            {onHelp && <span className="ws-tray-pop"><TourButton onClick={onHelp} /></span>}
-          </div>
         </div>
-        {/* The bottom-right corner: who built it, the logo beside two lines. */}
-        <p className="ws-credit">
-          <svg className="ws-credit-mark" viewBox="3.5 0 21.15 21" fill="currentColor" aria-hidden="true">
-            <path d="M15.578 6v3h-3.002V6zM15.578 12v3h-3.002v-3zM24.648 12v3h-3.002v-3zM3.508 12v3h3.002v-3zM15.602 0v3h3.002V0zM12.555 0v3H9.552V0zM18.604 12h-3.002V9h3.002zM21.628 18h-3.003v-3h3.003zM6.529 18h3.002v-3H6.529zM18.622 5.988h3.003v-3h-3.003zM9.542 5.988H6.539v-3h3.003zM18.604 21h-3.002v-3h3.002zM9.552 21h3.003v-3H9.552zM21.646 9h3.002V6h-3.002zM6.51 9H3.508V6H6.51zM12.557 12H9.555V9h3.002z" />
-          </svg>
-          <span className="ws-credit-text">
-            <span className="ws-credit-by">Built by</span>
-            <span className="ws-credit-name">Pixels Creative Technologies</span>
-          </span>
-        </p>
       </div>
     </main>
   );

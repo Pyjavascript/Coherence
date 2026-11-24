@@ -37,11 +37,12 @@
 }
 
 /* ---------- Canvas ---------------------------------------------------------- */
-/* The light board becomes near-black with a faint haze of the theme colour
-   (#113C49, deep teal) at the bottom, darker than the cards so they lift off
-   it. */
+/* The light board (background.svg) swaps for its dark twin,
+   background-dark.svg: the same gradient and centre glow in near-blacks,
+   easing into the theme colour (#113C49, deep teal) at the bottom. It stays
+   darker than the cards so they lift off it. */
 :root[data-theme="dark"] .workspace {
-  background: linear-gradient(180deg, #111415 0%, #121617 40%, #0f2228 80%, #112f37 100%);
+  background: #121619 url("./background-dark.svg") center / 100% 100% no-repeat;
   --dot-color: rgb(255 255 255 / .09);
 }
 :root[data-theme="dark"] .ws-view-nodes .canvas-surface,
@@ -65,7 +66,7 @@
 
 /* Laptops + tablets: the rail card matches the brand panel (it outranks the
    frame colour above). */
-:root[data-theme="dark"] .app-shell:not([data-bp="mobile"]) .lnav {
+:root[data-theme="dark"] .app-shell .lnav {
   background: var(--dk-panel);
 }
 
@@ -103,7 +104,7 @@
 }
 
 :root[data-theme="dark"] body #root .rsb,
-:root[data-theme="dark"] body #root .app-shell:not([data-bp="mobile"]) .lnav,
+:root[data-theme="dark"] body #root .app-shell .lnav,
 :root[data-theme="dark"] body #root :is(.model-selector-menu, .bp-dd-menu, .research-select-menu),
 :root[data-theme="dark"] body #root .overlay :is(.modal, .coherence-modal, .profile-modal, .confirm-dialog, .tour) {
   box-shadow: var(--dk-edge-hover), var(--dk-drop-pop) !important;

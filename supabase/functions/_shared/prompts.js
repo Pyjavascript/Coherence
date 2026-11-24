@@ -15,7 +15,8 @@ import {
   GEN_PLATFORMS,
   platformsFor,
 } from "./constants.js";
-import { aimFor, cardLimits, cardTargets, wordRange } from "./copyItems.js";
+import { aimFor, boxLimits, boxTargets, cardLayout, compactHeadingWords, nodeBodyTargets, wordRange } from "./copyItems.js";
+import { NODE_DESC_FIELDS, layoutGuide } from "./layouts.js";
 
 // ctx = { brand, notes, stylePack }
 const t = (s) => (s || "").trim();
@@ -138,16 +139,19 @@ const gridComponent = (medium, s) =>
 // plus a description ("sub", the main copy) held strictly to its length, the
 // card's default or the user's, which is the node's "body" rule. Then the
 // medium's style (SPECS) or the Website card's component.
+// The card's layout (layouts.js) splits the description into sub + sub2 when
+// it has two description boxes, each with the full word target, and says
+// where each box sits; a small heading box gets a shorter default heading.
 function lengthSpec(medium, s = {}) {
   const comp = gridComponent(medium, s);
-  const targets = cardTargets(medium, s);
-  const limits = cardLimits(medium, s);
+  const targets = boxTargets(medium, s);
+  const limits = boxLimits(medium, s);
+  const layout = cardLayout(medium, s);
   if (!limits) return SPECS[medium];
   const parts = Object.entries(limits).map(([key, l]) => {
-    const field = key === "headline" ? "headline" : "sub";
     const label = l.label.toLowerCase();
-    const name = label === field ? field : `${field} (${label})`;
-    if (!targets[key]) return `${name} of about ${l.words} words`;
+    const name = label === key ? key : `${key} (${label})`;
+    if (!targets[key]) return `${name} of about ${key === "headline" ? compactHeadingWords(l.words, layout) : l.words} words`;
     const { min, max } = wordRange(targets[key]);
     return `${name} of ${min}-${max} words (strict: never more than ${max}; aim for about ${aimFor(targets[key])})`;
   });
@@ -158,7 +162,13 @@ function lengthSpec(medium, s = {}) {
   } else if (SPECS[medium]) {
     spec += `; ${SPECS[medium]}`;
   }
-  if (targets.sub) spec += "; sub is the main copy: write enough to reach its length with concrete detail, benefits, proof or a clear call to action, never filler or repetition";
+  if (limits.sub2) {
+    spec += `; layout: ${layoutGuide(layout)}; sub and sub2 are separate boxes, so each says something different and neither repeats the other or the headline`;
+    if (targets.sub) spec += "; write enough to reach each box's length with concrete detail, benefits, proof or a clear call to action, never filler or repetition";
+  } else {
+    if (layoutGuide(layout)) spec += `; layout: ${layoutGuide(layout)}`;
+    if (targets.sub) spec += "; sub is the main copy: write enough to reach its length with concrete detail, benefits, proof or a clear call to action, never filler or repetition";
+  }
   if (Object.keys(targets).length) spec += "; count each field's words on its own; these lengths override any shorter length the channel's conventions suggest";
   return spec;
 }
@@ -180,8 +190,10 @@ function platformRules(picked) {
 export const GRID_MEDIA = ["packaging", "marketing", "advertising", "website", "email"];
 
 // Every medium answers with a heading plus a description, under the same keys
-// (the app files an email's as its subject / body: services/ai.js).
-const itemShape = () => '{"headline":"...","sub":"..."}';
+// (the app files an email's as its subject / body: services/ai.js), and a
+// second description ("sub2") when the card's layout has two.
+const itemShape = (medium, settings) =>
+  (boxLimits(medium, settings)?.sub2 ? '{"headline":"...","sub":"...","sub2":"..."}' : '{"headline":"...","sub":"..."}');
 
 // cards = [{ key, medium, settings }]: one entry per Quick Grid card. `key` names
 // the card's array in the answer ("website", or "website_2" for a second Website
@@ -201,7 +213,7 @@ export function buildQuickGridPrompt(ctx, n, cards, platforms = []) {
     const rules = rulesFor(medium, settings);
     return `${base}
 Generate exactly ${n} distinct variant(s) for the ${medium} medium only — different angles, not synonyms.
-Return ONLY this JSON, no markdown fences: {"${key}":[${itemShape(medium)}]}  (array length ${n})
+Return ONLY this JSON, no markdown fences: {"${key}":[${itemShape(medium, settings)}]}  (array length ${n})
 Constraint: ${lengthSpec(medium, settings)}.${rules ? `\nPlatform — write it natively for this: ${rules}` : ""}${brief ? `\nInstructions for this ${medium} copy — ${brief}.` : ""}`;
   }
   const label = ({ key, medium }) => (key === medium ? key : `${key} (${medium})`);
@@ -213,7 +225,7 @@ Generate exactly ${n} distinct variant(s) for every output below — different a
     ? "\nSome outputs share a medium (e.g. website and website_2): give each its own angle, never the same line twice."
     : ""}
 Return ONLY valid JSON, no markdown fences, an array of length ${n} for every key:
-{${cards.map((c) => `"${c.key}":[${itemShape(c.medium)}]`).join(",")}}
+{${cards.map((c) => `"${c.key}":[${itemShape(c.medium, c.settings)}]`).join(",")}}
 Constraints:
 ${cards.map((c) => `- ${label(c)}: ${lengthSpec(c.medium, c.settings)}`).join("\n")}${targeted.length
     ? `\nPlatform targeting (write each output natively for its platform):\n${targeted.map(([c, r]) => `- ${label(c)}: ${r}`).join("\n")}`
@@ -245,15 +257,24 @@ ${customerLine(c)}`;
   p += researchBlock(ctx.notes);
   const words = node.words || 60;
   const range = wordRange(words);
-  // The headline: strict when the user set its length, else about the category's default.
+  // The layout (layouts.js): one body, or body + body2, each at the node's
+  // full word target.
+  const layout = node.category === "website" && node.component === "pointers" ? 0 : node.layout || 0;
+  const bodies = nodeBodyTargets(node).map(([field, target]) => ({ field, target, ...wordRange(target) }));
+  const twoBodies = bodies.length > 1;
+  // The headline: strict when the user set its length, else about the
+  // category's default (shorter in a small heading box).
   const heading = node.headingWords ? wordRange(node.headingWords) : null;
-  const headingWords = NODE_DEFAULT_HEADING_WORDS[node.category] || 10;
+  const headingWords = compactHeadingWords(NODE_DEFAULT_HEADING_WORDS[node.category] || 10, layout);
   const headingSpec = heading
     ? `The headline must be ${heading.min}-${heading.max} words and never more than ${heading.max}; aim for about ${aimFor(node.headingWords)} (set by the user, strict; count its words on its own).`
     : `The headline is a short line of about ${headingWords} words.`;
   p += `\n\nThis node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
-Length (set by the user, strict): the body must be ${range.min}-${range.max} words and never more than ${range.max}; aim for about ${aimFor(words)}. The headline is not counted in it. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.
+${twoBodies
+    ? `Layout: ${layoutGuide(layout, NODE_DESC_FIELDS)}. body and body2 are separate boxes: each says something different and neither repeats the other or the headline.
+Length (set by the user, strict, each counted on its own): ${bodies.map((b) => `${b.field} must be ${b.min}-${b.max} words, never more than ${b.max}, aim for about ${aimFor(b.target)}`).join("; ")}. The headline is not counted in them. Write enough to reach each: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count each one's words before answering. This overrides any shorter length the channel's conventions suggest.`
+    : `${layoutGuide(layout) ? `Layout: ${layoutGuide(layout, NODE_DESC_FIELDS)}.\n` : ""}Length (set by the user, strict): the body must be ${range.min}-${range.max} words and never more than ${range.max}; aim for about ${aimFor(words)}. The headline is not counted in it. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.`}
 ${headingSpec}`;
   const rules = platformRules(node.platform
     ? GEN_PLATFORMS.filter((pl) => pl.label === node.platform)
@@ -267,7 +288,7 @@ ${headingSpec}`;
         .map(({ label, variant: v }) =>
           v.pointers
             ? `- [${label}] (pointers) ${v.pointers.map((x) => x.title).join("; ")}`
-            : `- [${label}] ${v.headline} — ${v.body}`,
+            : `- [${label}] ${[v.headline, v.body, v.body2].filter(Boolean).join(" — ")}`,
         )
         .join("\n");
   }
@@ -280,7 +301,7 @@ ${headingSpec}`;
       p += ` Its finished copy:\n` +
         (v.pointers
           ? v.pointers.map((x) => `- ${x.title} — ${x.detail}`).join("\n")
-          : `Headline: ${v.headline}\nBody: ${v.body}`);
+          : `Headline: ${v.headline}\nBody: ${[v.body, v.body2].filter(Boolean).join("\n")}`);
       p += `\nAdapt that copy into this ${cat.label} piece: carry over its message, key facts, offer and emotional angle, but rewrite it natively for this channel's format, length and conventions instead of copying lines verbatim.`;
     } else {
       p += ` Write this ${cat.label} piece for that same job, natively for this channel.`;
@@ -300,7 +321,9 @@ ${headingSpec}`;
     p += `\nThis is a "Feature pointers" component: produce exactly ${pc} distinct benefit-led pointers, each a short title (3-6 words) plus a one-sentence detail.`;
     p += `\n\nReturn ONLY valid JSON, no markdown fences: {"variants":[{"pointers":[{"title":"...","detail":"..."} /* exactly ${pc} of these */]}]} with exactly ${vCount} variant(s) in the array, each a distinct set of ${pc} pointers. Never use quotation marks inside the text. Never explain your choices.`;
   } else {
-    p += `\n\nReturn ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line${heading ? ` of ${heading.min}-${heading.max} words` : ""}. body is the main copy, ${range.min}-${range.max} words. Never use quotation marks inside the text. Never explain your choices.`;
+    p += twoBodies
+      ? `\n\nReturn ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"...","body2":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line${heading ? ` of ${heading.min}-${heading.max} words` : ""}. ${bodies.map((b) => `${b.field} is ${b.min}-${b.max} words`).join("; ")}. Never use quotation marks inside the text. Never explain your choices.`
+      : `\n\nReturn ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line${heading ? ` of ${heading.min}-${heading.max} words` : ""}. body is the main copy, ${range.min}-${range.max} words. Never use quotation marks inside the text. Never explain your choices.`;
   }
   return p;
 }
@@ -322,7 +345,7 @@ export function describeLastGenerated(last, quickCards) {
       sampleCopy: v.pointers
         ? `Pointers: ` +
           v.pointers.map((p) => `${p.title} — ${p.detail}`).join(" | ")
-        : `Hook/headline: ${v.headline}\nBody: ${v.body}`,
+        : `Hook/headline: ${v.headline}\nBody: ${[v.body, v.body2].filter(Boolean).join("\n")}`,
     };
   }
   if (last && last.type === "quick") {
@@ -333,7 +356,7 @@ export function describeLastGenerated(last, quickCards) {
         sampleCopy:
           typeof item === "string"
             ? item
-            : `Headline: ${item.headline || item.subject || ""}\nSupport: ${item.sub || item.preview || ""}`,
+            : `Headline: ${item.headline || item.subject || ""}\nSupport: ${[item.sub || item.preview || "", item.sub2 || ""].filter(Boolean).join("\n")}`,
       };
     }
   }

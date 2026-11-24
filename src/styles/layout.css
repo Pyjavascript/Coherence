@@ -37,13 +37,14 @@
   /* ONE control height for the whole app: every button, CTA, icon button,
      tab, chip and one-line input (toolbar, bottom row, message box, brand
      panel). The design's 120 on the @2x Mac frame is 60px here.
-     It follows the window: 4vw or 7vh, whichever is smaller, so a screen
-     that is shorter than a Mac's gets smaller controls even when it's wide.
+     It follows the window's WIDTH only (4vw): a short window keeps the same
+     controls as a tall one of the same width, and the page scrolls instead
+     of the UI shrinking to fit the height.
      44px floor (the minimum touch target, phones and tablets), 60px cap.
      Snapped to 4px below, so it's always 44 / 48 / 52 / 56 / 60. */
   --ctl-min: 44px;
   --ctl-max: 60px;
-  --ctl-fluid: min(4vw, 7vh);
+  --ctl-fluid: 4vw;
   --ctl-h: clamp(var(--ctl-min), var(--ctl-fluid), var(--ctl-max));
   --ui-icon: var(--ctl-h);
   /* The rail's tiles (profile, credits, brands, the "+" box): the size of
@@ -72,7 +73,10 @@
      fallback until it does. */
   --lnav-label-w: calc(clamp(236px, 19vw, 290px) - var(--lnav-side) - var(--ui-icon) - var(--lnav-row-gap));
   --lnav-open: calc(var(--ui-icon) + var(--lnav-row-gap) + var(--lnav-label-w) + var(--lnav-side) * 2);
-  --rsb-w: clamp(320px, 28vw, 420px);
+  /* The brand panel's width: 24vw between 320px and 380px (~370px on a
+     1536px window). It was 28vw up to 420px, which hit the cap from ~1500px
+     and covered more than a full card column on laptop screens. */
+  --rsb-w: clamp(320px, 24vw, 380px);
   --tb-h: var(--ctl-h);
   --tb-pad-bottom: clamp(10px, 1.1vw, 16px);
   /* The workspace's inset on every side: the toolbar sits this far from the
@@ -133,6 +137,23 @@ html,
 body,
 #root {
   height: 100%;
+}
+
+/* Keyboard up (src/lib/keyboard.js): the app keeps its full size and
+   slides up by the keyboard's height (--kb-lift), so the message box sits on
+   the keyboard's edge and the top runs off the screen instead of squeezing.
+   The home-indicator inset goes under the keyboard (it's not needed there),
+   so the slide is that much shorter. */
+.app {
+  transition: translate 260ms cubic-bezier(.32, .72, 0, 1);
+}
+:root.kb-open .app {
+  translate: 0 calc(-1 * max(0px, var(--kb-lift, 0px) - env(safe-area-inset-bottom, 0px)));
+}
+@media (prefers-reduced-motion: reduce) {
+  .app {
+    transition: none;
+  }
 }
 
 body {
@@ -234,13 +255,23 @@ body {
   --ws-gutter: var(--ws-gutter-y);
   /* Re-derived here: on :root it was resolved from :root's own gutter. */
   --tb-pad-x: var(--ws-gutter);
+  /* A little more air above the toolbar's boxes (the rail card's top follows,
+     .lnav below, so the two still line up)... */
+  --tb-pad-top: calc(var(--ws-gutter-y) + 4px);
+  /* ...and under them, before the cards' scroll edge (workspace-theme.css
+     .ws-topbar / --bar-h). */
+  --bar-pad-b: 8px;
 }
 
 .app-shell:not([data-bp="mobile"]) .lnav {
   top: var(--tb-pad-top);
   bottom: var(--ws-gutter-y);
   left: var(--ws-gutter-y);
-  padding: var(--lnav-inset);
+  /* Sides: --lnav-inset. Top and bottom: 1.5x that. On a card this tall and
+     narrow, an equal inset all round looks tighter at the ends than at the
+     sides, so the logo and the last brand get a little more air. Edit the
+     1.5 to change it (1 = the same as the sides). */
+  padding: calc(var(--lnav-inset) * 1.5) var(--lnav-inset);
   /* The same corner-to-width proportion as the toolbar's boxes, so the card
      reads as one of them. Those are --ws-switch-r on --tb-h (20px on 52px);
      the rail is --tb-h + 2 x --lnav-inset wide (80px there), ~1.5x as wide,
@@ -251,41 +282,117 @@ body {
 
 /* The brand list's 4px inner padding (room for focus rings) would lift the
    last brand off the card's inset; cancel it at the bottom. */
-.app-shell:not([data-bp="mobile"]) .lnav-brands {
+.lnav-brands {
   margin-bottom: -4px;
 }
 
-/* Mobile: off-canvas drawer. */
-/* Phones: an equal navy frame on all four sides (the right panel reuses it). */
+/* Phones: the board fills the screen, clear only of the notch and the home
+   indicator / gesture bar (safe-area insets). */
 .app-shell[data-bp="mobile"] {
   --mobile-pad: 15px;
-  /* No frame: the board fills the screen, clear only of the notch and the
-     home indicator / gesture bar (safe-area insets). */
   padding:
     env(safe-area-inset-top, 0px)
     env(safe-area-inset-right, 0px)
     env(safe-area-inset-bottom, 0px)
     env(safe-area-inset-left, 0px);
+  /* The rail card (below), sized from the mockup: 40px tiles (the phone
+     ladder's in-card tier) 9px inside it, so the card is ~58px wide (15% of
+     a 390px phone, as designed). One gutter in from the screen's top, left
+     and bottom. Its corner is the mockup's share of its width (0.26), not
+     the tiles' corner plus the inset, which looked too round on a card this
+     narrow. Open, the board takes --ph-rail-room as left padding
+     (workspace-theme.css), so the cards beside it squeeze over. */
+  --ph-rail-gap: var(--ws-gutter-y);
+  --ph-rail-tile: 40px;
+  --ph-rail-inset: 9px;
+  --ph-rail-w: calc(var(--ph-rail-tile) + var(--ph-rail-inset) * 2);
+  --ph-rail-room: calc(var(--ph-rail-gap) + var(--ph-rail-w));
+  --ph-rail-r: calc(var(--ph-rail-w) * 0.26);
+  --ph-rail-dur: 520ms;
+  --ph-rail-ease: cubic-bezier(.32, .72, 0, 1);
 }
 
 .app-shell[data-bp="mobile"] .shell-left {
   width: 0;
 }
 
+/* Phones: the collapsed rail as a card beside the cards (not a drawer over
+   them). The logo in the top bar slides it in; the logo at its top (a white
+   tile with the theme-colour "CC") slides it back out. Inside it, the icon
+   slots and tiles are both 40px, with the 40px tier's 12px corner. */
 .app-shell[data-bp="mobile"] .lnav {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  width: min(240px, 68vw);
-  padding-inline: var(--lnav-pad);
-  /* Phones: the drawer runs edge to edge, so square corners. */
-  border-radius: 0;
-  transform: translateX(-100%);
+  --ui-icon: var(--ph-rail-tile);
+  --lnav-tile: var(--ph-rail-tile);
+  --ws-switch-r: 12px;
+  top: var(--ph-rail-gap);
+  bottom: var(--ph-rail-gap);
+  left: var(--ph-rail-gap);
+  width: var(--ph-rail-w);
+  padding: var(--ph-rail-inset);
+  border-radius: var(--ph-rail-r);
+  transform: translateX(calc(-100% - var(--ph-rail-gap) - 24px));
+  visibility: hidden;
+  transition:
+    transform var(--ph-rail-dur) var(--ph-rail-ease),
+    visibility 0s linear var(--ph-rail-dur);
 }
 
 .app-shell[data-bp="mobile"][data-left="open"] .lnav {
   transform: none;
+  visibility: visible;
+  transition:
+    transform var(--ph-rail-dur) var(--ph-rail-ease),
+    visibility 0s;
 }
+
+.app-shell[data-bp="mobile"] .lnav-top {
+  --lnav-top-gap: var(--ph-rail-inset);
+}
+
+.app-shell[data-bp="mobile"] .lnav-brand-list {
+  gap: var(--ph-rail-inset);
+}
+
+/* The logo that closes it: the same tile as the profile below it, the "CC"
+   in the theme colour. */
+.lnav .lnav-logo-btn {
+  cursor: pointer;
+}
+
+.lnav .lnav-logo-btn:hover {
+  background: transparent;
+}
+
+.lnav-logo-tile .lnav-mark {
+  width: 60%;
+  fill: var(--shell-frame);
+  translate: none;
+}
+
+/* Opening, every tile (logo included) pops in, one after another. */
+.app-shell[data-bp="mobile"][data-left="open"] .lnav-row .lnav-slot {
+  animation: ph-rail-tile 420ms var(--ph-rail-ease) both;
+  animation-delay: calc(80ms + var(--ph-li, 0) * 40ms);
+}
+
+@keyframes ph-rail-tile {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell[data-bp="mobile"] .lnav,
+  .app-shell[data-bp="mobile"][data-left="open"] .lnav {
+    transition: visibility 0s;
+  }
+
+  .app-shell[data-bp="mobile"][data-left="open"] .lnav-row .lnav-slot {
+    animation: none;
+  }
+}
+
 
 /* Rows: fixed icon slot + fading label, so icons never move. */
 .lnav-row,
@@ -355,12 +462,9 @@ body {
   transition: opacity 200ms ease 80ms, transform 260ms var(--shell-ease) 40ms;
 }
 
-/* The mobile drawer doesn't animate its width, so labels can just fill the row. */
+/* Phones: the rail is icons only (it never opens wider). */
 .app-shell[data-bp="mobile"] .lnav-label {
-  flex: 1 1 auto;
-  width: auto;
-  font-size: clamp(16px, 1.2vw, 18px);
-  font-weight: 500;
+  display: none;
 }
 
 /* The product name is set in NeueBit, a pixel face that draws much smaller
@@ -428,10 +532,11 @@ body {
    Not a control: no hover. */
 .lnav .lnav-brandmark {
   cursor: default;
-  /* The mark is small and lifted inside its box, so the empty space under
-     it plus the column gap read as a wide gap to the profile. Pull the
-     profile up 8px so the logo sits with the controls beneath it. */
-  margin-bottom: -8px;
+  /* The mark sits at the top of its box (.lnav-mark), leaving empty space
+     under it. Take off all but the 4px a white tile leaves under itself, so
+     the logo-to-profile gap matches every tile-to-tile gap. (mark height -
+     tile height: -14.75px on a 44px icon.) */
+  margin-bottom: calc(var(--lnav-mark-h) - var(--lnav-tile));
 }
 
 #root .app .lnav .lnav-brandmark:hover {
@@ -442,17 +547,23 @@ body {
   scale: none;
 }
 
+.lnav {
+  /* The CC mark's height: 60% of an icon wide, at its 32.3 : 26 shape. */
+  --lnav-mark-h: calc(var(--ui-icon) * 0.6 * 26 / 32.3);
+}
+
 .lnav-mark {
   display: block;
   width: calc(var(--ui-icon) * 0.6);
   height: auto;
   aspect-ratio: 32.3 / 26;
-  /* The mark is wider than tall, so centred in its square slot it sat
-     lower than it sat in from the sides (27px down vs 24px in, on a 52px
-     icon). Lifted by half that difference ((width - height) / 2 =
-     0.6 x (1 - 26/32.3) / 2 = 0.0585 x the icon), so the card's padding
-     reads the same above it as either side of it. */
-  translate: 0 calc(var(--ui-icon) * -0.0585);
+  /* Its top sits where a white tile's top sits: 4px inside its box
+     ((icon - tile) / 2). The card's padding then reads the same above the
+     logo as beside the tiles and under the last brand. (Lined up with the
+     mark's own sides instead, the logo sat ~5px low, because the mark is
+     narrower than a tile.) Centred, its top is (icon - mark) / 2, so it
+     moves up by the difference, (mark - tile) / 2. */
+  translate: 0 calc((var(--lnav-mark-h) - var(--lnav-tile)) / 2);
 }
 
 .lnav-toggle:hover {
@@ -502,13 +613,20 @@ body {
 
 /* Laptops + tablets: the logo, profile and credits are spaced like the
    toolbar's boxes (model picker | menu), and so are the brands at the
-   bottom. */
+   bottom. Spaced by what you see: each white tile (--lnav-tile) sits 4px
+   inside its row top and bottom, so a gap of --bar-gap between rows read as
+   --bar-gap + 8px between tiles (16-22px). Taking those 8px off leaves
+   exactly --bar-gap between the tiles themselves. */
+.app-shell:not([data-bp="mobile"]) .lnav {
+  --lnav-tile-gap: max(0px, calc(var(--bar-gap) - (var(--ui-icon) - var(--lnav-tile))));
+}
+
 .app-shell:not([data-bp="mobile"]) .lnav-top {
-  --lnav-top-gap: var(--bar-gap);
+  --lnav-top-gap: var(--lnav-tile-gap);
 }
 
 .app-shell:not([data-bp="mobile"]) .lnav-brand-list {
-  gap: var(--bar-gap);
+  gap: var(--lnav-tile-gap);
 }
 
 
@@ -2152,11 +2270,10 @@ body {
 
 
 /* ==========================================================================
-   Quick Grid — fills the stage; rows stretch to fit one screen
+   Quick Grid — fixed-height rows; the grid scrolls when they don't fit
    ========================================================================== */
 
 .qg {
-  --row-min: clamp(150px, 21vh, 240px);
   position: absolute;
   inset: 0;
   overflow-x: hidden;
@@ -2197,12 +2314,33 @@ body {
   min-height: 100%;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  /* --row-fit (QuickGrid.jsx) is the row height at which the default cards
-     fill the screen: rows never go below it, so extra cards scroll below
-     instead of squeezing the rest; with fewer cards, 1fr still fills it. */
-  grid-auto-rows: minmax(max(var(--row-min), var(--row-fit, 0px)), 1fr);
+  /* Each row's height comes from the column WIDTH, never the window height:
+     72% of one column (--pl-cardw, polish/grid.css, which also sizes the
+     cards' type), between --qg-row-min and 420px. That's the rows' MINIMUM:
+     a short window doesn't squeeze the cards (the grid scrolls), and a tall
+     one lets the rows grow to fill it (the container rule below).
+     The brand panel narrows the cards but leaves their height alone. */
+  /* --qg-row-min: THE minimum card height, everywhere (also the one-column
+     layout below). Change this one number to make cards taller or shorter
+     on smaller screens. */
+  --qg-row-min: 380px;
+  --qg-row-h: clamp(var(--qg-row-min), calc(var(--pl-cardw, 320px) * 0.72), 420px);
+  grid-auto-rows: var(--qg-row-h);
+  align-content: start;
   grid-auto-flow: row dense;
   gap: clamp(10px, 1.1vw, 16px);
+}
+
+/* Any number of rows: never shorter than --qg-row-h, but when the stage has
+   height to spare (down to the Generate row) the rows share it equally, so
+   every card stays the same height and the bottom isn't left empty. When the
+   rows don't fit at their minimum, they keep it and the grid scrolls.
+   Laptops / tablets only (phones use the carousel). */
+@container ws (min-width: 640px) {
+  .qg.is-rows .qg-grid {
+    grid-auto-rows: minmax(var(--qg-row-h), 1fr);
+    align-content: stretch;
+  }
 }
 
 @container ws (min-width: 640px) {
@@ -2221,10 +2359,36 @@ body {
    later, sets the grid's gap at the same specificity.) */
 @container ws (max-width: 639px) {
   .qg .qg-grid {
-    --row-min: 220px;
+    /* The same minimum as the wider layouts (--qg-row-min above), so a
+       narrow window (e.g. the brand panel open) keeps the cards' height.
+       Phones use the carousel (workspace-theme.css), not these rows. */
+    --row-min: var(--qg-row-min);
     min-height: 0;
     grid-auto-rows: minmax(var(--row-min), auto);
     gap: 16px;
+  }
+}
+
+/* Brand panel open on a small laptop (~1024px window): the panel leaves the
+   grid ~520-639px, under the 640px two-across breakpoint, so the cards fell
+   to one per row. Keep them two across there, exactly as the >= 640px layout
+   draws them: column count, type sizes (--pl-cardw, polish/grid.css), rows
+   that share the height, size-contained cards (workspace-theme.css), and
+   the wide layouts' gap. Below 520px (tablets with the panel open) a column
+   would be too narrow, so they stay one across. (The selector outranks the
+   one-column rule above and polish/grid.css, whatever the load order.) */
+@container ws (min-width: 520px) and (max-width: 639px) {
+  .app-shell:not([data-bp="mobile"])[data-right="open"] .qg.is-rows .qg-grid {
+    --qg-cols: 2;
+    --pl-cardw: calc(96cqw / 2);
+    min-height: 100%;
+    grid-auto-rows: minmax(var(--qg-row-h), 1fr);
+    align-content: stretch;
+    gap: clamp(10px, 1.1vw, 16px);
+  }
+
+  .app-shell:not([data-bp="mobile"])[data-right="open"] .qg.is-rows .qg-grid > .ncard {
+    contain: size;
   }
 }
 
@@ -2376,8 +2540,8 @@ body {
 }
 
 .ncard-icon {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   flex: none;
   display: grid;
   place-items: center;
@@ -2684,16 +2848,25 @@ body {
   --ncard-pad-y: var(--ncard-pad-x);
 }
 
+/* Laptops and tablets: the padding never drops under 16px (narrow cards,
+   e.g. with the brand panel open, had the text pressed up to the box's top),
+   and the description box, with its rounder corner, gets 4px more above and
+   below so its first line doesn't crowd the top. The sides stay the heading
+   box's, so the two texts keep one left edge. */
+.app-shell:not([data-bp="mobile"]) .ncard-split > .ncard-body {
+  --ncard-pad-x: clamp(16px, calc(var(--pl-u, 3.6px) * 4.2), 24px);
+}
+
+.app-shell:not([data-bp="mobile"]) .ncard-split > .ncard-body-desc {
+  --ncard-pad-y: calc(var(--ncard-pad-x) + 4px);
+}
+
 /* The text's own line spacing would add to the top and bottom: trim the
    first line to its capitals and the last to its baseline, so the visible
    gap above and below the text equals the gap at its sides. The editable
    line's 2px hover padding is cancelled the same way. */
 .ncard-split :is(.ncard-headline, .ncard-sub, .ncard-words) {
   text-box: trim-both cap alphabetic;
-}
-
-.ncard-split .ncard-copy .is-editable {
-  margin-block: -2px;
 }
 
 .ncard-split > .ncard-body-head {
@@ -2896,8 +3069,9 @@ body {
 }
 
 .sn-col-dot {
-  width: 10px;
-  height: 10px;
+  /* Same size as the node card's dot below it (studio-card.css .sn-card-dot). */
+  width: 14px;
+  height: 14px;
   flex: none;
   border-radius: 50%;
   background: var(--cat);

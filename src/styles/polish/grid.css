@@ -386,7 +386,7 @@ html body .model-selector-check { width: 14px; height: 14px; }
 
 html body .ncard-head { --ncard-head-gap: clamp(8px, calc(var(--pl-u) * 3), 20px); gap: var(--ncard-head-gap); padding-left: clamp(2px, calc(var(--pl-u) * 1.4), 6px); }
 html body .ncard-pill { font-size: clamp(14px, calc(var(--pl-u) * 3.7), 18px); gap: clamp(7px, calc(var(--pl-u) * 2.2), 12px); }
-html body .ncard-icon { width: 10px; height: 10px; }
+html body .ncard-icon { width: 14px; height: 14px; }
 html body .ncard-actions { gap: clamp(5px, calc(var(--pl-u) * 1.6), 10px); }
 /* --ncard-act / --ncard-ctl: the sizes radius.css scales the corners from. */
 html body .ncard-action { --ncard-act: clamp(30px, calc(var(--pl-u) * 8.4), 40px); width: var(--ncard-act); height: var(--ncard-act); }

@@ -6,7 +6,8 @@ import {
   AI_MODELS, DEFAULT_TIER, DEFAULT_BRAND, MAX_PILLARS, MAX_PILLAR_CHARS, PERSONALITIES, WARMTH_DEFAULT, STYLE_PACKS, NODE_CATS, PLATFORMS,
   WEBSITE_COMPONENTS, GRID_WEBSITE_COMPONENTS, GEN_PLATFORMS, GEN_PLATFORMS_BY_KEY, MEDIA_BY_KEY, NODE_MAX_HEADING_WORDS,
 } from "./constants.js";
-import { MAX_WORDS, applyEdit, cardTargets, countWords, toDisplay, trimToWords, wordRange } from "./copyItems.js";
+import { MAX_WORDS, applyEdit, boxTargets, countWords, nodeBodyTargets, toDisplay, trimToWords, wordRange } from "./copyItems.js";
+import { layoutId } from "./layouts.js";
 import {
   GRID_MEDIA, buildQuickGridPrompt, buildNodePrompt, buildHookPrompt, buildCoherencePrompt,
 } from "./prompts.js";
@@ -81,6 +82,8 @@ function cleanGridSettings(input, medium) {
     pointerCount: int(s.pointerCount, 2, 6, 3),
     // The Social card's Platform, as on a Social node.
     platform: medium === "marketing" && PLATFORMS.includes(s.platform) ? s.platform : null,
+    // The "Select a layout" tile (layouts.js): how many descriptions to write.
+    layout: layoutId(s.layout),
   };
 }
 
@@ -118,6 +121,8 @@ function cleanNode(input) {
     platform: n.category === "social" && PLATFORMS.includes(n.platform) ? n.platform : null,
     component: WEBSITE_COMPONENTS[n.component] ? n.component : "hero",
     pointerCount: int(n.pointerCount, 2, 6, 3),
+    // The "Select a layout" tile (layouts.js): one body, or body + body2.
+    layout: layoutId(n.layout),
   };
 }
 
@@ -126,7 +131,7 @@ function cleanVariant(input) {
   if (Array.isArray(v.pointers)) {
     return { pointers: list(v.pointers, 10).map((p) => ({ title: str(obj(p).title, 200), detail: str(obj(p).detail, 600) })) };
   }
-  return { headline: str(v.headline, 300), body: str(v.body, 3000) };
+  return { headline: str(v.headline, 300), body: str(v.body, 3000), ...(typeof v.body2 === "string" ? { body2: str(v.body2, 3000) } : {}) };
 }
 
 function cleanSource(input) {
@@ -157,13 +162,14 @@ function offTarget(targets) {
   });
 }
 
-// Node Studio: each variant's body against the node's word count, and its
+// Node Studio: each variant's body (or, with a two-description layout, body
+// and body2, each against the full target) against the node's word count, and its
 // headline against the heading target when one is set (pointer components
 // have no word count).
 const nodeLengthIssues = (node) => (data) =>
   offTarget(list(obj(data).variants, MAX_NODE_VARIANTS)
     .flatMap((v, i) => [
-      { label: `variant ${i + 1} body`, text: obj(v).body, target: node.words },
+      ...nodeBodyTargets(node).map(([field, target]) => ({ label: `variant ${i + 1} ${field}`, text: obj(v)[field], target })),
       ...(node.headingWords ? [{ label: `variant ${i + 1} headline`, text: obj(v).headline, target: node.headingWords }] : []),
     ])
     .filter((t) => typeof t.text === "string"));
@@ -176,7 +182,7 @@ const jsonField = (medium, field) => field;
 // has a user-set word target for it.
 const gridLengthIssues = (cards) => (data) =>
   offTarget(cards.flatMap((c) => {
-    const targets = Object.entries(cardTargets(c.medium, c.settings));
+    const targets = Object.entries(boxTargets(c.medium, c.settings));
     if (!targets.length) return [];
     const single = Object.keys(MEDIA_BY_KEY[c.medium]?.limits || {}).length === 1;
     return list(obj(data)[c.key], MAX_GRID_VARIANTS).flatMap((item, i) => targets.map(([field, target]) => ({
@@ -197,7 +203,10 @@ const clampNode = (node) => (data) => {
     variants: d.variants.map((v) => {
       const o = obj(v);
       if (typeof o.body !== "string") return v;
-      const next = { ...o, body: trimToWords(o.body, node.words) };
+      const next = { ...o };
+      for (const [field, max] of nodeBodyTargets(node)) {
+        if (typeof o[field] === "string") next[field] = trimToWords(o[field], max);
+      }
       if (node.headingWords && typeof o.headline === "string") next.headline = trimToWords(o.headline, node.headingWords);
       return next;
     }),
@@ -215,7 +224,7 @@ function clampItem(item, targets) {
 const clampGrid = (cards) => (data) => {
   const d = { ...obj(data) };
   for (const c of cards) {
-    const targets = Object.entries(cardTargets(c.medium, c.settings));
+    const targets = Object.entries(boxTargets(c.medium, c.settings));
     if (targets.length && Array.isArray(d[c.key])) d[c.key] = d[c.key].map((item) => clampItem(item, targets));
   }
   return d;

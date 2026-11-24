@@ -11,7 +11,7 @@ import AuthModal from "./components/AuthModal";
 import ProfileModal from "./components/ProfileModal";
 import UsageModal from "./components/UsageModal";
 import TourModal from "./components/TourModal";
-import PlansModal, { PlanProButton } from "./components/PlansModal";
+import PlansModal from "./components/PlansModal";
 import CanvasViewport from "./components/CanvasViewport";
 import MessageComposer, { openComposer } from "./components/GenerateDock";
 import LeftSidebar from "./components/layout/LeftSidebar";
@@ -21,6 +21,7 @@ import { useBrandWorkspace } from "./hooks/useBrandWorkspace";
 import { useLayoutState } from "./hooks/useLayoutState";
 import { useUsage } from "./hooks/useUsage";
 import { useAuth } from "./hooks/useAuth";
+import { loadPreferences, resetPreferences } from "./services/preferences";
 import { generateHook } from "./services/ai";
 import { buildBrandBriefPrompt } from "./lib/prompts";
 import { isSupabaseConfigured } from "./lib/supabase";
@@ -38,10 +39,18 @@ const STUDIO_ADD_OPTIONS = Object.entries(NODE_CATS)
   .filter(([, c]) => !c.comingSoon)
   .map(([type, c]) => ({ type, label: c.label, color: c.color }));
 
-// The tour opens by itself once per browser; the "?" button reopens it.
-const TOUR_KEY = "coherence.tour.seen";
+// The tour opens by itself once per browser: the moment it shows, the
+// browser remembers it (localStorage tourModal = "true") and never shows it
+// again. (Browsers that saw it under the old key count too.)
+const TOUR_KEY = "tourModal";
+const OLD_TOUR_KEY = "coherence.tour.seen";
 const readTourSeen = () => {
-  try { return localStorage.getItem(TOUR_KEY) === "1"; } catch { return false; }
+  try {
+    return localStorage.getItem(TOUR_KEY) === "true" || localStorage.getItem(OLD_TOUR_KEY) === "1";
+  } catch { return false; }
+};
+const rememberTourSeen = () => {
+  try { localStorage.setItem(TOUR_KEY, "true"); } catch { /* not remembered */ }
 };
 
 // No platform picker: Generate always writes for every platform.
@@ -199,11 +208,23 @@ export default function App() {
   // the starter grid and nodes if it has none yet). An unsaved brand's canvas
   // is dropped with it, like its unsaved history.
   const canvasesRef = useRef(new Map());
+  // A brand's board appears in place: the cards and nodes it mounts skip their
+  // rise-in (the whole board rising from below on every brand switch read as
+  // a shake). For a moment after the swap the shell carries data-swap, which
+  // finishes every mount animation instantly (workspace-theme.css). A card
+  // added or copy generated after that animates as usual.
+  const [swapAt, setSwapAt] = useState(0);
+  useEffect(() => {
+    if (!swapAt) return undefined;
+    const timer = window.setTimeout(() => setSwapAt(0), 1000);
+    return () => window.clearTimeout(timer);
+  }, [swapAt]);
   const swapCanvas = (fromId, toId) => {
     if (fromId) {
       canvasesRef.current.set(fromId, { quick: quick.snapshot(), nodes: nodeStudioRef.current?.snapshot() });
     }
     const saved = toId ? canvasesRef.current.get(toId) : null;
+    setSwapAt(Date.now());
     quick.load(saved?.quick);
     nodeStudioRef.current?.load(saved?.nodes);
   };
@@ -215,8 +236,24 @@ export default function App() {
     prevUserRef.current = user?.id;
     if (!prev || prev === user?.id) return;
     canvasesRef.current.clear();
+    if (!user?.id) resetPreferences();
     quick.load(null);
     nodeStudioRef.current?.load(null);
+  }, [user?.id]);
+
+  // The user's preferred layouts (the "Select a layout" tile last picked on
+  // each medium) are saved with them: once they load, cards with no copy yet
+  // take their medium's, and every new card, starter grid and brand switch
+  // starts in it. Picking on one medium never changes the others.
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    let live = true;
+    loadPreferences(user.id).then(() => {
+      if (!live) return;
+      quick.applyPreferredLayout();
+      nodeStudioRef.current?.applyPreferredLayout();
+    });
+    return () => { live = false; };
   }, [user?.id]);
 
   const handleAddNode = (type) => {
@@ -370,10 +407,12 @@ export default function App() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  const closeTour = () => {
-    setShowTour(false);
-    try { localStorage.setItem(TOUR_KEY, "1"); } catch { /* not remembered */ }
-  };
+  // Remembered as soon as it shows, so a reload mid-tour doesn't bring it back.
+  useEffect(() => {
+    if (showTour) rememberTourSeen();
+  }, [showTour]);
+
+  const closeTour = () => setShowTour(false);
 
   const loadSampleBrand = () => {
     ws.applyFields(SAMPLE_BRAND);
@@ -432,11 +471,14 @@ export default function App() {
         data-left={layout.leftOpen ? "open" : "closed"}
         data-right={layout.rightOpen ? "open" : "closed"}
         data-drawer={layout.drawer || "none"}
+        data-swap={swapAt ? "" : undefined}
       >
         <LeftSidebar hidden={layout.bp === "mobile" && !layout.leftOpen}>
+          {/* Always collapsed (icons only). On phones it slides in beside the
+              cards; its logo slides it back out. */}
           <BrandSidebar
-            open={layout.leftOpen || layout.bp === "mobile"}
-            closeInHead={layout.bp === "mobile"}
+            open={false}
+            onLogo={layout.bp === "mobile" ? () => layout.close("left") : undefined}
             brands={ws.brands}
             brandsLoaded={ws.brandsLoaded}
             currentId={ws.currentId}
@@ -452,10 +494,9 @@ export default function App() {
         </LeftSidebar>
 
         <MainWorkspace
-          inert={Boolean(layout.drawer)}
+          inert={layout.drawer === "right"}
           view={layout.view}
           views={views}
-          onHelp={() => setShowTour(true)}
           tray={
             <MessageComposer
               message={ws.brand.message ?? ""}
@@ -465,10 +506,10 @@ export default function App() {
               generating={isGeneratingAll || quick.busy}
               generatingDetail={generatingDetail}
               atGenLimit={atGenLimit}
-              hasPro={!premium}
+              onPricing={() => setShowPlans(true)}
+              onHook={requireLogin(openHook)}
             />
           }
-          trayStart={premium ? null : <PlanProButton onClick={() => setShowPlans(true)} />}
           toolbar={
             <Header
               tier={tier}
@@ -510,7 +551,7 @@ export default function App() {
           />
         </RightSidebar>
 
-        <div className="shell-scrim" data-visible={Boolean(layout.drawer)} onClick={layout.closeDrawer} aria-hidden="true" />
+        <div className="shell-scrim" data-visible={layout.drawer === "right"} onClick={layout.closeDrawer} aria-hidden="true" />
       </div>
 
       {showTour && (

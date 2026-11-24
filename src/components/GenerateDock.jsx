@@ -1,29 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// The stage's bottom row (placed by layout/MainWorkspace.jsx): in the middle,
-// the message composer: the brand's "Message to Adapt" (the one thing
-// Generate needs) and the arrow that generates it into every card. While it
-// runs, the arrow turns into a spinner. Enter sends; Shift + Enter is a new
-// line.
+// The stage's bottom row (placed by layout/MainWorkspace.jsx): the dock.
 //
-// It works like a Dynamic Island: at rest it is a small white capsule at the
-// bottom centre (a lock for Pro and a pen at one end, a dot at the other),
-// and the "Pro" and "?" buttons beside it are tucked away behind it. Hovering,
-// it swells a little and says "Write a message" (or shows the message so
-// far). Clicking it (or pressing "/") springs it open into the full
-// one-card-wide box with the green send arrow. Clicking outside, Escape, or
-// sending shrinks it back; the message is kept. While generating it widens
-// into a live activity: a spinner, what's being generated, and moving bars.
+// At rest it is a small dark capsule at the bottom centre holding three
+// things: the crown (pricing), the spark (the hook generator popup) and a
+// status dot (green once a message is waiting). Hovering, it swells a
+// little. Clicking it (or pressing "/") springs it open into
+// the full one-card-wide message box: the text at the top, the crown and the
+// spark at the bottom left, the green send arrow at the bottom right. The
+// crown and the spark glide from their place in the capsule to their place
+// in the box. Typing a longer message grows the box upward, a line at a
+// time. Enter sends; Shift + Enter is a new line. Clicking outside, Escape,
+// or sending shrinks it back; the message is kept. While generating, the
+// capsule widens into a live activity: a spinner, what's being generated,
+// and moving bars.
 
 const MAX_MESSAGE = 2000; // the generate function's cap on brand.message
 // A longer message grows the open box upward, a line at a time, up to this
 // many lines; past that it scrolls.
-const MAX_LINES = 4;
-const PLACEHOLDER = "What would you like to generate";
-const MINI_LABEL = "Write a message";
-// On load it peeks once, briefly saying what it is, then settles back.
+const MAX_LINES = 5;
+const PLACEHOLDER = "What would you like to generate..";
+// On load it swells once, so it's clear it can be pressed.
 const HINT_DELAY = 1100;
-const HINT_FOR = 2600;
+const HINT_FOR = 1400;
 
 export const COMPOSER_INPUT_ID = "composer-message";
 const OPEN_EVENT = "composer:open";
@@ -41,22 +40,18 @@ const ArrowIcon = () => (
   </svg>
 );
 
-// A pen with a spark: "write here".
-const PenIcon = () => (
-  <svg className="isl-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3Z" />
-    <path d="M13.5 8.5l2 2" />
-    <path d="M19 15v4M17 17h4" />
+// Pricing: an orange crown.
+const CrownIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M3.2 8.2a1 1 0 0 1 1.62-.9l3.6 2.9 2.78-4.63a1 1 0 0 1 1.72 0l2.78 4.63 3.6-2.9a1 1 0 0 1 1.62.9l-1.2 8.3a1 1 0 0 1-.99.86H5.39a1 1 0 0 1-.99-.86l-1.2-8.3Z" />
+    <rect x="5.2" y="18.6" width="13.6" height="2" rx="1" />
   </svg>
 );
 
-// The capsule's mini "Pro" icon: a lock (premium features), a line glyph
-// drawn like the pen (same box and stroke) so the two read as one set.
-const LockIcon = () => (
-  <svg className="isl-mini isl-mini-pro" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect x="4.5" y="10.5" width="15" height="10" rx="3" />
-    <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
-    <path d="M12 14.8v2" />
+// Generate: a four-point spark.
+const SparkIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 1.5c.55 5.4 3.6 9.45 10.5 10.5-6.9 1.05-9.95 5.1-10.5 10.5-.55-5.4-3.6-9.45-10.5-10.5C8.4 10.95 11.45 6.9 12 1.5Z" />
   </svg>
 );
 
@@ -70,11 +65,12 @@ function isEditable(el) {
 // invalid: Generate was pressed with no message; the box is flagged until one is written.
 // generatingDetail: what is being generated (e.g. "5 cards"), for the busy label.
 // atGenLimit: the daily limit is reached; the arrow still says why when pressed.
-// hasPro: "Pro" (free plan) sits beside the open island (MainWorkspace.jsx);
-// the closed capsule shows it as a small lock so it's clear it's inside.
+// onPricing: the crown, opens the plans.
+// onHook: the spark, opens the hook generator (Modal.jsx HookModal). Without
+// it the spark just opens the message box.
 export default function MessageComposer({
   message, onMessage, invalid = false, onGenerate, generating, generatingDetail, atGenLimit,
-  hasPro = false,
+  onPricing, onHook,
 }) {
   const [open, setOpen] = useState(false);
   const [hint, setHint] = useState(false);
@@ -110,12 +106,9 @@ export default function MessageComposer({
     input.setSelectionRange(end, end);
   }, [open]);
 
-  // First visit of the page: it peeks once ("Write a message") so it's clear
-  // what the capsule is, then settles back. Not when a message is waiting.
-  // If the tour (or any dialog) is up, it waits until that's closed, so the
-  // peek isn't lost behind the backdrop.
+  // First visit of the page: it swells once so it's clear it can be pressed.
+  // If the tour (or any dialog) is up, it waits until that's closed.
   useEffect(() => {
-    if (draft) return undefined;
     let show;
     let hide;
     const blocked = () => formRef.current?.closest("[inert]")
@@ -133,28 +126,25 @@ export default function MessageComposer({
       clearTimeout(show);
       clearTimeout(hide);
     };
-    // Only on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Grow with the message: the text box takes its content's height (up to
-  // MAX_LINES lines) and the box grows upward by the extra (--cmp-grow, on
-  // the stage so Node Studio's zoom controls can rise with it). Closed, or
-  // with one line, there's no extra. An empty box is one line (the
-  // placeholder doesn't count). Measured again as its width changes: it
+  // MAX_LINES lines) and the box grows upward by the extra (--cmp-grow).
+  // Closed, or with one line, there's no extra. An empty box is one line
+  // (the placeholder doesn't count). Measured again as its width changes: it
   // opens from the narrow capsule, so the text re-wraps as it widens.
   const fitRef = useRef(() => {});
   fitRef.current = () => {
     const input = inputRef.current;
-    const stage = formRef.current?.closest(".ws-stage");
-    if (!input || !stage) return;
+    const form = formRef.current;
+    if (!input || !form) return;
     const line = parseFloat(getComputedStyle(input).lineHeight) || 20;
     input.style.height = "auto";
     const lines = input.value ? input.scrollHeight : line;
     const content = Math.max(line, Math.min(lines, line * MAX_LINES));
     input.style.height = `${content}px`;
     const grow = open ? Math.round(content - line) : 0;
-    stage.style.setProperty("--cmp-grow", `${grow}px`);
+    form.style.setProperty("--cmp-grow", `${grow}px`);
   };
   useEffect(() => fitRef.current(), [message, open]);
   useEffect(() => {
@@ -192,16 +182,9 @@ export default function MessageComposer({
     return () => window.removeEventListener("keydown", onKey);
   }, [expand]);
 
-  // The island's group: the island and the buttons that slide out beside
-  // it ("Pro", the "?": MainWorkspace.jsx's tray). Pressing or tabbing to
-  // those keeps it open.
-  const inGroup = (el) => {
-    const form = formRef.current;
-    const group = form?.closest(".ws-tray") || form;
-    return Boolean(el && group?.contains(el));
-  };
+  const inGroup = (el) => Boolean(el && formRef.current?.contains(el));
 
-  // While open: a press anywhere outside the group shrinks it back.
+  // While open: a press anywhere outside shrinks it back.
   useEffect(() => {
     if (!open) return undefined;
     const onDown = (event) => {
@@ -225,7 +208,7 @@ export default function MessageComposer({
   return (
     <form
       ref={formRef}
-      className={"composer" + (invalid ? " is-invalid" : "") + (generating ? " is-generating" : "") + (draft ? " has-draft" : "") + (hasPro ? " has-pro" : "")}
+      className={"composer" + (invalid ? " is-invalid" : "") + (generating ? " is-generating" : "") + (draft ? " has-draft" : "")}
       data-open={open}
       data-hint={hint && !open && !generating ? "" : undefined}
       onSubmit={(event) => {
@@ -233,14 +216,13 @@ export default function MessageComposer({
         if (!generating) onGenerate();
       }}
       onBlur={(event) => {
-        // Tabbed out of the group: shrink back. (A null relatedTarget is the
-        // window losing focus, e.g. switching apps: stay open.)
+        // Tabbed out: shrink back. (A null relatedTarget is the window losing
+        // focus, e.g. switching apps: stay open.)
         const next = event.relatedTarget;
         if (open && next && !inGroup(next)) collapse();
       }}
     >
-      {/* The capsule: one button over the whole shape that opens it. Its
-          content is keyed so each state blurs in fresh. */}
+      {/* The capsule: one button over the whole shape that opens it. */}
       <button
         ref={faceRef}
         type="button"
@@ -260,15 +242,43 @@ export default function MessageComposer({
           </span>
         ) : (
           <span className="isl-row" key="idle">
-            {/* At rest: a lock (Pro) before the pen, a preview of the button
-                that slides out when it opens. It makes way for the label
-                when it peeks. */}
-            {hasPro && <LockIcon />}
-            <PenIcon />
-            <span className="isl-label">{draft || MINI_LABEL}</span>
             <span className="isl-dot" aria-hidden="true" />
           </span>
         )}
+      </button>
+
+      {/* The crown and the spark: in the capsule and in the open box alike,
+          gliding between the two places. */}
+      {onPricing && (
+        <button
+          type="button"
+          className="dock-crown"
+          aria-label="See plans"
+          title="Plans and pricing"
+          onClick={() => {
+            collapse();
+            onPricing();
+          }}
+        >
+          <CrownIcon />
+        </button>
+      )}
+      <button
+        type="button"
+        className="dock-spark"
+        aria-label={onHook ? "Generate a hook" : "Generate: write a message"}
+        title={onHook ? "Hook generator" : "Generate"}
+        tabIndex={onHook ? 0 : -1}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => {
+          if (onHook) {
+            collapse();
+            onHook();
+          } else if (open) inputRef.current?.focus({ preventScroll: true });
+          else expand();
+        }}
+      >
+        <SparkIcon />
       </button>
 
       {/* Open: the message box and the send arrow. */}

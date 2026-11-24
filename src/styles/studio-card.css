@@ -34,11 +34,13 @@
   padding-left: 6px;
 }
 
+/* Same size as the column header's dot above it (layout.css .sn-col-dot)
+   and a grid card's dot (layout.css .ncard-icon): 14 × 14, round. */
 .sn-card-dot {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   flex: none;
-  border-radius: var(--ui-r);
+  border-radius: 50%;
   background: var(--cat);
 }
 
@@ -224,8 +226,20 @@
   margin: 0;
   color: var(--shell-ink);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.35;
+}
+
+/* Click-to-edit heading / description (EditableText), as on a Grid card
+   (.ncard-copy .is-editable): edited in place, just the text cursor and
+   caret, no wash, fill or ring on hover or while editing. */
+.sn-card-out .is-editable,
+.sn-card-out .is-editable:hover,
+.sn-card-out .is-editable:focus {
+  outline: none;
+  cursor: text;
+  background: none;
+  box-shadow: none;
 }
 
 .sn-card-out .pointer-list {
@@ -252,6 +266,24 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* The settings never set the node's height, as on a Quick Grid card
+   (enhancements.css .ncard.is-settings .ncard-settings): contain: size keeps
+   their content out of it, so the node stays the height it had with its copy
+   (NodeStudio.jsx keeps that as its minimum). They fill that space and
+   scroll inside it when longer. */
+.ws-view-nodes .sn-card.is-open .sn-card-settings {
+  flex: 1 1 0;
+  contain: size;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Each field keeps its full height; the panel scrolls instead of squeezing
+   them (the word slider was being cut off). */
+.ws-view-nodes .sn-card.is-open .sn-card-settings > .sn-field {
+  flex: none;
 }
 
 /* Fields sit white on the soft panel. */
@@ -358,12 +390,12 @@
 .words-range {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .words-range-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
@@ -372,34 +404,61 @@
   margin: 0;
 }
 
+/* The count in a small white box ("40 words"), as in the design: 24px tall,
+   corner 0.42 × height (no pills). */
 .words-range-value {
+  flex: none;
   margin-left: auto;
+  box-sizing: border-box;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  /* Flex drops the space between the number and "words"; this puts it back. */
+  gap: 0.3em;
+  padding: 0 10px;
   color: var(--shell-ink);
-  font-size: 14px;
-  font-weight: 700;
+  background: #fff;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
   /* Proportional digits: tabular ones give a "1" a full digit's width, which
-     left a wide gap after it ("1 42"). A touch tighter overall. */
+     left a wide gap after it ("1 42"). */
   font-variant-numeric: proportional-nums;
   font-feature-settings: "pnum" 1, "tnum" 0;
-  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .words-range-value span {
-  color: var(--shell-muted);
-  font-weight: 500;
+  color: inherit;
+  font-weight: inherit;
 }
 
-/* A thick track with one fixed gradient (pale on the left, teal on the right)
-   and a white round thumb with a thick ring in the theme colour. No outline,
-   ring or shadow on hover or focus. The selector outranks the fields' shared
-   input rules (layout.css .sn-field input). Used everywhere WordsRange.jsx is:
-   Node Studio cards, Grid card settings and the settings menu. */
+/* "Less · Medium · More" under the track. */
+.words-range-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -2px;
+  color: var(--shell-ink);
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+}
+
+/* A thin track, green up to the thumb and pale after it (--p, 0–1, set by
+   WordsRange.jsx), and a round thumb: a green ring on a pale green fill. No
+   outline, ring or shadow on hover or focus. The selector outranks the
+   fields' shared input rules (layout.css .sn-field input). Used everywhere
+   WordsRange.jsx is: Node Studio cards, Grid card settings and the settings
+   menu. */
 .words-range input.words-range-input[type="range"] {
-  --track: 10px;
-  --thumb: 26px;
-  --wr-from: #eef1fb;          /* track, left end */
-  --wr-to: #45a593;            /* track, right end */
-  --wr-ring: var(--shell-frame); /* thumb ring: the theme colour, #113c49 */
+  --track: 6px;
+  --thumb: 22px;
+  --wr-fill: #5aad8e;          /* track up to the thumb, and the thumb's ring */
+  --wr-rest: #e2e9ef;          /* track after the thumb */
+  --wr-ring: var(--wr-fill);
+  /* Where the thumb's centre sits along the track. */
+  --wr-at: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p, 0));
   width: 100%;
   height: var(--thumb);
   min-height: 0;
@@ -425,18 +484,20 @@
 .words-range input.words-range-input[type="range"]::-webkit-slider-runnable-track {
   height: var(--track);
   border-radius: var(--track);
-  background: linear-gradient(to right, var(--wr-from), var(--wr-to));
+  background: linear-gradient(to right, var(--wr-fill) var(--wr-at), var(--wr-rest) var(--wr-at));
 }
 
 .words-range input.words-range-input[type="range"]::-moz-range-track {
   height: var(--track);
   border-radius: var(--track);
-  background: linear-gradient(to right, var(--wr-from), var(--wr-to));
+  background: var(--wr-rest);
 }
 
-/* Firefox would paint the filled part separately: keep the one gradient. */
+/* Firefox paints the filled part itself. */
 .words-range input.words-range-input[type="range"]::-moz-range-progress {
-  background: transparent;
+  height: var(--track);
+  border-radius: var(--track);
+  background: var(--wr-fill);
 }
 
 .words-range input.words-range-input[type="range"]::-webkit-slider-thumb {
@@ -444,10 +505,10 @@
   width: var(--thumb);
   height: var(--thumb);
   margin-top: calc((var(--track) - var(--thumb)) / 2);
-  border: 4px solid var(--wr-ring);
+  border: 3px solid var(--wr-ring);
   border-radius: 50%;
-  background: #fff;
-  box-shadow: none;
+  background: #b9dfcf;
+  box-shadow: 0 0 0 2px #fff;
   -webkit-appearance: none;
   transition: scale 120ms ease;
 }
@@ -456,10 +517,10 @@
   box-sizing: border-box;
   width: var(--thumb);
   height: var(--thumb);
-  border: 4px solid var(--wr-ring);
+  border: 3px solid var(--wr-ring);
   border-radius: 50%;
-  background: #fff;
-  box-shadow: none;
+  background: #b9dfcf;
+  box-shadow: 0 0 0 2px #fff;
   transition: scale 120ms ease;
 }
 
@@ -502,4 +563,61 @@
   font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.01em;
+}
+
+/* ---------- Copy boxes in the card's layout (CopyLayout.jsx) ------------- */
+/* A Quick Grid card's and a Node Studio node's copy boxes take the shape and
+   proportions of the picked "Select a layout" tile (lib/layouts.js): a grid
+   whose columns and rows (as fr, from the tile's blocks) are set inline. The
+   first box is the heading, the others descriptions. Loaded after layout.css,
+   so these win over the two-box flex rules there (heading hugging its text,
+   description filling the rest). */
+.ncard-split.copy-layout,
+.sn-card-split.copy-layout {
+  display: grid;
+}
+
+.ncard-split.copy-layout > .ncard-body,
+.sn-card-split.copy-layout > .sn-card-panel {
+  min-width: 0;
+  min-height: 0;
+  max-height: none;
+}
+
+/* Grid card: its height is fixed, so the boxes hold the tile's proportions
+   exactly; copy longer than its box scrolls inside it (.ncard-body). */
+
+/* Node: it grows with its copy, so the rows grow together and keep their
+   proportions; a floor keeps empty boxes from collapsing to slivers. */
+.sn-card-split.copy-layout {
+  min-height: 220px;
+}
+
+.sn-card-split.copy-layout > .sn-card-panel {
+  flex: none;
+}
+
+/* The default tile ("Bar over a block", data-natural): the node as it always
+   was. The heading's panel hugs its text (its row is fit-content, set
+   inline) and the description's takes the rest, at least 120px tall. */
+.sn-card-split.copy-layout[data-natural] {
+  min-height: 0;
+}
+
+.sn-card-split.copy-layout[data-natural] > .sn-card-out-desc {
+  min-height: 120px;
+}
+
+/* Corners: the biggest description box keeps the rounder corner; the
+   heading and any smaller description box (a half-width or thin one) take
+   the heading box's tighter corner, as the tile draws them. */
+.app-shell:not([data-bp="mobile"]) .ncard-split.copy-layout > .ncard-body-desc:not(.is-large),
+.app-shell:not([data-bp="mobile"]) .sn-card-split.copy-layout > .sn-card-out-desc:not(.is-large) {
+  border-radius: var(--copy-head-r, 17px);
+}
+
+/* Two descriptions in one box (copy written for a two-description layout,
+   shown in a one-description layout): a little air between them. */
+#root .app .ncard-split.copy-layout .ncard-copy > .ncard-sub + .ncard-sub {
+  margin-top: 0.6em !important; /* over layout.css's margin-top: 0 !important */
 }

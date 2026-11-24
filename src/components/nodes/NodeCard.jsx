@@ -4,7 +4,7 @@ import NodeActions, { CardFoot } from "./NodeActions";
 import NodeContent from "./NodeContent";
 import NodeSettings from "./NodeSettings";
 import BannedCheck from "./BannedCheck";
-import { toDisplay, measure, cardLimits } from "../../lib/copyItems";
+import { toDisplay, measure, cardLimits, boxLimits, cardLayout } from "../../lib/copyItems";
 
 // Kept for existing imports; the helper now lives in lib/copyItems.
 export { toDisplay };
@@ -13,14 +13,6 @@ export { toDisplay };
 const PencilIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M14.5 5.5l4 4M4.5 19.5l1-4.5L16 4.5a2.1 2.1 0 0 1 3 0l.5.5a2.1 2.1 0 0 1 0 3L9 18.5z" />
-  </svg>
-);
-
-// Shown in the pencil's place while the settings are open: × closes them.
-// Drawn like the card's own close × (NodeActions.jsx CloseIcon).
-const CloseIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-    <path d="M7 7l10 10M17 7L7 17" />
   </svg>
 );
 
@@ -80,10 +72,16 @@ export default function NodeCard({
   const item = toDisplay(node.items[shown]);
   const busy = node.status === "loading";
   const canCopy = !busy && Boolean(item);
+  // The copy showing (with any edits), for Copy.
+  const copyText = item ? [item.headline, item.sub, item.sub2].filter(Boolean).join("\n") : "";
+  // The settings' limits (one description total, as the sliders set it), and
+  // the same per box of the card's layout (the description split between its
+  // description boxes), which the copy boxes and the meter show.
   const limits = cardLimits(node.type, node);
-  const cardMeta = { ...meta, limits };
+  const layout = cardLayout(node.type, node);
+  const cardMeta = { ...meta, limits: boxLimits(node.type, node) };
   // Keep measuring the current copy while it regenerates, so the header doesn't shift.
-  const meter = measure(item, limits);
+  const meter = measure(item, cardMeta.limits);
 
   return (
     <article
@@ -124,7 +122,8 @@ export default function NodeCard({
             title={settingsOpen ? "Hide settings" : "Settings"}
             onClick={toggleSettings}
           >
-            {settingsOpen ? <CloseIcon /> : <PencilIcon />}
+            {/* Stays a pencil (lit green while open); the foot's Close hides the settings. */}
+            <PencilIcon />
           </button>
         )}
       >
@@ -132,7 +131,7 @@ export default function NodeCard({
           label={title}
           busy={busy}
           canRegenerate={node.items.length > 0}
-          showRegen={settingsOpen}
+          showRegen={false}
           regenDisabled={regenDisabled || leaving}
           regenTitle={regenTitle}
           onRegenerate={onRegenerate}
@@ -155,6 +154,7 @@ export default function NodeCard({
         <>
           <NodeContent
             meta={cardMeta}
+            layout={layout}
             status={node.status}
             item={item}
             version={node.version}
@@ -200,21 +200,23 @@ export default function NodeCard({
               )}
             </div>
           )}
-          {/* Copy | regenerate, Generate: Node Studio's bottom row. It stays
-              (Copy disabled) while the copy regenerates, so nothing jumps. */}
-          <CardFoot
-            label={title}
-            busy={busy}
-            canCopy={canCopy}
-            canRegenerate={node.items.length > 0}
-            regenDisabled={regenDisabled || leaving}
-            regenTitle={regenTitle}
-            onCopy={() => onCopy([item.headline, item.sub].filter(Boolean).join("\n"))}
-            onRegenerate={onRegenerate}
-            onBlocked={onBlocked}
-          />
         </>
       )}
+      {/* Copy | regenerate, Generate: Node Studio's bottom row. It stays
+          (Copy disabled) while the copy regenerates, so nothing jumps. While
+          the settings show, Close takes Copy's place. */}
+      <CardFoot
+        label={title}
+        busy={busy}
+        canCopy={canCopy}
+        canRegenerate={node.items.length > 0}
+        regenDisabled={regenDisabled || leaving}
+        regenTitle={regenTitle}
+        onCopy={() => onCopy(copyText)}
+        onRegenerate={onRegenerate}
+        onBlocked={onBlocked}
+        onCloseSettings={settingsOpen ? toggleSettings : undefined}
+      />
     </article>
   );
 }

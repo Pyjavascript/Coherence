@@ -1,8 +1,8 @@
 /* ==========================================================================
    Generated copy type: the text the AI writes, on Quick Grid cards
    (NodeContent.jsx) and Node Studio nodes (NodeStudio.jsx). Headings in
-   Onest Medium (loaded in index.html); body copy stays in Manrope, 16px on
-   both, so a grid card reads the same as a node.
+   Onest Medium (loaded in index.html); body copy stays in Manrope, so a grid
+   card reads the same as a node.
    The html body #root .app prefix outranks the older layers, which set the
    grid headline to an italic serif with !important (layout.css).
    ========================================================================== */
@@ -19,9 +19,13 @@ html body #root .app :is(.ncard-headline, .sn-card-heading) {
   letter-spacing: -0.02em;
 }
 
-/* Body copy stays in the app's Manrope. Quick Grid body copy: 16px like a
-   Node Studio node's (was ~13px). */
-html body #root .app .ncard-sub {
+/* Descriptions: a Quick Grid card's (.ncard-sub) and a Node Studio node's
+   (.sn-card-text) share one rule so they stay identical: 16px, weight 500,
+   line height 1.35, everywhere — the empty placeholder and with the Brand
+   panel open too. Outranks layout.css / polish/grid.css's viewport-scaled
+   sizes and studio-card.css's base. */
+html body #root .app :is(.ncard-sub, .sn-card-text) {
   font-size: 16px;
-  line-height: 1.45;
+  font-weight: 500;
+  line-height: 1.35;
 }

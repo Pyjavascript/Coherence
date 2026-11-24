@@ -119,7 +119,9 @@ const ArrowIcon = () => (
 // .sn-card-foot): Copy on the left; regenerate and the green Generate arrow
 // on the right. The arrow generates this card alone (its first copy, or new
 // copy); regenerate needs copy to be there first.
-export function CardFoot({ label, busy, canCopy, canRegenerate, regenDisabled, regenTitle, onCopy, onRegenerate, onBlocked }) {
+// onCloseSettings: while the card shows its settings, a red Close takes
+// Copy's place and hides them again.
+export function CardFoot({ label, busy, canCopy, canRegenerate, regenDisabled, regenTitle, onCopy, onRegenerate, onBlocked, onCloseSettings }) {
   const run = () => {
     if (regenDisabled) {
       onBlocked?.();
@@ -130,7 +132,19 @@ export function CardFoot({ label, busy, canCopy, canRegenerate, regenDisabled, r
 
   return (
     <div className="sn-card-foot ncard-foot">
-      <CopyButton label={label} disabled={!canCopy} onCopy={onCopy} />
+      {onCloseSettings ? (
+        <button
+          type="button"
+          className="sn-card-copy ncard-settings-close"
+          title="Close settings"
+          aria-label={`Close ${label} settings`}
+          onClick={onCloseSettings}
+        >
+          Close
+        </button>
+      ) : (
+        <CopyButton label={label} disabled={!canCopy} onCopy={onCopy} />
+      )}
       <div className="sn-card-actions">
         <button
           type="button"

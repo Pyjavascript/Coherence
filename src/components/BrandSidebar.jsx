@@ -14,7 +14,7 @@ const labelOrder = (i) => ({ "--pl-li": Math.min(i, 8) });
 // fit: a fixed label the open rail is sized to (see useFitLabels).
 function Row({ as: Tag = "button", className = "", icon, label, order = 0, fit = false, ...rest }) {
   return (
-    <Tag type={Tag === "button" ? "button" : undefined} className={"lnav-row " + className} {...rest}>
+    <Tag type={Tag === "button" ? "button" : undefined} className={"lnav-row " + className} style={{ "--ph-li": Math.min(order, 8) }} {...rest}>
       <span className="lnav-slot">{icon}</span>
       <span className="lnav-label" style={labelOrder(order)} data-fit={fit || undefined}>{label}</span>
     </Tag>
@@ -80,7 +80,7 @@ const ProfileIcon = ({ src }) => (
 );
 
 export default function BrandSidebar({
-  open, closeInHead = false, brands, brandsLoaded = true, currentId, onSelect, onNew, user, onLogin, onSignup, onProfile, onUsage, usage,
+  open, onLogo, brands, brandsLoaded = true, currentId, onSelect, onNew, user, onLogin, onSignup, onProfile, onUsage, usage,
 }) {
   // No brands yet: Add Brand drops into its (always centred) slot. Not while
   // the list is still loading, so it doesn't animate for people who do have
@@ -115,12 +115,22 @@ export default function BrandSidebar({
 
   return (
     <aside className="lnav" ref={rootRef} data-open={open} aria-label="Workspace navigation">
-      {/* Top: the CC logo (laptops and tablets: the rail never opens, so it
-          has no open/close toggle), then the profile and credits used, side
-          by side in the column. Phones show the logo in the top bar instead,
-          and the drawer closes by tapping the scrim beside it (or Escape). */}
+      {/* Top: the CC logo, then the profile and credits used, down the
+          column. Laptops and tablets: the bare white "CC" on the card (the
+          rail never opens, so it's not a control). Phones (onLogo): the logo
+          on a white tile, the button that slides the rail back out. */}
       <div className="lnav-top">
-      {!closeInHead && (
+      {onLogo ? (
+        <button
+          type="button"
+          className="lnav-row lnav-logo-btn"
+          aria-label="Close navigation"
+          aria-expanded="true"
+          onClick={onLogo}
+        >
+          <span className="lnav-slot"><span className="lnav-icon lnav-logo-tile"><RailLogo /></span></span>
+        </button>
+      ) : (
         <div className="lnav-row lnav-brandmark" role="img" aria-label="Coherence Content Orchestration">
           <span className="lnav-slot"><RailLogo /></span>
         </div>

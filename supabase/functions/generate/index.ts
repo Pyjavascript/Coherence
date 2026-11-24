@@ -324,17 +324,73 @@ var SAMPLE_BRAND = {
   banned: "cheap, best-ever"
 };
 
+// supabase/functions/_shared/layouts.js
+var COPY_LAYOUTS = [
+  {
+    id: 4,
+    name: "Two rows",
+    blocks: [[0, 3, 40, 11], [0, 16, 40, 11]],
+    guide: "headline sits in the top box; sub fills the equal-sized box below it"
+  },
+  {
+    id: 1,
+    name: "Two over one row",
+    blocks: [[0, 3, 19, 11], [21, 3, 19, 11], [0, 16, 40, 11]],
+    guide: "headline and sub sit side by side as two small half-width boxes on the top row, so keep the headline to a few punchy words; sub2 fills the full-width box below; sub and sub2 are the same length"
+  },
+  {
+    id: 2,
+    name: "Three rows",
+    blocks: [[0, 3, 40, 5.5], [0, 10.25, 40, 9.5], [0, 21.5, 40, 5.5]],
+    guide: "three stacked full-width rows: headline is a thin top bar (one short line), sub is the middle box, sub2 is the bottom box and closes the piece; sub and sub2 are the same length"
+  },
+  {
+    id: 3,
+    name: "One row over two",
+    blocks: [[0, 3, 40, 11], [0, 16, 19, 11], [21, 16, 19, 11]],
+    guide: "headline fills the full-width top box; sub and sub2 sit side by side as two equal half-width boxes below it, two parallel points of similar length"
+  },
+  {
+    id: 0,
+    name: "Bar over a block",
+    blocks: [[0, 3, 40, 6], [0, 11, 40, 16]],
+    natural: true,
+    guide: ""
+  }
+];
+var DEFAULT_LAYOUT = 0;
+var GRID_DESC_FIELDS = ["sub", "sub2"];
+var NODE_DESC_FIELDS = ["body", "body2"];
+var layoutId = (value) => {
+  const n = Math.round(Number(value));
+  return COPY_LAYOUTS.some((l) => l.id === n) ? n : DEFAULT_LAYOUT;
+};
+var layoutOf = (value) => COPY_LAYOUTS.find((l) => l.id === layoutId(value));
+var descCount = (value) => layoutOf(value).blocks.length - 1;
+function splitWords(total, value) {
+  const n = Math.max(1, Math.round(Number(total) || 0));
+  return Array.from({ length: descCount(value) }, () => n);
+}
+function compactHeading(value) {
+  const layout = layoutOf(value);
+  if (layout.natural) return false;
+  const [, , w, h] = layout.blocks[0];
+  return w < 40 || h < 8;
+}
+var layoutGuide = (value, fields = GRID_DESC_FIELDS) => layoutOf(value).guide.replace(/\bsub2\b/g, fields[1]).replace(/\bsub\b/g, fields[0]);
+
 // supabase/functions/_shared/copyItems.js
 function toDisplay(item) {
   if (item == null) return null;
-  if (typeof item === "string") return { headline: item, sub: "" };
-  if (typeof item !== "object") return { headline: "", sub: "" };
-  return { headline: item.headline || item.subject || "", sub: item.sub || item.preview || "" };
+  if (typeof item === "string") return { headline: item, sub: "", sub2: "" };
+  if (typeof item !== "object") return { headline: "", sub: "", sub2: "" };
+  return { headline: item.headline || item.subject || "", sub: item.sub || item.preview || "", sub2: item.sub2 || "" };
 }
 function applyEdit(item, field, text) {
   if (typeof item === "string" || item == null) return field === "headline" ? text : item;
   if ("subject" in item || "preview" in item) {
-    return { ...item, [field === "headline" ? "subject" : "preview"]: text };
+    const key = { headline: "subject", sub: "preview" }[field] || field;
+    return { ...item, [key]: text };
   }
   return { ...item, [field]: text };
 }
@@ -417,6 +473,29 @@ function cardTargets(type, settings = {}) {
   const pointers = type === "website" && settings.component === "pointers";
   return Object.fromEntries(Object.entries(limits).filter(([key]) => key === "sub" && !pointers || typeof words === "number" || fieldWord(words, key)).map(([key, l]) => [key, l.words]));
 }
+var cardLayout = (type, settings = {}) => type === "website" && settings.component === "pointers" ? 0 : settings.layout ?? 0;
+function boxLimits(type, settings = {}) {
+  const limits = cardLimits(type, settings);
+  const layout = cardLayout(type, settings);
+  if (!limits?.sub || descCount(layout) < 2) return limits;
+  const [a, b] = splitWords(limits.sub.words, layout);
+  const { sub, ...rest } = limits;
+  return { ...rest, sub: withWords(sub, a), sub2: withWords({ ...sub, label: `${sub.label} 2` }, b) };
+}
+function boxTargets(type, settings = {}) {
+  const targets = cardTargets(type, settings);
+  const limits = boxLimits(type, settings);
+  if (!limits?.sub2 || !targets.sub) return targets;
+  return { ...targets, sub: limits.sub.words, sub2: limits.sub2.words };
+}
+function nodeBodyTargets(node = {}) {
+  const words = node.words || 60;
+  const layout = node.category === "website" && node.component === "pointers" ? 0 : node.layout ?? 0;
+  if (descCount(layout) < 2) return [["body", words]];
+  const [a, b] = splitWords(words, layout);
+  return [["body", a], ["body2", b]];
+}
+var compactHeadingWords = (words, layout) => compactHeading(layout) ? Math.max(2, Math.round(words * 0.6)) : words;
 
 // supabase/functions/_shared/prompts.js
 var t = (s) => (s || "").trim();
@@ -504,14 +583,14 @@ Never explain your choices. Never use quotation marks in the output text. Keep t
 var gridComponent = (medium, s) => medium === "website" && s?.component && s.component !== "hero" ? s.component : null;
 function lengthSpec(medium, s = {}) {
   const comp = gridComponent(medium, s);
-  const targets = cardTargets(medium, s);
-  const limits = cardLimits(medium, s);
+  const targets = boxTargets(medium, s);
+  const limits = boxLimits(medium, s);
+  const layout = cardLayout(medium, s);
   if (!limits) return SPECS[medium];
   const parts = Object.entries(limits).map(([key, l]) => {
-    const field = key === "headline" ? "headline" : "sub";
     const label = l.label.toLowerCase();
-    const name = label === field ? field : `${field} (${label})`;
-    if (!targets[key]) return `${name} of about ${l.words} words`;
+    const name = label === key ? key : `${key} (${label})`;
+    if (!targets[key]) return `${name} of about ${key === "headline" ? compactHeadingWords(l.words, layout) : l.words} words`;
     const { min, max } = wordRange(targets[key]);
     return `${name} of ${min}-${max} words (strict: never more than ${max}; aim for about ${aimFor(targets[key])})`;
   });
@@ -522,7 +601,13 @@ function lengthSpec(medium, s = {}) {
   } else if (SPECS[medium]) {
     spec += `; ${SPECS[medium]}`;
   }
-  if (targets.sub) spec += "; sub is the main copy: write enough to reach its length with concrete detail, benefits, proof or a clear call to action, never filler or repetition";
+  if (limits.sub2) {
+    spec += `; layout: ${layoutGuide(layout)}; sub and sub2 are separate boxes, so each says something different and neither repeats the other or the headline`;
+    if (targets.sub) spec += "; write enough to reach each box's length with concrete detail, benefits, proof or a clear call to action, never filler or repetition";
+  } else {
+    if (layoutGuide(layout)) spec += `; layout: ${layoutGuide(layout)}`;
+    if (targets.sub) spec += "; sub is the main copy: write enough to reach its length with concrete detail, benefits, proof or a clear call to action, never filler or repetition";
+  }
   if (Object.keys(targets).length) spec += "; count each field's words on its own; these lengths override any shorter length the channel's conventions suggest";
   return spec;
 }
@@ -536,7 +621,7 @@ function platformRules(picked) {
   return picked.map((p) => p.rules).join(" ") + both;
 }
 var GRID_MEDIA = ["packaging", "marketing", "advertising", "website", "email"];
-var itemShape = () => '{"headline":"...","sub":"..."}';
+var itemShape = (medium, settings) => boxLimits(medium, settings)?.sub2 ? '{"headline":"...","sub":"...","sub2":"..."}' : '{"headline":"...","sub":"..."}';
 function buildQuickGridPrompt(ctx, n, cards, platforms = []) {
   const base = buildBasePrompt(ctx);
   const rulesFor = (medium, settings) => platformRules(settings?.platform ? GEN_PLATFORMS.filter((pl) => pl.label === settings.platform) : platformsFor(platforms, "media", medium));
@@ -546,7 +631,7 @@ function buildQuickGridPrompt(ctx, n, cards, platforms = []) {
     const rules = rulesFor(medium, settings);
     return `${base}
 Generate exactly ${n} distinct variant(s) for the ${medium} medium only \u2014 different angles, not synonyms.
-Return ONLY this JSON, no markdown fences: {"${key}":[${itemShape(medium)}]}  (array length ${n})
+Return ONLY this JSON, no markdown fences: {"${key}":[${itemShape(medium, settings)}]}  (array length ${n})
 Constraint: ${lengthSpec(medium, settings)}.${rules ? `
 Platform \u2014 write it natively for this: ${rules}` : ""}${brief ? `
 Instructions for this ${medium} copy \u2014 ${brief}.` : ""}`;
@@ -558,7 +643,7 @@ Instructions for this ${medium} copy \u2014 ${brief}.` : ""}`;
   return `${base}
 Generate exactly ${n} distinct variant(s) for every output below \u2014 different angles, not synonyms of each other.${shared ? "\nSome outputs share a medium (e.g. website and website_2): give each its own angle, never the same line twice." : ""}
 Return ONLY valid JSON, no markdown fences, an array of length ${n} for every key:
-{${cards.map((c) => `"${c.key}":[${itemShape(c.medium)}]`).join(",")}}
+{${cards.map((c) => `"${c.key}":[${itemShape(c.medium, c.settings)}]`).join(",")}}
 Constraints:
 ${cards.map((c) => `- ${label(c)}: ${lengthSpec(c.medium, c.settings)}`).join("\n")}${targeted.length ? `
 Platform targeting (write each output natively for its platform):
@@ -590,14 +675,19 @@ Never use these words/claims: ${c.banned}`;
   p += researchBlock(ctx.notes);
   const words = node.words || 60;
   const range = wordRange(words);
+  const layout = node.category === "website" && node.component === "pointers" ? 0 : node.layout || 0;
+  const bodies = nodeBodyTargets(node).map(([field, target]) => ({ field, target, ...wordRange(target) }));
+  const twoBodies = bodies.length > 1;
   const heading = node.headingWords ? wordRange(node.headingWords) : null;
-  const headingWords = NODE_DEFAULT_HEADING_WORDS[node.category] || 10;
+  const headingWords = compactHeadingWords(NODE_DEFAULT_HEADING_WORDS[node.category] || 10, layout);
   const headingSpec = heading ? `The headline must be ${heading.min}-${heading.max} words and never more than ${heading.max}; aim for about ${aimFor(node.headingWords)} (set by the user, strict; count its words on its own).` : `The headline is a short line of about ${headingWords} words.`;
   p += `
 
 This node: ${node.label} (category: ${cat.label}${node.platform ? ", platform: " + node.platform : ""}).
 Job requirement for this specific piece: ${t(node.brief) || "(use the brand message as the job)"}
-Length (set by the user, strict): the body must be ${range.min}-${range.max} words and never more than ${range.max}; aim for about ${aimFor(words)}. The headline is not counted in it. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.
+${twoBodies ? `Layout: ${layoutGuide(layout, NODE_DESC_FIELDS)}. body and body2 are separate boxes: each says something different and neither repeats the other or the headline.
+Length (set by the user, strict, each counted on its own): ${bodies.map((b) => `${b.field} must be ${b.min}-${b.max} words, never more than ${b.max}, aim for about ${aimFor(b.target)}`).join("; ")}. The headline is not counted in them. Write enough to reach each: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count each one's words before answering. This overrides any shorter length the channel's conventions suggest.` : `${layoutGuide(layout) ? `Layout: ${layoutGuide(layout, NODE_DESC_FIELDS)}.
+` : ""}Length (set by the user, strict): the body must be ${range.min}-${range.max} words and never more than ${range.max}; aim for about ${aimFor(words)}. The headline is not counted in it. Write enough to reach it: develop the idea with concrete detail, benefits, proof or a clear call to action, never filler or repetition. Count the body's words before answering. This overrides any shorter length the channel's conventions suggest.`}
 ${headingSpec}`;
   const rules = platformRules(node.platform ? GEN_PLATFORMS.filter((pl) => pl.label === node.platform) : platformsFor(platforms, "nodes", node.category));
   if (rules) p += `
@@ -607,7 +697,7 @@ Platform \u2014 write it natively for this: ${rules}`;
 
 This piece must stay correlated and coherent with these connected pieces already written:
 ` + linkedNodes.map(
-      ({ label, variant: v }) => v.pointers ? `- [${label}] (pointers) ${v.pointers.map((x) => x.title).join("; ")}` : `- [${label}] ${v.headline} \u2014 ${v.body}`
+      ({ label, variant: v }) => v.pointers ? `- [${label}] (pointers) ${v.pointers.map((x) => x.title).join("; ")}` : `- [${label}] ${[v.headline, v.body, v.body2].filter(Boolean).join(" \u2014 ")}`
     ).join("\n");
   }
   if (source) {
@@ -619,7 +709,7 @@ This node is linked from the ${from} node "${source.label}" and shares its job r
       const v = source.variant;
       p += ` Its finished copy:
 ` + (v.pointers ? v.pointers.map((x) => `- ${x.title} \u2014 ${x.detail}`).join("\n") : `Headline: ${v.headline}
-Body: ${v.body}`);
+Body: ${[v.body, v.body2].filter(Boolean).join("\n")}`);
       p += `
 Adapt that copy into this ${cat.label} piece: carry over its message, key facts, offer and emotional angle, but rewrite it natively for this channel's format, length and conventions instead of copying lines verbatim.`;
     } else {
@@ -640,7 +730,9 @@ This is a "Feature pointers" component: produce exactly ${pc} distinct benefit-l
 
 Return ONLY valid JSON, no markdown fences: {"variants":[{"pointers":[{"title":"...","detail":"..."} /* exactly ${pc} of these */]}]} with exactly ${vCount} variant(s) in the array, each a distinct set of ${pc} pointers. Never use quotation marks inside the text. Never explain your choices.`;
   } else {
-    p += `
+    p += twoBodies ? `
+
+Return ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"...","body2":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line${heading ? ` of ${heading.min}-${heading.max} words` : ""}. ${bodies.map((b) => `${b.field} is ${b.min}-${b.max} words`).join("; ")}. Never use quotation marks inside the text. Never explain your choices.` : `
 
 Return ONLY valid JSON, no markdown fences: {"variants":[{"headline":"...","body":"..."}]} with exactly ${vCount} item(s) in the array, each a distinct angle. headline is a short hook/subject/title line${heading ? ` of ${heading.min}-${heading.max} words` : ""}. body is the main copy, ${range.min}-${range.max} words. Never use quotation marks inside the text. Never explain your choices.`;
   }
@@ -657,7 +749,7 @@ function describeLastGenerated(last, quickCards) {
     return {
       sourceLabel: last.label,
       sampleCopy: v.pointers ? `Pointers: ` + v.pointers.map((p) => `${p.title} \u2014 ${p.detail}`).join(" | ") : `Hook/headline: ${v.headline}
-Body: ${v.body}`
+Body: ${[v.body, v.body2].filter(Boolean).join("\n")}`
     };
   }
   if (last && last.type === "quick") {
@@ -666,7 +758,7 @@ Body: ${v.body}`
       return {
         sourceLabel: last.medium,
         sampleCopy: typeof item === "string" ? item : `Headline: ${item.headline || item.subject || ""}
-Support: ${item.sub || item.preview || ""}`
+Support: ${[item.sub || item.preview || "", item.sub2 || ""].filter(Boolean).join("\n")}`
       };
     }
   }
@@ -782,7 +874,9 @@ function cleanGridSettings(input, medium) {
     component: medium === "website" && GRID_WEBSITE_COMPONENTS[s.component] ? s.component : "hero",
     pointerCount: int(s.pointerCount, 2, 6, 3),
     // The Social card's Platform, as on a Social node.
-    platform: medium === "marketing" && PLATFORMS.includes(s.platform) ? s.platform : null
+    platform: medium === "marketing" && PLATFORMS.includes(s.platform) ? s.platform : null,
+    // The "Select a layout" tile (layouts.js): how many descriptions to write.
+    layout: layoutId(s.layout)
   };
 }
 var CARD_KEY = /^([a-z]+)(_\d{1,2})?$/;
@@ -815,7 +909,9 @@ function cleanNode(input) {
     headingWords: n.headingWords == null || n.headingWords === "" ? null : int(n.headingWords, 1, NODE_MAX_HEADING_WORDS, null),
     platform: n.category === "social" && PLATFORMS.includes(n.platform) ? n.platform : null,
     component: WEBSITE_COMPONENTS[n.component] ? n.component : "hero",
-    pointerCount: int(n.pointerCount, 2, 6, 3)
+    pointerCount: int(n.pointerCount, 2, 6, 3),
+    // The "Select a layout" tile (layouts.js): one body, or body + body2.
+    layout: layoutId(n.layout)
   };
 }
 function cleanVariant(input) {
@@ -823,7 +919,7 @@ function cleanVariant(input) {
   if (Array.isArray(v.pointers)) {
     return { pointers: list(v.pointers, 10).map((p) => ({ title: str(obj(p).title, 200), detail: str(obj(p).detail, 600) })) };
   }
-  return { headline: str(v.headline, 300), body: str(v.body, 3e3) };
+  return { headline: str(v.headline, 300), body: str(v.body, 3e3), ...typeof v.body2 === "string" ? { body2: str(v.body2, 3e3) } : {} };
 }
 function cleanSource(input) {
   if (!input || typeof input !== "object") return null;
@@ -846,12 +942,12 @@ function offTarget(targets) {
   });
 }
 var nodeLengthIssues = (node) => (data) => offTarget(list(obj(data).variants, MAX_NODE_VARIANTS).flatMap((v, i) => [
-  { label: `variant ${i + 1} body`, text: obj(v).body, target: node.words },
+  ...nodeBodyTargets(node).map(([field, target]) => ({ label: `variant ${i + 1} ${field}`, text: obj(v)[field], target })),
   ...node.headingWords ? [{ label: `variant ${i + 1} headline`, text: obj(v).headline, target: node.headingWords }] : []
 ]).filter((t2) => typeof t2.text === "string"));
 var jsonField = (medium, field) => field;
 var gridLengthIssues = (cards) => (data) => offTarget(cards.flatMap((c) => {
-  const targets = Object.entries(cardTargets(c.medium, c.settings));
+  const targets = Object.entries(boxTargets(c.medium, c.settings));
   if (!targets.length) return [];
   const single = Object.keys(MEDIA_BY_KEY[c.medium]?.limits || {}).length === 1;
   return list(obj(data)[c.key], MAX_GRID_VARIANTS).flatMap((item, i) => targets.map(([field, target]) => ({
@@ -868,7 +964,10 @@ var clampNode = (node) => (data) => {
     variants: d.variants.map((v) => {
       const o = obj(v);
       if (typeof o.body !== "string") return v;
-      const next = { ...o, body: trimToWords(o.body, node.words) };
+      const next = { ...o };
+      for (const [field, max] of nodeBodyTargets(node)) {
+        if (typeof o[field] === "string") next[field] = trimToWords(o[field], max);
+      }
       if (node.headingWords && typeof o.headline === "string") next.headline = trimToWords(o.headline, node.headingWords);
       return next;
     })
@@ -883,7 +982,7 @@ function clampItem(item, targets) {
 var clampGrid = (cards) => (data) => {
   const d = { ...obj(data) };
   for (const c of cards) {
-    const targets = Object.entries(cardTargets(c.medium, c.settings));
+    const targets = Object.entries(boxTargets(c.medium, c.settings));
     if (targets.length && Array.isArray(d[c.key])) d[c.key] = d[c.key].map((item) => clampItem(item, targets));
   }
   return d;

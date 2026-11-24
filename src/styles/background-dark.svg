@@ -1,0 +1,25 @@
+<!-- Dark twin of background.svg: the same layout (top-to-bottom gradient with
+     the same stop positions, plus the same centre glow), with each light stop
+     swapped for a near-black shade. Sky and cream become cool and neutral
+     near-blacks, the mint and teal bands become a deep teal haze, and the
+     bottom stays the theme colour #113C49. The white glow becomes a faint teal
+     one so the board stays darker than the cards on it. -->
+<svg width="1440" height="900" viewBox="0 0 1440 900" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="1440" height="900" fill="#0B0B0D"/>
+<rect width="1440" height="900" fill="url(#paint0_linear_dark)"/>
+<ellipse cx="766" cy="544" rx="692" ry="430" fill="url(#paint1_radial_dark)"/>
+<defs>
+<linearGradient id="paint0_linear_dark" x1="720" y1="0" x2="720" y2="900" gradientUnits="userSpaceOnUse">
+<stop stop-color="#11161B"/>
+<stop offset="0.24" stop-color="#121619"/>
+<stop offset="0.471862" stop-color="#131717"/>
+<stop offset="0.67" stop-color="#0F1E1F"/>
+<stop offset="0.765311" stop-color="#0F2A2D"/>
+<stop offset="1" stop-color="#113C49"/>
+</linearGradient>
+<radialGradient id="paint1_radial_dark" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(766 544) scale(692 430)">
+<stop stop-color="#71C9BE" stop-opacity="0.07"/>
+<stop offset="1" stop-color="#71C9BE" stop-opacity="0"/>
+</radialGradient>
+</defs>
+</svg>

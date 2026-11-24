@@ -1,15 +1,16 @@
 import { useId } from "react";
 
-// Target words as a slider: the label and the current count ("110 words") on
-// one line and the track below (no min / max numbers under it). Arrow keys
-// step by 1, Page Up / Down by 10 (native
-// range behaviour). onChange gets a whole number inside [min, max].
+// Target words as a slider, as in the settings design: the label and the
+// current count in a small white pill ("40 words") on one line, a thin track
+// filled in green up to the thumb, and "Less · Medium · More" under it.
+// Arrow keys step by 1, Page Up / Down by 10 (native range behaviour).
+// onChange gets a whole number inside [min, max].
 // label = null: no label of its own (the caller shows one; pass labelledBy).
 export default function WordsRange({ id, label = "Target Words", labelledBy, value, min, max, onChange, step = 1 }) {
   const autoId = useId();
   const inputId = id || autoId;
   const n = Math.min(max, Math.max(min, Math.round(Number(value) || min)));
-  const pct = max > min ? ((n - min) / (max - min)) * 100 : 0;
+  const p = max > min ? (n - min) / (max - min) : 0;
 
   return (
     <div className="words-range">
@@ -29,13 +30,18 @@ export default function WordsRange({ id, label = "Target Words", labelledBy, val
         max={max}
         step={step}
         value={n}
-        style={{ "--pct": `${pct}%` }}
+        style={{ "--p": p }}
         aria-valuetext={`${n} words`}
         onChange={(e) => onChange(Math.round(Number(e.target.value)))}
         // Arrow keys move the slider, not the canvas (Node Studio) or the card.
         onKeyDown={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       />
+      <div className="words-range-scale" aria-hidden="true">
+        <span>Less</span>
+        <span>Medium</span>
+        <span>More</span>
+      </div>
     </div>
   );
 }

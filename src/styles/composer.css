@@ -3,12 +3,10 @@
    the tray's height in --tray-h). One centred group on the toolbar's
    height, inset from the bottom by the toolbar's inset from the top:
 
-     [ Pro ]  [ message composer: a Dynamic Island ]  [ ? ]
+       [ the dock: crown (pricing) · spark (generate) · dot ]
 
-   While the island is closed, "Pro" and the "?" hide behind it; opening it,
-   they slide out of its edges and settle one --tray-gap from it. Each side
-   is an equal flexible slot (.ws-tray-side), so the island stays centred
-   whether or not "Pro" is shown (it isn't on paid plans).
+   Pressed, the dock springs open upward into the message box
+   (GenerateDock.jsx, below).
    ========================================================================== */
 
 /* --tray-bottom / --tray-right / --tray-left: the row's insets, the same as
@@ -63,76 +61,6 @@
   pointer-events: auto;
 }
 
-/* ----- "Pro" (left) and the "?" (right) beside the island ----- */
-/* Equal slots either side of the island, each hugging it. They let clicks
-   through (Node Studio's canvas runs under the row); only the buttons
-   take them. */
-.ws-stage .ws-tray-side {
-  flex: 1 1 0;
-  min-width: max-content;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-}
-
-.ws-tray-side.is-start {
-  justify-content: flex-end;
-}
-
-.ws-tray-side.is-end {
-  justify-content: flex-start;
-}
-
-/* The wrapper carries the slide in and out, so the buttons keep their own
-   hover lift and press. Open: out beside the island, springing in step
-   with it, a beat behind its edge. */
-.ws-tray-pop {
-  position: relative;
-  z-index: 0;
-  display: grid;
-  pointer-events: auto;
-  opacity: 1;
-  translate: 0 0;
-  scale: 1;
-  filter: blur(0);
-  visibility: visible;
-  transition:
-    opacity 260ms var(--pl-ease-out) 110ms,
-    filter 300ms var(--pl-ease-out) 110ms,
-    translate 640ms var(--isl-spring) 50ms,
-    scale 640ms var(--isl-spring) 50ms,
-    visibility 0s linear 0s;
-}
-
-/* Closed: tucked behind the island's edge (one width + the gap toward the
-   centre), small and blurred, and out of the tab order. */
-.ws-tray:has(.composer[data-open="false"]) .ws-tray-pop {
-  opacity: 0;
-  filter: blur(4px);
-  scale: 0.5;
-  visibility: hidden;
-  pointer-events: none;
-  transition:
-    opacity 180ms var(--pl-ease-in),
-    filter 180ms var(--pl-ease-in),
-    translate 420ms var(--isl-settle),
-    scale 420ms var(--isl-settle),
-    visibility 0s linear 420ms;
-}
-
-.ws-tray:has(.composer[data-open="false"]) .is-start .ws-tray-pop {
-  translate: calc(100% + var(--tray-gap)) 0;
-}
-
-.ws-tray:has(.composer[data-open="false"]) .is-end .ws-tray-pop {
-  translate: calc(-100% - var(--tray-gap)) 0;
-}
-
-/* The island is drawn over them while they slide. */
-.ws-tray .composer {
-  z-index: 1;
-}
-
 /* ----- The credit: bottom-right corner ----- */
 /* The Pixels mark beside two stacked lines, "Built by" over the company
    name, both in the same small regular white type (as designed). White on
@@ -142,9 +70,13 @@
    open: the row keeps its width clear on both sides (--credit-room,
    MainWorkspace.jsx, below), so the box and its tiles never run into it and
    stay centred. Phones have no room for it beside the capsule. */
+/* Layering: on the Quick Grid the credit sits BEHIND the cards. It comes
+   first in the stage (MainWorkspace.jsx) with no raised z-index, so the grid
+   view, drawn after it, covers it: a card scrolling down passes over it
+   instead of under it. Node Studio does the same (below). */
 .ws-credit {
   position: absolute;
-  z-index: 15;
+  z-index: auto;
   right: var(--tray-right);
   bottom: var(--tray-bottom);
   height: var(--tray-h, var(--cmp-h));
@@ -165,6 +97,11 @@
 .app-shell:not([data-bp="mobile"])[data-right="open"] .ws-credit {
   transition: right var(--pl-panel-open) var(--pl-panel-ease);
 }
+
+/* Node Studio, like the Quick Grid: the credit stays under the view (drawn
+   after it, MainWorkspace.jsx), so a node dragged or opened over the corner
+   covers it instead of the text showing through. The canvas is see-through
+   (dots only), so the credit still shows on empty canvas. */
 
 /* The row keeps the credit's width (+ the row's gap) clear on both sides,
    so the open box, "Pro" and the "?" never reach it and stay centred; when
@@ -197,38 +134,6 @@
   font-weight: 500;
   line-height: 1.25;
   letter-spacing: 0.005em;
-}
-
-.app-shell[data-bp="mobile"] .ws-credit {
-  display: none;
-}
-
-/* The "?" is the "Pro" tile's size (--cmp-h, plans.css .plan-pro): the
-   island's open height, its glyph scaled with it. */
-.ws-stage .ws-tray .tour-launch {
-  position: static;
-  flex: none;
-  width: var(--cmp-h, 48px);
-  height: var(--cmp-h, 48px);
-}
-
-.ws-stage .ws-tray .tour-launch svg {
-  width: 46%;
-  height: 46%;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ws-tray {
-    --isl-spring: ease-out;
-    --isl-settle: ease-out;
-  }
-
-  .ws-tray-pop,
-  .ws-tray:has(.composer[data-open="false"]) .ws-tray-pop {
-    filter: none;
-    scale: none;
-    translate: none;
-  }
 }
 
 /* Node Studio's zoom controls: the row's right corner, centred on its
@@ -592,174 +497,172 @@
   }
 }
 
-/* ---------- Message composer (GenerateDock.jsx) ------------------------- */
-/* The bottom row's centrepiece, built like a Dynamic Island.
 
-   At rest (data-open="false") it is a small white capsule at the bottom
-   centre (the app's white controls, like the box it opens into): a lock
-   (Pro) and a pen at its leading end, a dot at its trailing end (green once
-   a message is waiting). Hovered or keyboard-focused it swells a little and
-   says "Write a message" (or shows the message). Once, after the page
-   loads, it does that on its own (data-hint) so it's clear what it is.
-   While generating it widens into a live activity: spinner, "Generating 5
-   cards…" and moving bars.
+/* ---------- The dock (GenerateDock.jsx) --------------------------------- */
+/* Every size is a ratio of the control height (--cmp-h: 48px on phones,
+   up to 60px on laptops), so the dock keeps the same proportions on every
+   screen. At rest (data-open="false") it is a dark capsule, one control
+   tall and 2.75 wide, with a light outline:
 
-   Clicked (or "/"), it springs open in both width and height into the full
-   message box: one grid card wide, the app's control height, with the green
-   send arrow inset at its right end. Content blurs in and out as the shape
-   moves, as on the iPhone. Closing runs back without the bounce.
+     ( (crown)   spark   dot )
 
-   The tray spans the row and centres it between "Pro" and the "?". When
-   the row is too narrow for the open width (phones), the island gives way
-   (it shrinks; the buttons beside it don't). */
+   the crown in a peach circle (pricing), the white spark (opens the box),
+   and the status dot (green once a message is waiting). Hovered, or once
+   after the page loads (data-hint), it swells a little with the spring.
+
+   Pressed, it springs open upward into the message box: one grid card wide,
+   the text along the top, the crown and the (now green) spark at the bottom
+   left, the green send arrow in the bottom-right corner. The crown and the
+   spark glide from their places in the capsule to theirs in the box. A
+   longer message grows the box upward a line at a time (--cmp-grow). While
+   generating, the capsule widens into a live activity. */
+
+/* The row: as tall as the capsule. The open box grows up out of it, its
+   bottom on the row's, so nothing above moves (the grid ends at --tray-h). */
 .ws-stage .ws-tray {
   left: var(--tray-left);
-  justify-content: center;
-  /* Fixed at the open height, so the row (and the grid above it, which
-     ends at --tray-h) never moves while the island changes size. */
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
   height: var(--cmp-h);
 }
 
-/* The message box's height, shared with the "Pro" tile (plans.css) so the
-   two match: the app's one control height, like Generate beside it. */
 .ws-stage {
   --cmp-h: var(--cta-h);
 }
 
 .composer {
-  /* The arrow's inset: the top bar's Grid/Node switch inset (--ws-pad,
-     layout.css .ws-switch), so the two green squares sit alike. */
-  --cmp-pad: 4px;
-  --cmp-r: var(--composer-r); /* tokens.css */
-  --cmp-pad-l: clamp(16px, 1.4vw, 20px);
-  --cmp-sq: calc(var(--cmp-h) - 2 * var(--cmp-pad));
+  --dock-h: var(--cmp-h);
+  --dock-w: calc(var(--dock-h) * 2.75);
+  --open-h: calc(var(--cmp-h) * 1.87);
   /* Open: exactly one grid card wide (--card-w, MainWorkspace.jsx; 640px
-     when no cards are laid out), centred in the tray. */
+     when no cards are laid out), centred in the row. */
   --cmp-full-w: min(var(--card-w, 640px), 100%);
-  /* The island's sizes. Each is fixed, so labels never resize it. */
-  --isl-h: calc(var(--cmp-h) * 0.6);
-  --isl-peek-h: calc(var(--cmp-h) * 0.68);
-  /* At rest: snug round its icons (the pen and the dot), no empty run. */
-  --isl-w: calc(var(--isl-h) * 1.95);
-  /* One glyph size for the capsule's icons (pen, lock). */
-  --isl-glyph: calc(var(--isl-h) * 0.46);
-  --isl-peek-w: min(calc(var(--isl-h) * 6.3), 100%);
-  --isl-draft-w: min(calc(var(--isl-h) * 6.8), 100%);
-  --isl-busy-w: min(calc(var(--isl-h) * 7.2), 100%);
-  --isl-bg: #fff;
-  --isl-ink: var(--shell-ink);
+  --cmp-r: calc(var(--cmp-h) * 0.4);
+  --cmp-pad-x: calc(var(--cmp-h) * 0.3);
+  --cmp-pad-t: calc(var(--cmp-h) * 0.32);
+  /* The send arrow: the cards' in-card button size, in the bottom-right
+     corner. Its centre is the bottom row's line (the crown and spark sit
+     on it too). */
+  --send: calc(var(--cmp-h) * 0.833);
+  --send-x: calc(var(--cmp-h) * 0.2);
+  --send-y: calc(var(--cmp-h) * 0.167);
+  --row-mid: calc(var(--send-y) + var(--send) / 2);
+  --isl-busy-w: min(calc(var(--cmp-h) * 4.8), 100%);
+  --dock-bg: #113c49;
+  --dock-line: rgb(214 238 234 / 0.9);
   --isl-open-d: 680ms;
   --isl-close-d: 520ms;
   position: relative;
+  z-index: 1;
   box-sizing: border-box;
+  flex: none;
   width: var(--cmp-full-w);
-  /* Open: one line tall, plus --cmp-grow for each extra line of a long
-     message (GenerateDock.jsx, up to 4 lines). It grows upward: lifted by
-     half the extra, so its bottom stays on the row's. */
-  height: calc(var(--cmp-h) + var(--cmp-grow, 0px));
-  translate: 0 calc(var(--cmp-grow, 0px) / -2);
-  align-self: center;
-  flex: 0 1 auto;
+  height: calc(var(--open-h) + var(--cmp-grow, 0px));
   min-width: 0;
-  display: block;
+  margin: 0;
   padding: 0;
   overflow: hidden;
-  color: var(--isl-ink);
-  background: var(--isl-bg);
+  color: #fff;
+  background: var(--dock-bg);
   border-radius: var(--cmp-r);
-  box-shadow:
-    0 1px 2px rgb(17 60 73 / .08),
-    0 12px 30px -12px rgb(17 60 73 / .28);
+  outline: 0 solid transparent;
+  outline-offset: 2px;
+  transform-origin: 50% 100%;
+  font-family: "Manrope", system-ui, sans-serif;
   animation: isl-arrive 720ms var(--isl-spring) both;
   transition:
     width var(--isl-open-d) var(--isl-spring),
     height var(--isl-open-d) var(--isl-spring),
-    translate var(--isl-open-d) var(--isl-spring),
     border-radius var(--isl-open-d) var(--isl-spring),
-    box-shadow var(--pl-d-3) var(--pl-ease-out);
+    transform 460ms var(--isl-spring);
 }
 
-/* ----- The island's sizes ----- */
-/* With the lock (Pro) as well: one glyph and one gap wider. */
-.composer.has-pro {
-  --isl-w: calc(var(--isl-h) * 2.65);
+/* The light outline: drawn over the edge by a pseudo-element (the app
+   strips every box-shadow, #root * in polish/grid.css), so it takes no room
+   from the layout and follows the corner as it morphs. */
+.composer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border: 1.5px solid var(--dock-line);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .composer[data-open="false"] {
-  width: var(--isl-w);
-  height: var(--isl-h);
-  translate: 0 0;
-  border-radius: calc(var(--isl-h) / 2);
+  width: var(--dock-w);
+  height: var(--dock-h);
+  border-radius: calc(var(--dock-h) / 2);
   cursor: pointer;
   transition:
     width var(--isl-close-d) var(--isl-settle),
     height var(--isl-close-d) var(--isl-settle),
-    translate var(--isl-close-d) var(--isl-settle),
     border-radius var(--isl-close-d) var(--isl-settle),
-    box-shadow var(--pl-d-3) var(--pl-ease-out);
+    transform 460ms var(--isl-spring);
 }
 
-/* Peek: hovered, keyboard-focused, or the one-time hint on load. It swells
-   with the spring, like the island answering a touch. */
-.composer[data-open="false"]:not(.is-generating):is([data-hint], :has(.isl-face:focus-visible)) {
-  width: var(--isl-peek-w);
-  height: var(--isl-peek-h);
-  border-radius: calc(var(--isl-peek-h) / 2);
+/* Laptops and tablets: the capsule is 44px tall (121px wide), as in the
+   design, below the toolbar's 56-60px controls, and centred on the row
+   (the credit line's centre). Phones keep one control (48px). Only the
+   capsule shrinks; the open box is still sized from --cmp-h. */
+.app-shell:not([data-bp="mobile"]) .composer {
+  --dock-h: min(var(--cmp-h), 44px);
   transition:
-    width 560ms var(--isl-spring),
-    height 560ms var(--isl-spring),
-    border-radius 560ms var(--isl-spring),
-    box-shadow var(--pl-d-3) var(--pl-ease-out);
+    width var(--isl-open-d) var(--isl-spring),
+    height var(--isl-open-d) var(--isl-spring),
+    border-radius var(--isl-open-d) var(--isl-spring),
+    margin-bottom var(--isl-open-d) var(--isl-spring),
+    transform 460ms var(--isl-spring);
+}
+
+.app-shell:not([data-bp="mobile"]) .composer[data-open="false"] {
+  margin-bottom: calc((var(--cmp-h) - var(--dock-h)) / 2);
+}
+
+.app-shell:not([data-bp="mobile"]) .composer[data-open="false"]:not(.is-generating) {
+  transition:
+    width var(--isl-close-d) var(--isl-settle),
+    height var(--isl-close-d) var(--isl-settle),
+    border-radius var(--isl-close-d) var(--isl-settle),
+    margin-bottom var(--isl-close-d) var(--isl-settle),
+    transform 460ms var(--isl-spring);
+}
+
+/* Swell: hovered, keyboard-focused, or the one-time hint on load. */
+.composer[data-open="false"]:not(.is-generating):is([data-hint], :has(.isl-face:focus-visible)) {
+  transform: scale(1.07);
 }
 
 @media (hover: hover) {
   .composer[data-open="false"]:not(.is-generating):hover {
-    width: var(--isl-peek-w);
-    height: var(--isl-peek-h);
-    border-radius: calc(var(--isl-peek-h) / 2);
-    transition:
-      width 560ms var(--isl-spring),
-      height 560ms var(--isl-spring),
-      border-radius 560ms var(--isl-spring),
-      box-shadow var(--pl-d-3) var(--pl-ease-out);
-  }
-
-  .composer.has-draft[data-open="false"]:not(.is-generating):hover {
-    width: var(--isl-draft-w);
+    transform: scale(1.07);
   }
 }
 
-.composer.has-draft[data-open="false"]:not(.is-generating):has(.isl-face:focus-visible) {
-  width: var(--isl-draft-w);
+.composer[data-open="false"]:active {
+  transform: scale(0.97);
 }
 
 /* Live activity: wider, showing what's being generated. */
 .composer.is-generating[data-open="false"] {
   width: var(--isl-busy-w);
-  height: var(--isl-peek-h);
-  border-radius: calc(var(--isl-peek-h) / 2);
   transition:
     width var(--isl-open-d) var(--isl-spring),
     height var(--isl-open-d) var(--isl-spring),
     border-radius var(--isl-open-d) var(--isl-spring);
 }
 
-/* ----- Rings: focus (open), keyboard focus (capsule), missing message ----- */
-.composer[data-open="true"]:focus-within {
-  box-shadow:
-    0 1px 2px rgb(17 60 73 / .08),
-    0 12px 30px -12px rgb(17 60 73 / .28),
-    0 0 0 2px rgb(23 179 139 / .22);
-}
-
+/* ----- Rings: keyboard focus (capsule), missing message ----- */
+/* Outlines, not shadows (stripped app-wide); they follow the corner. */
 .composer[data-open="false"]:has(.isl-face:focus-visible) {
-  box-shadow: var(--pl-shadow-tb-hover), 0 0 0 2px rgb(23 179 139 / .55);
+  outline: 2px solid rgb(23 179 139 / 0.8);
 }
 
 /* Generate was pressed with no message: a red ring until one is written. */
-.composer.is-invalid,
-.composer.is-invalid:focus-within {
-  box-shadow: var(--pl-shadow-tb), 0 0 0 2px rgb(220 53 69 / .55);
+.composer.is-invalid {
+  outline: 2px solid rgb(255 107 120 / 0.8);
 }
 
 /* ----- The capsule's face: one button over the whole shape ----- */
@@ -782,109 +685,64 @@
   /* Coming back (closing): blurs in once the shape has mostly shrunk. */
   opacity: 1;
   filter: blur(0);
-  scale: 1;
   visibility: visible;
   transition:
     opacity 260ms var(--pl-ease-out) 160ms,
     filter 320ms var(--pl-ease-out) 160ms,
-    scale 420ms var(--pl-ease-out) 140ms,
     visibility 0s linear 0s;
 }
 
 .composer[data-open="true"] .isl-face {
   opacity: 0;
   filter: blur(6px);
-  scale: 1.15;
   visibility: hidden;
   pointer-events: none;
   /* Leaving (opening): gone in the first beat of the spring. */
   transition:
     opacity 140ms var(--pl-ease-in),
     filter 140ms var(--pl-ease-in),
-    scale 220ms var(--pl-ease-in),
     visibility 0s linear 140ms;
 }
 
-/* At rest: [lock] [pen] on the left, the dot on the right. Peeking:
-   [pen] [label] and the dot. Centred on the capsule's height (the face is
-   the capsule, so its sides are its ends). */
+/* At rest the face only draws the dot, its centre half a control in from
+   the right end (the crown's is the same from the left). */
 .isl-row {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
-  padding: 0 calc(var(--isl-h) * 0.46);
+  padding: 0 calc(var(--dock-h) * 0.375);
   animation: isl-content-in 360ms var(--pl-ease-out) both;
 }
 
-/* Mini icon at rest: a lock (Pro) before the pen, a line glyph at the
-   pen's size and stroke, so the two read as one set; a preview of the
-   button that slides out when it opens. When it peeks it folds away (width
-   to nothing, the row's gap cancelled) to make room for the label, and
-   folds back after. */
-.isl-mini {
+.isl-row.is-busy {
+  justify-content: flex-start;
+  padding: 0 calc(var(--dock-h) * 0.36);
+}
+
+.isl-dot {
   flex: none;
-  width: var(--isl-glyph);
-  height: var(--isl-glyph);
-  overflow: visible;
-  margin-inline-end: 0;
-  opacity: 1;
-  scale: 1;
-  filter: blur(0);
-  transition:
-    width 420ms var(--isl-spring) 80ms,
-    margin 420ms var(--isl-spring) 80ms,
-    opacity 240ms var(--pl-ease-out) 140ms,
-    filter 240ms var(--pl-ease-out) 140ms,
-    scale 420ms var(--isl-spring) 80ms,
-    color var(--pl-d-2) var(--pl-ease-out);
+  width: calc(var(--dock-h) * 0.25);
+  height: calc(var(--dock-h) * 0.25);
+  border-radius: 50%;
+  background: #dcdcf2;
+  transition: background-color var(--pl-d-3) var(--pl-ease-out), box-shadow var(--pl-d-3) var(--pl-ease-out);
 }
 
-/* The lock takes the "Pro" tile's deep orange. */
-.isl-mini-pro {
-  color: #e56a1b;
+.composer.has-draft .isl-dot {
+  background: var(--shell-green);
+  box-shadow: 0 0 0 3px rgb(23 179 139 / 0.25), 0 0 10px rgb(23 179 139 / 0.6);
 }
 
-.composer[data-open="false"]:is([data-hint], :has(.isl-face:focus-visible)) .isl-mini {
-  width: 0;
-  margin-inline-end: -8px;
-  opacity: 0;
-  filter: blur(3px);
-  scale: 0.5;
-  transition:
-    width 360ms var(--isl-settle),
-    margin 360ms var(--isl-settle),
-    opacity 140ms var(--pl-ease-in),
-    filter 140ms var(--pl-ease-in),
-    scale 300ms var(--isl-settle);
+.composer.is-invalid .isl-dot {
+  background: #ff6b78;
+  box-shadow: 0 0 0 3px rgb(255 107 120 / 0.25);
 }
 
-@media (hover: hover) {
-  .composer[data-open="false"]:hover .isl-mini {
-    width: 0;
-    margin-inline-end: -8px;
-    opacity: 0;
-    filter: blur(3px);
-    scale: 0.5;
-    transition:
-      width 360ms var(--isl-settle),
-      margin 360ms var(--isl-settle),
-      opacity 140ms var(--pl-ease-in),
-      filter 140ms var(--pl-ease-in),
-      scale 300ms var(--isl-settle);
-  }
-}
-
-.isl-pen {
-  flex: none;
-  width: var(--isl-glyph);
-  height: var(--isl-glyph);
-  color: var(--shell-green);
-  transition: rotate 420ms var(--pl-ease-spring), color var(--pl-d-2) var(--pl-ease-out);
-}
-
-/* Hidden at rest (the capsule says nothing); blurs in as it peeks. */
+/* Live activity: a green spinner, the label, and four bars that rise and
+   fall like the island's audio meter. */
 .isl-label {
   flex: 1 1 auto;
   min-width: 0;
@@ -892,93 +750,18 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   text-align: left;
+  color: #fff;
   font-size: var(--ui-field-text);
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  line-height: 1.4;
-  color: #4b5163;
-  opacity: 0;
-  filter: blur(4px);
-  translate: -4px 0;
-  /* At rest it has no width: cancel one of its two gaps, so the pen and the
-     dot are one gap apart like the lock and the pen. */
-  margin-inline-start: -8px;
-  transition:
-    opacity 160ms var(--pl-ease-in),
-    filter 160ms var(--pl-ease-in),
-    translate 160ms var(--pl-ease-in),
-    margin 360ms var(--isl-settle);
-}
-
-.composer.has-draft .isl-label,
-.composer.is-generating .isl-label {
   font-weight: 500;
-  color: var(--shell-ink);
+  line-height: 1.4;
 }
 
-.composer[data-open="false"]:is([data-hint], :has(.isl-face:focus-visible)) .isl-label,
-.composer.is-generating .isl-label {
-  opacity: 1;
-  filter: blur(0);
-  translate: 0 0;
-  margin-inline-start: 0;
-  transition:
-    opacity 260ms var(--pl-ease-out) 120ms,
-    filter 300ms var(--pl-ease-out) 120ms,
-    translate 360ms var(--pl-ease-out) 120ms,
-    margin 420ms var(--isl-spring);
-}
-
-@media (hover: hover) {
-  .composer[data-open="false"]:hover .isl-label {
-    opacity: 1;
-    filter: blur(0);
-    translate: 0 0;
-    margin-inline-start: 0;
-    transition:
-      opacity 260ms var(--pl-ease-out) 120ms,
-      filter 300ms var(--pl-ease-out) 120ms,
-      translate 360ms var(--pl-ease-out) 120ms,
-      margin 420ms var(--isl-spring);
-  }
-
-  .composer[data-open="false"]:hover .isl-pen {
-    rotate: -14deg;
-    color: var(--shell-green-hover);
-  }
-}
-
-/* The trailing dot, like the island's camera: dim when there's nothing
-   to send, green with a soft glow once a message is waiting. */
-.isl-dot {
-  flex: none;
-  width: calc(var(--isl-h) * 0.2);
-  height: calc(var(--isl-h) * 0.2);
-  margin-left: auto;
-  border-radius: 50%;
-  background: #d6d9e1;
-  box-shadow: none;
-  transition: background-color var(--pl-d-3) var(--pl-ease-out), box-shadow var(--pl-d-3) var(--pl-ease-out);
-}
-
-.composer.has-draft .isl-dot {
-  background: var(--shell-green);
-  box-shadow: 0 0 0 3px rgb(23 179 139 / .22), 0 0 10px rgb(23 179 139 / .6);
-}
-
-.composer.is-invalid .isl-dot {
-  background: #ff6b78;
-  box-shadow: 0 0 0 3px rgb(255 107 120 / .22);
-}
-
-/* Live activity: a green spinner, the label, and four bars that rise and
-   fall like the island's audio meter. */
 .isl-spin {
   flex: none;
-  width: calc(var(--isl-h) * 0.42);
-  height: calc(var(--isl-h) * 0.42);
+  width: calc(var(--dock-h) * 0.36);
+  height: calc(var(--dock-h) * 0.36);
   box-sizing: border-box;
-  border: 2px solid rgb(23 179 139 / .2);
+  border: 2px solid rgb(255 255 255 / 0.2);
   border-top-color: var(--shell-green);
   border-radius: 50%;
   animation: ring-spin-turn 0.8s linear infinite;
@@ -989,7 +772,7 @@
   display: flex;
   align-items: center;
   gap: 2.5px;
-  height: calc(var(--isl-h) * 0.4);
+  height: calc(var(--dock-h) * 0.3);
 }
 
 .isl-bars i {
@@ -1005,65 +788,176 @@
 .isl-bars i:nth-child(3) { animation-delay: -300ms; }
 .isl-bars i:nth-child(4) { animation-delay: -800ms; }
 
+/* ----- The crown (pricing) and the spark (generate) ----- */
+/* Shared by the capsule and the open box: each glides (left / bottom /
+   size) between its two places with the same spring as the shape. */
+.dock-crown,
+.dock-spark {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    left var(--isl-open-d) var(--isl-spring),
+    bottom var(--isl-open-d) var(--isl-spring),
+    width var(--isl-open-d) var(--isl-spring),
+    height var(--isl-open-d) var(--isl-spring),
+    color var(--pl-d-3) var(--pl-ease-out),
+    scale var(--pl-d-2) var(--pl-ease-out),
+    opacity 220ms var(--pl-ease-out),
+    visibility 0s linear 0s;
+}
+
+.composer[data-open="false"] :is(.dock-crown, .dock-spark) {
+  transition:
+    left var(--isl-close-d) var(--isl-settle),
+    bottom var(--isl-close-d) var(--isl-settle),
+    width var(--isl-close-d) var(--isl-settle),
+    height var(--isl-close-d) var(--isl-settle),
+    color var(--pl-d-3) var(--pl-ease-out),
+    scale var(--pl-d-2) var(--pl-ease-out),
+    opacity 220ms var(--pl-ease-out),
+    visibility 0s linear 0s;
+}
+
+.dock-crown svg,
+.dock-spark svg {
+  display: block;
+  pointer-events: none;
+}
+
+/* Capsule: the crown fills the left end in its peach circle. */
+.dock-crown {
+  --d: calc(var(--dock-h) * 0.73);
+  left: calc(var(--dock-h) * 0.135);
+  bottom: calc((var(--dock-h) - var(--d)) / 2);
+  width: var(--d);
+  height: var(--d);
+  color: #f08424;
+  background: #fde6c8;
+  border-radius: 50%;
+}
+
+.dock-crown svg {
+  width: 54%;
+  height: 54%;
+}
+
+/* Open: smaller, at the bottom-left on the arrow's line. */
+.composer[data-open="true"] .dock-crown {
+  --d: calc(var(--cmp-h) * 0.53);
+  left: var(--cmp-pad-x);
+  bottom: calc(var(--row-mid) - var(--d) / 2);
+}
+
+/* Capsule: the white spark in the middle. */
+.dock-spark {
+  --d: calc(var(--dock-h) * 0.33);
+  left: calc(var(--dock-w) / 2 - var(--d) / 2);
+  bottom: calc((var(--dock-h) - var(--d)) / 2);
+  width: var(--d);
+  height: var(--d);
+  color: #fff;
+  background: transparent;
+  border-radius: 0;
+}
+
+.dock-spark svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Open: green, beside the crown. */
+.composer[data-open="true"] .dock-spark {
+  --d: calc(var(--cmp-h) * 0.3);
+  left: calc(var(--cmp-h) * 1.13);
+  bottom: calc(var(--row-mid) - var(--d) / 2);
+  color: var(--shell-green);
+}
+
+@media (hover: hover) {
+  .dock-crown:hover,
+  .dock-spark:hover {
+    scale: 1.1;
+  }
+}
+
+.dock-crown:active,
+.dock-spark:active {
+  scale: 0.92;
+}
+
+.dock-crown:focus-visible,
+.dock-spark:focus-visible {
+  outline: 2px solid #74d4b8;
+  outline-offset: 2px;
+}
+
+/* Generating: the activity takes the whole capsule. */
+.composer.is-generating[data-open="false"] :is(.dock-crown, .dock-spark) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 160ms var(--pl-ease-in), visibility 0s linear 160ms;
+}
+
 /* ----- Open: the message box ----- */
 .composer-body {
   position: absolute;
   inset: 0;
-  display: flex;
-  /* Centred: as the text box grows (the box growing up with it), the arrow
-     stays in the middle of the box's height. */
-  align-items: center;
-  gap: 10px;
-  padding: var(--cmp-pad);
-  padding-left: var(--cmp-pad-l);
+  z-index: 1;
+  display: block;
+  padding: var(--cmp-pad-t) var(--cmp-pad-x) 0;
   /* Arriving (opening): blurs in as the spring carries the shape out. */
   opacity: 1;
   filter: blur(0);
-  scale: 1;
   visibility: visible;
   transition:
     opacity 280ms var(--pl-ease-out) 130ms,
     filter 340ms var(--pl-ease-out) 110ms,
-    scale 520ms var(--isl-spring) 60ms,
     visibility 0s linear 0s;
 }
 
 .composer[data-open="false"] .composer-body {
   opacity: 0;
   filter: blur(8px);
-  scale: 0.9;
   visibility: hidden;
   pointer-events: none;
   /* Leaving (closing): gone before the shape has shrunk much. */
   transition:
     opacity 140ms var(--pl-ease-in),
     filter 140ms var(--pl-ease-in),
-    scale 200ms var(--pl-ease-in),
     visibility 0s linear 140ms;
 }
 
 .composer .composer-input {
-  flex: 1 1 auto;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
   min-width: 0;
   /* One line by default (a global textarea rule sets 48px); GenerateDock.jsx
-     sets its height to its content's, up to 4 lines. */
-  box-sizing: content-box;
+     sets its height to its content's, up to 5 lines. */
   min-height: 0;
   height: 1.4em;
   margin: 0;
   padding: 0;
   overflow-y: auto;
-  color: var(--shell-ink);
-  caret-color: var(--shell-ink);
+  color: #fff;
+  caret-color: #fff;
   background: transparent;
   border: 0;
-  /* Square: only the island around it is rounded (radius.css rounds every
-     textarea; that showed as round ends on the selection / when inspected). */
   border-radius: 0;
   outline: none;
+  box-shadow: none;
   resize: none;
   font: inherit;
-  /* The app's field text (polish/tokens.css), like the brand panel's inputs. */
   font-size: var(--ui-field-text);
   font-weight: 500;
   line-height: 1.4;
@@ -1074,27 +968,27 @@
   display: none;
 }
 
-.composer-input::placeholder {
-  color: #7d8097;
+.composer .composer-input::placeholder {
+  color: rgb(255 255 255 / 0.92);
   opacity: 1;
 }
 
-/* Selected text: dark ink on a clear mint highlight (the global selection
-   left it pale on pale, unreadable). */
 .composer .composer-input::selection {
-  color: var(--shell-ink);
+  color: var(--dock-bg);
   background: #bfeadb;
 }
 
-/* The arrow: a green square inset in the island, its corner the island's
-   minus the inset, so the two corners run parallel. */
+/* The arrow: a green square in the bottom-right corner. As a long message
+   grows the box upward it stays put there (as in chat apps). */
 .ws-tray .composer .composer-send {
-  --cta-h: var(--cmp-sq);
-  width: var(--cta-h);
-  height: var(--cta-h);
-  flex: none;
+  --cta-h: var(--send);
+  position: absolute;
+  right: var(--send-x);
+  bottom: var(--send-y);
+  width: var(--send);
+  height: var(--send);
   padding: 0;
-  border-radius: var(--ws-switch-tab-r);
+  border-radius: calc(var(--send) * 0.3);
   background: var(--shell-green);
   box-shadow: 0 6px 16px -8px rgba(23, 179, 139, 0.7);
   animation: none;
@@ -1116,7 +1010,7 @@
 }
 
 /* ----- Motion ----- */
-/* On load the island pops up out of nothing. */
+/* On load the dock pops up out of nothing. */
 @keyframes isl-arrive {
   from {
     opacity: 0;
@@ -1148,21 +1042,27 @@
 }
 
 /* Reduced motion: it still opens and closes, just quickly, without the
-   bounce, blur or moving bars. */
+   bounce, blur, swell or moving bars. */
 @media (prefers-reduced-motion: reduce) {
+  .ws-tray {
+    --isl-spring: ease-out;
+    --isl-settle: ease-out;
+  }
+
   .composer {
     --isl-open-d: 160ms;
     --isl-close-d: 160ms;
     animation: none;
   }
 
+  .composer[data-open="false"],
+  .composer[data-open="false"]:hover {
+    transform: none !important;
+  }
+
   .composer .isl-face,
-  .composer .composer-body,
-  .composer .isl-label,
-  .composer .isl-mini {
+  .composer .composer-body {
     filter: none !important;
-    scale: none !important;
-    translate: none !important;
   }
 
   .isl-row,
@@ -1184,10 +1084,33 @@
   border: 0;
 }
 
-/* Phones: open, the composer fills the row between "Pro" and the "?".
-   (Tablets keep it one card wide and centred, as on laptops.) */
-@container ws (max-width: 760px) {
-  .app-shell[data-bp="mobile"] .composer {
-    --cmp-full-w: 100%;
-  }
+/* ----- Phones: the credit under the dock ----- */
+/* The row rises to leave room under it for "Built by Pixels Creative
+   Technologies", centred, small. */
+.app-shell[data-bp="mobile"] .ws-stage {
+  --tray-bottom: 40px;
+}
+
+.app-shell[data-bp="mobile"] .ws-stage .ws-tray {
+  padding-inline: 0;
+}
+
+.app-shell[data-bp="mobile"] .ws-credit {
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  height: auto;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+  visibility: visible;
+}
+
+.app-shell[data-bp="mobile"] .ws-credit-mark {
+  width: 12px;
+  height: 12px;
+}
+
+.app-shell[data-bp="mobile"] .ws-credit-text {
+  font-size: 10px;
 }

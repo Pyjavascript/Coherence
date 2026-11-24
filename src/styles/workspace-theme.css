@@ -32,13 +32,14 @@
   left: calc(100% + 8px);
 }
 
-/* Narrower workspaces (e.g. the brand panel open), down to phone width: the
-   options stay in the top bar beside the Add button instead of dropping over
-   the cards (layout.css drops them below 1280px). When they don't fit, the
-   row scrolls sideways inside the workspace (100cqw) and sits over the model
-   picker while it's open. 100% is the left group (the menu's containing
-   block). The vertical padding keeps the focus ring inside the scroll box. */
-@container ws (min-width: 761px) and (max-width: 1279px) {
+/* Narrower workspaces (laptops with a panel open, tablets), down to phone
+   width (521px): the options stay in the top bar beside the Add button
+   instead of dropping over the cards (layout.css drops them below 1280px).
+   When they don't fit, the row scrolls sideways inside the workspace (100cqw)
+   and sits over the model picker while it's open. 100% is the left group (the
+   menu's containing block). The vertical padding keeps the focus ring inside
+   the scroll box. Phones (520px and under) drop a stacked menu, below. */
+@container ws (min-width: 521px) and (max-width: 1279px) {
   .ws-topbar .toolbar-node-menu {
     top: 50%;
     left: calc(100% + 8px);
@@ -174,12 +175,14 @@
    it shows on the light board. The stage below has no fill of its own and
    starts right under the bar, so the views add one gutter of their own. */
 .app-shell[data-bp] .ws-topbar {
-  padding: var(--tb-pad-top) var(--tb-pad-x) 0;
+  padding: var(--tb-pad-top) var(--tb-pad-x) var(--bar-pad-b, 0px);
 }
 
-/* --bar-h: the bar's height (its top padding + its boxes; no bottom padding). */
+/* --bar-h: the bar's height (its top padding + its boxes + its bottom
+   padding, --bar-pad-b: 8px on laptops / tablets, layout.css; none on
+   phones). */
 .app-shell[data-bp] .workspace {
-  --bar-h: calc(var(--tb-pad-top) + var(--tb-h));
+  --bar-h: calc(var(--tb-pad-top) + var(--tb-h) + var(--bar-pad-b, 0px));
 }
 
 /* The stage doesn't clip: Node Studio's canvas reaches up under the
@@ -226,7 +229,7 @@
 }
 
 /* ---------- Phone drawer: no Minimize row, no close button ------------------ */
-/* BrandSidebar.jsx closeInHead drops the Minimize row on phones. */
+/* (Phones show the rail collapsed, like laptops: BrandSidebar.jsx onLogo.) */
 .lnav-head .lnav-title {
   flex-shrink: 1;
 }
@@ -274,19 +277,42 @@
   --ws-inset-left: calc(var(--ws-gutter-y) + var(--lnav-closed));
 }
 
+/* The brand panel (opened by picking or adding a brand) makes room for itself
+   in ONE step, not a slide. Sliding the padding re-laid out the grid and Node
+   Studio on every frame: each card changed width and height (row height
+   follows the column width), its copy re-wrapped, and the column count could
+   flip part-way, all of which read as the cards shaking. Now:
+   - opening: the room is made at once, then the panel slides into it;
+   - closing: the panel slides out first, then the content widens once
+     (the step waits out the panel's slide). */
 .app-shell:not([data-bp="mobile"]) .workspace {
   padding-left: var(--ws-inset-left);
   padding-right: 0;
   transition:
     padding-left var(--shell-dur) var(--shell-ease),
-    padding-right var(--pl-panel-close) var(--pl-panel-ease);
+    padding-right 0s linear var(--pl-panel-close);
 }
 
 .app-shell:not([data-bp="mobile"])[data-right="open"] .workspace {
   padding-right: calc(var(--rsb-w) + var(--gap));
   transition:
     padding-left var(--shell-dur) var(--shell-ease),
-    padding-right var(--pl-panel-open) var(--pl-panel-ease);
+    padding-right 0s;
+}
+
+/* Node Studio is one endless canvas: the panel floats over it rather than
+   pushing it in. The canvas reaches back over the room the workspace makes
+   for the panel (as it reaches under the rail on the left), so opening or
+   closing the panel never resizes it and the nodes stay put. It changes in
+   the same step as the padding above (at once on open, after the panel's
+   slide on close), so the two always cancel out. */
+.app-shell:not([data-bp="mobile"]) .ws-view-nodes .canvas-surface {
+  transition: right 0s linear var(--pl-panel-close);
+}
+
+.app-shell:not([data-bp="mobile"])[data-right="open"] .ws-view-nodes .canvas-surface {
+  right: calc(-1 * (var(--rsb-w) + var(--gap)));
+  transition: right 0s;
 }
 
 /* The app clears every shadow under #root; the floating card gets its own
@@ -300,11 +326,11 @@
 /* ---------- Laptops + tablets: the rail card ------------------------------- */
 /* The theme colour, like the brand panel on the right, with the same lift
    (theme-dark.css has the dark card). Its glyphs stay white (layout.css). */
-.app-shell:not([data-bp="mobile"]) .lnav {
+.app-shell .lnav {
   background: var(--shell-frame);
 }
 
-#root .app-shell:not([data-bp="mobile"]) .lnav {
+#root .app-shell .lnav {
   box-shadow:
     0 28px 64px -24px rgb(17 60 73 / 0.6),
     0 10px 28px rgb(17 60 73 / 0.2) !important;
@@ -339,6 +365,25 @@
   .app-shell:not([data-bp="mobile"]) .workspace {
     transition: none;
   }
+}
+
+/* Switching brands (App.jsx swapCanvas): the new brand's cards and nodes
+   appear in place instead of rising in from below. Their mount animations
+   still run, just finished at once, so when data-swap goes (1s later) the
+   same animations are already past their end and nothing replays. (Removing
+   `animation: none` instead would start them then.) Cards added and copy
+   generated after the swap animate as usual. */
+.app-shell[data-swap] :is(
+  .ncard,
+  .ncard-copy,
+  .pv,
+  .qg-empty,
+  .ws-view-nodes .sn-node,
+  .sn-out,
+  .sn-body > *
+) {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
 }
 
 /* ---------- Smooth side panels ---------------------------------------------- */
@@ -455,8 +500,114 @@
 
 .ws-topbar .toolbar-logo svg {
   display: block;
-  width: 100%;
+  width: var(--tb-h);
   height: 100%;
+  transition:
+    opacity 220ms ease,
+    scale var(--ph-rail-dur, 520ms) var(--ph-rail-ease, ease),
+    translate var(--ph-rail-dur, 520ms) var(--ph-rail-ease, ease);
+}
+
+/* ---------- Phones: the rail slides in beside the cards --------------------- */
+/* (layout.css .lnav.) The bar logo hands over to the rail's: it folds away
+   (its width and the gap after it close, so Add slides to the bar's start)
+   while the board takes the rail's room as left padding. The bar drops by
+   the rail's inset so its boxes line up with the rail's logo, and the cards
+   below squeeze in beside it. Closing plays it back. */
+.app-shell[data-bp="mobile"] .workspace {
+  transition: padding-left var(--ph-rail-dur) var(--ph-rail-ease);
+}
+
+.app-shell[data-bp="mobile"][data-left="open"] .workspace {
+  /* The bar's 48px boxes centred on the rail logo's 40px tile. */
+  --tb-pad-top: calc(var(--ph-rail-gap) + var(--ph-rail-inset) + (var(--ph-rail-tile) - var(--tb-h)) / 2);
+  padding-left: var(--ph-rail-room);
+}
+
+.app-shell[data-bp="mobile"] .ws-topbar {
+  transition: padding-top var(--ph-rail-dur) var(--ph-rail-ease);
+}
+
+.app-shell[data-bp="mobile"] .ws-topbar .toolbar-logo {
+  transition:
+    scale 160ms cubic-bezier(.2, 0, 0, 1),
+    width var(--ph-rail-dur) var(--ph-rail-ease),
+    margin-right var(--ph-rail-dur) var(--ph-rail-ease);
+}
+
+.app-shell[data-bp="mobile"][data-left="open"] .ws-topbar .toolbar-logo {
+  width: 0;
+  margin-right: calc(-1 * var(--tb-gap));
+  pointer-events: none;
+}
+
+.app-shell[data-bp="mobile"][data-left="open"] .ws-topbar .toolbar-logo svg {
+  opacity: 0;
+  scale: 0.5;
+  translate: calc(-1 * var(--ph-rail-w)) 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell[data-bp="mobile"] :is(.workspace, .ws-topbar, .ws-topbar .toolbar-logo, .ws-topbar .toolbar-logo svg) {
+    transition: none;
+  }
+}
+
+/* ---------- Phones: the open message box keeps the pager in view ----------- */
+/* The box opens upward out of the bottom row, over the cards. Opening, the
+   cards rise once by the box's one-line height (--open-h, composer.css: 1.87
+   x --cmp-h), so the pager dots stay clear above it. A longer message
+   doesn't squeeze them further: the extra lines grow up over the card. */
+.app-shell[data-bp="mobile"] .qg.is-carousel {
+  transition:
+    padding-right var(--pl-panel-close) var(--pl-panel-ease),
+    padding-bottom 520ms var(--ph-rail-ease);
+}
+
+.app-shell[data-bp="mobile"] .ws-stage:has(.composer[data-open="true"]) .qg.is-carousel {
+  --qg-pb: calc(var(--tray-bottom, 22px) + var(--cmp-h) * 1.87 + clamp(10px, 1.6cqw, 18px));
+  transition:
+    padding-right var(--pl-panel-close) var(--pl-panel-ease),
+    padding-bottom 680ms var(--ph-rail-ease);
+}
+
+/* Laptops and tablets: the same. Opening, the rows' bottom rises once by the
+   box's one-line height (the rows share the stage's height, layout.css
+   .qg-grid), so the box opens below the cards instead of over them. A
+   longer message grows up over the cards without moving them again, and
+   rows already at their minimum height (--qg-row-h) keep it: the grid
+   scrolls rather than squeezing them. The brand panel's own timing for the
+   right padding is kept (layout.css .qg). */
+.app-shell:not([data-bp="mobile"]) .qg.is-rows {
+  transition:
+    padding-right var(--pl-panel-close) var(--pl-panel-ease),
+    padding-bottom 520ms var(--ph-rail-ease, cubic-bezier(.32, .72, 0, 1));
+}
+
+.app-shell:not([data-bp="mobile"])[data-right="open"] .qg.is-rows {
+  transition:
+    padding-right var(--pl-panel-open) var(--pl-panel-ease),
+    padding-bottom 520ms var(--ph-rail-ease, cubic-bezier(.32, .72, 0, 1));
+}
+
+.app-shell:not([data-bp="mobile"]) .ws-stage:has(.composer[data-open="true"]) .qg.is-rows {
+  --qg-pb: calc(var(--tray-bottom, 22px) + var(--cmp-h) * 1.87 + clamp(10px, 1.6cqw, 18px));
+  transition:
+    padding-right var(--pl-panel-close) var(--pl-panel-ease),
+    padding-bottom 680ms var(--ph-rail-ease, cubic-bezier(.32, .72, 0, 1));
+}
+
+.app-shell:not([data-bp="mobile"])[data-right="open"] .ws-stage:has(.composer[data-open="true"]) .qg.is-rows {
+  transition:
+    padding-right var(--pl-panel-open) var(--pl-panel-ease),
+    padding-bottom 680ms var(--ph-rail-ease, cubic-bezier(.32, .72, 0, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell[data-bp="mobile"] .qg.is-carousel,
+  .app-shell:not([data-bp="mobile"]) .qg.is-rows {
+    transition: none;
+  }
 }
 
 /* ---------- Phones: the Quick Grid is a carousel ---------------------------- */
@@ -530,7 +681,8 @@
 /* ---------- Laptops / tablets: rows of cards that stack down ---------------- */
 /* (QuickGrid.jsx is-rows.) The first row fills across (3 on laptops, 2 on
    tablets: --qg-cols, layout.css); a card past it starts a new row below, and
-   from a third row on the grid scrolls down (layout.css .qg, --row-fit).
+   rows keep a fixed height and the grid scrolls when they don't fit
+   (layout.css .qg-grid, --qg-row-h).
    Every card is exactly its row's height: size containment keeps its content
    (the copy, or the settings the pencil opens) from stretching the row, so
    opening a card's settings never changes its height; the copy box and the
@@ -645,8 +797,8 @@
 }
 
 .app-shell[data-bp="mobile"] .ncard .ncard-icon {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
 }
 
 /* Option dots: the SVG draws the circle and its "+" (Header.jsx), so the

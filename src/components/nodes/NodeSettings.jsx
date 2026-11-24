@@ -5,10 +5,44 @@ import AutoTextarea from "../AutoTextarea";
 import { WEBSITE_COMPONENTS, PLATFORMS } from "../../lib/constants";
 import { fieldMaxWords, fieldMinWords } from "../../lib/copyItems";
 import { fieldPlaceholders } from "../../lib/placeholders";
+import { COPY_LAYOUTS, DEFAULT_LAYOUT } from "../../lib/layouts";
 
 const COMPONENT_OPTIONS = Object.entries(WEBSITE_COMPONENTS).map(([value, c]) => ({ value, label: c.label }));
 const PLATFORM_OPTIONS = PLATFORMS.map((p) => ({ value: p, label: p }));
 const WORD_LABELS = { headline: "Target Heading Words", sub: "Target Description Words" };
+
+// "Select a layout": five tiles (lib/layouts.js), each drawn as its blocks
+// (x, y, w, h in a 40 × 30 box), as in the design: two rows; two over one
+// row; three rows (the middle one taller); one row over two; a bar over a
+// block. The pick (the tile's id) is the card's `layout`: the first block is
+// the heading, the rest descriptions. The last tile, "Bar over a block", is
+// the default (id 0): the card as it always was. The others draw the copy
+// boxes in the tile's shape and proportions.
+const LAYOUTS = COPY_LAYOUTS;
+
+// Also used by a Node Studio node's settings (NodeStudio.jsx).
+export function LayoutPicker({ value = DEFAULT_LAYOUT, onChange }) {
+  return (
+    <div className="ncard-layouts" role="radiogroup" aria-label="Select a layout">
+      {LAYOUTS.map((layout) => (
+        <button
+          key={layout.name}
+          type="button"
+          role="radio"
+          aria-checked={layout.id === value}
+          aria-label={layout.name}
+          title={layout.name}
+          className={"ncard-layout" + (layout.id === value ? " is-on" : "")}
+          onClick={() => onChange(layout.id)}
+        >
+          <svg viewBox="0 0 40 30" aria-hidden="true">
+            {layout.blocks.map(([x, y, w, h], j) => <rect key={j} x={x} y={y} width={w} height={h} rx="3" />)}
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // A Quick Grid card's settings, shown in the card in place of its copy (the
 // pencil beside the title), like a Node Studio node's: job requirement,
@@ -73,6 +107,11 @@ export default function NodeSettings({ id, node, meta, limits, onSetting, onWord
           />
         </div>
       ))}
+
+      <div className="sn-field">
+        <label>Select a layout</label>
+        <LayoutPicker value={node.layout ?? 0} onChange={(value) => onSetting("layout", value)} />
+      </div>
     </div>
   );
 }

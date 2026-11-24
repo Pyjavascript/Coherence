@@ -52,8 +52,11 @@ export default function CanvasViewport({ children }) {
     return Math.round(barBottom + 24 - top * zoom);
   }, []);
 
-  // On a phone, keep the first column fitted until the user pans or zooms.
-  const autoZoom = useRef(null);
+  // Keep the home view fitted (on a phone, the first column) as the surface
+  // resizes, but only until the user pans or zooms: once the view isn't the
+  // one placed here last, a resize (the window, the rail, a panel) leaves it
+  // exactly where the user put it.
+  const autoView = useRef(null);
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return undefined;
@@ -61,19 +64,22 @@ export default function CanvasViewport({ children }) {
     const fit = () => {
       if (el.clientWidth < 80) return;
       setView((current) => {
-        if (autoZoom.current != null && Math.abs(current.zoom - autoZoom.current) > 0.02) return current;
+        const last = autoView.current;
+        const moved = last && (Math.abs(current.x - last.x) > 1 || Math.abs(current.y - last.y) > 1 || Math.abs(current.zoom - last.zoom) > 0.02);
+        if (moved) return current;
+        let next;
         if (!mq.matches) {
-          autoZoom.current = 1;
-          const y = homeY(1);
-          return current.zoom === 1 && current.x === 0 && current.y === y ? current : { x: 0, y, zoom: 1 };
+          next = { x: 0, y: homeY(1), zoom: 1 };
+        } else {
+          // The first card fills ~72% of the screen, centred, with even air on
+          // both sides. Its width and x come from the page (cards are narrower
+          // on phones, layout.css).
+          const card = firstCard();
+          const zoom = clampZoom((el.clientWidth * PHONE_CARD_SHARE) / card.w);
+          next = { x: Math.round((el.clientWidth - card.w * zoom) / 2 - card.x * zoom), y: homeY(zoom), zoom };
         }
-        // The first card fills ~72% of the screen, centred, with even air on
-        // both sides. Its width and x come from the page (cards are narrower
-        // on phones, layout.css).
-        const card = firstCard();
-        const zoom = clampZoom((el.clientWidth * PHONE_CARD_SHARE) / card.w);
-        autoZoom.current = zoom;
-        return { x: Math.round((el.clientWidth - card.w * zoom) / 2 - card.x * zoom), y: homeY(zoom), zoom };
+        autoView.current = next;
+        return current.x === next.x && current.y === next.y && current.zoom === next.zoom ? current : next;
       });
     };
     fit();
@@ -153,6 +159,15 @@ export default function CanvasViewport({ children }) {
       // Node textareas grow with their content, so wheel over them pans the canvas too.
       if (event.target.closest?.("select, .share-menu")) return;
       event.preventDefault();
+      // Over an open node's settings (the gray box), or a dropdown list inside
+      // it: scroll that box up and down only, and leave the canvas still, even
+      // at the box's top or bottom. Ctrl / ⌘ + wheel still zooms.
+      const box = !(event.ctrlKey || event.metaKey) && event.target.closest?.(".bp-dd-menu, .sn-card-settings");
+      if (box) {
+        const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? box.clientHeight : 1;
+        box.scrollTop += event.deltaY * unit;
+        return;
+      }
       if (event.ctrlKey || event.metaKey) {
         setView((current) => {
           const rect = el.getBoundingClientRect();
@@ -272,7 +287,11 @@ export default function CanvasViewport({ children }) {
       </div>
       <div className="canvas-controls" aria-label="Canvas zoom controls">
         <button type="button" onClick={() => changeZoom(-0.1)} aria-label="Zoom out">−</button>
-        <button type="button" className="canvas-zoom-level" onClick={() => setView({ x: 0, y: homeY(1), zoom: 1 })} title="Reset view">
+        <button type="button" className="canvas-zoom-level" onClick={() => {
+          const home = { x: 0, y: homeY(1), zoom: 1 };
+          autoView.current = home;
+          setView(home);
+        }} title="Reset view">
           {Math.round(view.zoom * 100)}%
         </button>
         <button type="button" onClick={() => changeZoom(0.1)} aria-label="Zoom in">+</button>

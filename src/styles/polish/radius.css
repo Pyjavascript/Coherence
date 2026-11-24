@@ -1,7 +1,7 @@
 /* ==========================================================================
    Coherence polish: one border radius for the whole app (generated)
-   Every corner uses --ui-r (tokens.css): 20px on phones up to 34px on wide
-   screens. Circles and pills use it too. Generated from assets/index-CiXxvpMo.css, one override per rule,
+   Every corner uses --ui-r (tokens.css): one fixed px value on every screen
+   size. Circles and pills use it too. Generated from assets/index-CiXxvpMo.css, one override per rule,
    same selector, so specificity is unchanged and source order decides.
    ========================================================================== */
 :root { --r: var(--ui-r); --shell-radius: var(--ui-r); }
@@ -204,7 +204,7 @@ input[type=text],textarea,select { border-radius: var(--ui-r); }
   .canvas-surface[data-mode=quick] .frame-body { border-radius: var(--ui-r); }
 }
 .app-shell[data-bp=tablet] .lnav[data-open=true] { border-radius: var(--ui-r); }
-.app-shell[data-bp=mobile] .lnav { border-radius: 0; }
+.app-shell[data-bp=mobile] .lnav { border-radius: var(--ph-rail-r); }
 /* Left rail: icon tiles, their rows and the usage ring are rounded squares
    (--ui-icon-r), not circles. The ring's layers stay concentric. Brand
    avatars take the profile icon's corner too. */

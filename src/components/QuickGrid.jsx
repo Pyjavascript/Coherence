@@ -4,6 +4,7 @@ import { MEDIA_BY_KEY, GEN_PLATFORMS_BY_KEY } from "../lib/constants";
 import { applyEdit, setCardWords } from "../lib/copyItems";
 import { generateQuickGrid, regenerateOutput, describeError } from "../services/ai";
 import { saveGeneration } from "../services/brands";
+import { preferredLayout, rememberLayout } from "../services/preferences";
 import { useFlip } from "../hooks/useFlip";
 import host from "../hosts/browser";
 
@@ -17,10 +18,22 @@ const uid = () => `q${Date.now().toString(36)}${(seq++).toString(36)}`;
 // target per field, { headline, sub } (null / a field left out = the medium's default; older
 // saves hold one total); `component` / `pointerCount` apply to Website only;
 // `platform` to Social only (Instagram to start, as a new Social node).
-const DEFAULT_SETTINGS = { words: null, brief: "", component: "hero", pointerCount: 3, platform: null };
-const defaultsFor = (type) => ({ ...DEFAULT_SETTINGS, platform: type === "marketing" ? "Instagram" : null });
+// `layout` is the picked "Select a layout" tile (lib/layouts.js): the card's
+// copy boxes are drawn in its proportions, and the server writes one
+// description, or two (sub + sub2), to fill them. A new card starts in its
+// medium's preferred layout (the one last picked on a card of that medium,
+// saved with the user); other media are untouched.
+const DEFAULT_SETTINGS = { words: null, brief: "", component: "hero", pointerCount: 3, platform: null, layout: 0 };
+const defaultsFor = (type) => ({
+  ...DEFAULT_SETTINGS, platform: type === "marketing" ? "Instagram" : null, layout: preferredLayout(type),
+});
+// A card with no copy yet (none written for its layout) follows its medium's preference.
+const withPreferredLayout = (list) => list.map((n) => {
+  const layout = preferredLayout(n.type);
+  return n.items.length || n.status === "loading" || n.layout === layout ? n : { ...n, layout };
+});
 const settingsOf = (n) => ({
-  words: n.words, brief: n.brief, component: n.component, pointerCount: n.pointerCount, platform: n.platform,
+  words: n.words, brief: n.brief, component: n.component, pointerCount: n.pointerCount, platform: n.platform, layout: n.layout,
 });
 
 // `label` is the card's editable title; it starts as the medium's name.
@@ -36,6 +49,7 @@ const createNode = (type, from) => ({
   fav: from?.status === "ready" ? from.fav ?? null : null,
   ...defaultsFor(type),
   ...(from ? settingsOf(from) : {}),
+  ...(from?.layout != null ? { layout: from.layout } : {}),
 });
 // The grid starts with three cards, one row across; Add Grid brings the rest.
 // They sit in the same order as the Add Grid menu (MEDIA, Node Studio's order).
@@ -184,11 +198,15 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
     ? { ...n, status: n.items.length ? "ready" : "idle", message: "" }
     : n));
   const load = (saved) => {
-    const next = saved?.length ? saved : seedNodes();
+    const next = saved?.length ? withPreferredLayout(saved) : seedNodes();
     nodesRef.current = next;
     setNodes(next);
     setLastAdded(null);
   };
+
+  // The user's saved layouts have loaded (sign-in, or a reload): cards with
+  // no copy yet take their medium's.
+  const applyPreferredLayout = () => setNodes(withPreferredLayout);
 
   // The card's title, as typed (it may be blank while being edited).
   const setLabel = (id, text) => {
@@ -212,6 +230,7 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
   // One of the card's other settings (brief, component, pointerCount, platform).
   const setSetting = (id, field, value) => {
     if (!(field in DEFAULT_SETTINGS) || field === "words") return;
+    if (field === "layout") rememberLayout(nodesRef.current.find((n) => n.id === id)?.type, value);
     setNodes((list) => list.map((n) => (n.id === id ? { ...n, [field]: value } : n)));
   };
 
@@ -257,17 +276,12 @@ export function useQuickGrid({ ctx, brandId, variantCount, tier, platforms, aiAv
   return {
     nodes, cards, busy, lastAdded, hasCopy, targetMedia, banned: ctx.brand.banned,
     generateAll, regenerate, add, duplicate, remove, restoreDefaults, setLabel, editItem, setWords, setSetting, resetSettings, toggleFav, restore, setStatus,
-    snapshot, load,
+    snapshot, load, applyPreferredLayout,
   };
 }
 
 // The grid has 12 tracks (layout.css), which divide evenly by 1–4 columns.
 const TRACKS = 12;
-
-// Rows that share one screen: up to two rows of cards fill the stage (three
-// cards make one tall row, six make two); a third row and beyond keep that
-// height and continue below, so the grid scrolls.
-const FIT_ROWS = 2;
 
 // How many columns a card takes at `cols` across: at three across every card
 // is one column (rows of three equal cards); narrower, a full-width card
@@ -281,8 +295,14 @@ const weightOf = (full, cols) => (full && cols < 3 ? cols : 1);
 // At three across: 3 = one row, 4 = 3 + 1, 5 = 3 + 2, 6 = 3 + 3, 7 = 3 + 3 + 1.
 // A full-width card (weight above 1, narrow stages only) takes its weight's
 // worth of a row, so those rows are packed greedily instead.
+// Tablets (two across) are the exception: always two equal columns, 2 + 2,
+// every card one column. A full-width card isn't widened and a lone card in the
+// last row keeps its column (the row's other half stays empty).
 // Returns each card's track span and the row count.
 const packRows = (fulls, cols) => {
+  if (cols === 2) {
+    return { spans: fulls.map(() => TRACKS / cols), rows: Math.max(1, Math.ceil(fulls.length / cols)) };
+  }
   const weights = fulls.map((full) => weightOf(full, cols));
   const rows = [];
   if (weights.every((w) => w === 1)) {
@@ -351,40 +371,49 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
     const strip = gridRef.current;
     if (!carousel || !strip) return undefined;
     let frame = 0;
+    // The strip narrows and widens as the rail slides in and out beside it:
+    // the card in view (held) stays lined up on every frame of that, rather
+    // than left part-scrolled until the snap catches up.
+    let held = slideAt(strip);
+    let lastWidth = strip.clientWidth;
     const onScroll = () => {
+      if (strip.clientWidth === lastWidth) held = slideAt(strip);
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => setSlide(slideAt(strip)));
     };
+    const hold = () => {
+      if (strip.clientWidth === lastWidth) return;
+      lastWidth = strip.clientWidth;
+      const card = strip.children[held];
+      if (card) strip.scrollLeft = card.offsetLeft - strip.firstElementChild.offsetLeft;
+    };
     strip.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(hold);
+    resize?.observe(strip);
     return () => {
       strip.removeEventListener("scroll", onScroll);
+      resize?.disconnect();
       cancelAnimationFrame(frame);
     };
   }, [carousel]);
 
-  const { spans } = packRows(quick.nodes.map((n) => n.width === "full"), cols);
+  const { spans, rows } = packRows(quick.nodes.map((n) => n.width === "full"), cols);
   useFlip(gridRef, quick.nodes.map((n, i) => `${n.id}:${spans[i]}`).join("|"));
 
-  // --row-fit is the height of a row when FIT_ROWS rows share the screen.
-  // Rows never go below it: one row stretches to fill the stage, two share
-  // it, and more continue below (the grid scrolls) instead of shrinking.
+  // Reads how many cards fit across (--qg-cols, layout.css) so packRows can
+  // fill each row. Row HEIGHT is pure CSS (--qg-row-h): it follows the column
+  // width, not the window height, so a short window scrolls instead of
+  // squeezing the cards.
   useLayoutEffect(() => {
     const grid = gridRef.current;
     const scroller = grid?.parentElement;
     if (!grid || !scroller || typeof ResizeObserver === "undefined") return undefined;
     const update = () => {
-      const gridStyle = getComputedStyle(grid);
-      const scrollStyle = getComputedStyle(scroller);
-      const across = parseInt(gridStyle.getPropertyValue("--qg-cols"), 10) || 1;
+      const across = parseInt(getComputedStyle(grid).getPropertyValue("--qg-cols"), 10) || 1;
       setCols(across);
-      const rows = FIT_ROWS;
-      const inner = scroller.clientHeight - parseFloat(scrollStyle.paddingTop) - parseFloat(scrollStyle.paddingBottom);
-      const gap = parseFloat(gridStyle.rowGap) || 0;
-      grid.style.setProperty("--row-fit", `${Math.max(0, Math.floor((inner - gap * (rows - 1)) / rows))}px`);
     };
-    // The scroller's content box changes with the window and the panels, and so
-    // does the column count.
+    // The column count changes with the window and the panels.
     const observer = new ResizeObserver(update);
     observer.observe(scroller);
     return () => observer.disconnect();
@@ -441,7 +470,7 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
           <button type="button" onClick={quick.restoreDefaults}>Restore default cards</button>
         </div>
       )}
-      <div className="qg-grid" ref={gridRef} style={{ "--qg-n": Math.max(1, count) }}>
+      <div className="qg-grid" ref={gridRef} data-rows={rows} style={{ "--qg-n": Math.max(1, count) }}>
         {quick.nodes.map((n, i) => (
           <NodeCard
             key={n.id}
@@ -461,6 +490,7 @@ export default function QuickGrid({ quick, atGenLimit, carousel = false }) {
             onRegenerate={() => quick.regenerate(n.id)}
             onBlocked={() => quick.setStatus("Daily generation limit reached.", "warn")}
             onCopy={copyOutput}
+            onEdit={(index, field, text) => quick.editItem(n.id, index, field, text)}
             onDuplicate={() => quick.duplicate(n.id)}
             onDelete={() => quick.remove(n.id)}
           />

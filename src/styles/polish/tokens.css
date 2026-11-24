@@ -57,9 +57,12 @@
   --copy-head-r: 17px;
   --copy-desc-r: 27px;
 
-  /* One radius for every corner in the app: 20px on phones, growing to 34px on wide screens.
-     Every other radius token below points at it. */
-  --ui-r: clamp(20px, 8px + 1.6vw, 34px);
+  /* One radius for every corner in the app (cards, panels, popups). Matches
+     the deployed design (classy-cocada.netlify.app): 34px on a laptop's 60px
+     controls. A share of the control height (--ctl-h, layout.css), not vw:
+     27px at 48px controls, 25px at 44px. Phones keep their own ladder
+     (squircle.css). */
+  --ui-r: calc(var(--ctl-h) * 0.5667);
   /* The workspace frame only: softer, ~40px on a 1440px laptop, down to
      18px on small phones (radius.css .workspace). */
   --ui-r-frame: var(--ui-r);
@@ -73,10 +76,17 @@
   --ui-icon-r: var(--ui-r);
   /* The Grid / Node view switch in the top bar (.ws-switch).
      --ws-switch-r: the white box. --ws-switch-tab-r: the green highlight and
-     the two tabs inside it; follows the box unless you set it separately
-     (e.g. calc(var(--ws-switch-r) - 4px) for corners that nest inside the box). */
-  --ws-switch-r: clamp(16px, 8px + 1.6vw, 20px);
-  --ws-switch-tab-r: clamp(16px, 8px + 1.6vw, 20px);
+     the two tabs inside it. The box is also the left rail's tiles, rows and
+     credits ring, the Add / model / menu boxes and the message box.
+     Both are a SHARE of the control height (--ctl-h, layout.css), so they
+     keep the laptop's shape at every size: 20px / 20px on the 60px laptop
+     controls, as deployed (classy-cocada.netlify.app); 16px / 15.4px at
+     48px; 14.7px / 13.9px at 44px. The deployed fixed 20px turned the 36px
+     rail tiles and the green tab into circles on smaller screens. The rail
+     card is 1.5x this (layout.css .lnav). Phones keep their own ladder
+     (squircle.css). */
+  --ws-switch-r: calc(var(--ctl-h) / 3);
+  --ws-switch-tab-r: calc((var(--ctl-h) - 8px) * 0.385);
   /* ONE corner for every small icon button and icon tile (the list in
      squircle.css): a share of the button's own size, so small tiles stay
      rounded squares instead of turning into circles. 0.35 = the top bar's

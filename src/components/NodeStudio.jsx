@@ -21,6 +21,12 @@ import BannedCheck from "./nodes/BannedCheck";
 import Select from "./Select";
 import WordsRange from "./WordsRange";
 import AutoTextarea from "./AutoTextarea";
+import { LayoutPicker } from "./nodes/NodeSettings";
+import EditableText from "./EditableText";
+import CopyLayout from "./CopyLayout";
+import { NODE_DESC_FIELDS, descCount } from "../lib/layouts";
+import { preferredLayout, rememberLayout } from "../services/preferences";
+import { countWords, nodeBodyTargets } from "../lib/copyItems";
 import { fieldPlaceholders } from "../lib/placeholders";
 import { shortcut } from "../lib/shortcuts";
 
@@ -36,7 +42,7 @@ const COL_X = { email: 40, social: 480, website: 920, packaging: 1360, advertisi
 // Where a column's first node sits, and how far above it the column title goes.
 const COL_TOP = 100;
 const COL_HEAD_OFFSET = 46;
-const wordCount = (v) => ((v && v.body) || "").trim().split(/\s+/).filter(Boolean).length;
+const wordCount = (v) => [v?.body, v?.body2].filter(Boolean).join(" ").trim().split(/\s+/).filter(Boolean).length;
 // Entrance cascade: how many nodes get their own stagger slot.
 const MAX_STAGGER = 8;
 
@@ -60,15 +66,17 @@ const versionOf = (label) => Number(String(label || "").match(VERSION_RE)?.[1] |
 // A node as plain text (its name, then the copy showing), for pasting elsewhere.
 const nodeText = (n) => {
   const v = n.variants[n.activeIdx || 0] || n.variants[0];
-  const out = !v ? "" : v.pointers ? v.pointers.map((p) => `${p.title} — ${p.detail}`).join("\n") : [v.headline, v.body].filter(Boolean).join("\n\n");
+  const out = !v ? "" : v.pointers ? v.pointers.map((p) => `${p.title} — ${p.detail}`).join("\n") : [v.headline, v.body, v.body2].filter(Boolean).join("\n\n");
   return [n.label || "Untitled node", out].filter(Boolean).join("\n");
 };
 const XIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
 );
 
+// A new node starts in its medium's preferred layout (the one last picked on
+// a card of that medium, saved with the user).
 const baseNode = (o) => ({
-  id: uid(), category: "email", label: "", brief: "", words: 60, headingWords: null,
+  id: uid(), category: "email", label: "", brief: "", words: 60, headingWords: null, layout: preferredLayout(o.category || "email"),
   platform: undefined, component: "hero", pointerCount: 3, connections: [], variants: [], activeIdx: 0, generating: false,
   x: o.x ?? 0, y: o.y ?? 0, z: o.z ?? 10,
   ...o,
@@ -94,6 +102,14 @@ function seedNodes() {
   const packaging = baseNode({ x: COL_X.packaging, y: 100, category: "packaging", label: "Box front line", words: NODE_DEFAULT_WORDS.packaging });
   const advertising = baseNode({ x: COL_X.advertising, y: 100, category: "advertising", label: "Launch ad", words: NODE_DEFAULT_WORDS.advertising });
   return [email, social, website, packaging, advertising];
+}
+
+// A node with no copy yet (none written for its layout) follows its medium's preference.
+function withPreferredLayout(list) {
+  return list.map((n) => {
+    const layout = preferredLayout(n.category);
+    return n.variants?.length || n.generating || n.layout === layout ? n : { ...n, layout };
+  });
 }
 
 /* ---------- icons ---------- */
@@ -148,63 +164,98 @@ const EmptyOutput = ({ words }) => (
   </>
 );
 
-// Heading + description nodes (everything but a Feature pointers list): two
-// panels, as on a Quick Grid card. The heading's panel hugs its text; the
-// description's takes the rest, with the word count at its bottom-left, then
-// the banned-words check and the variant tabs.
-function SplitOutput({ node, banned, onVariant, id }) {
+// Heading + description nodes (everything but a Feature pointers list): the
+// node's layout tile (lib/layouts.js) drawn in its proportions, as on a Quick
+// Grid card. The first panel is the heading; the others are descriptions
+// ("body", then "body2"), each with its own word count at the bottom-left.
+// The biggest description panel also holds the banned-words check and the
+// variant tabs.
+function SplitOutput({ node, banned, onVariant, onEdit, id }) {
   const idx = node.activeIdx || 0;
   const v = node.variants[idx] || node.variants[0];
-  const words = node.words || NODE_DEFAULT_WORDS[node.category];
-  const live = { "aria-live": "polite" };
+  const layout = node.layout || 0;
+  const fields = ["headline", ...NODE_DESC_FIELDS.slice(0, descCount(layout))];
+  const targets = Object.fromEntries(nodeBodyTargets({ ...node, words: node.words || NODE_DEFAULT_WORDS[node.category] }));
+  // A second body written for another layout, while this one has a single
+  // body panel: shown under the first, so nothing is hidden.
+  const extra = v && fields.length < 3 && v.body2 ? "body2" : null;
+  let extrasUsed = false;
 
-  if (node.generating) {
-    return (
-      <div className="sn-card-split" id={id} aria-busy="true">
-        <div className="sn-card-panel sn-card-out sn-card-out-head"><div className="skel w60" /></div>
-        <div className="sn-card-panel sn-card-out sn-card-out-desc"><div className="skel" /><div className="skel" /><div className="skel w60" /></div>
-      </div>
-    );
-  }
+  const renderBox = (i, box, style) => {
+    const field = fields[i];
+    const head = i === 0;
+    const className = "sn-card-panel sn-card-out " + (head ? "sn-card-out-head" : "sn-card-out-desc") + (box.large ? " is-large" : "");
+    const target = field === "body" && extra ? node.words : targets[field];
 
-  if (!v) {
-    return (
-      <div className="sn-card-split" id={id}>
-        <div className="sn-card-panel sn-card-out sn-card-out-head">
-          <p className="sn-card-heading sn-card-empty-title">Generated heading</p>
+    if (node.generating) {
+      return (
+        <div key={field} className={className} style={style}>
+          {head ? <div className="skel w60" /> : <><div className="skel" />{box.large && <div className="skel" />}<div className="skel w60" /></>}
         </div>
-        <div className="sn-card-panel sn-card-out sn-card-out-desc">
-          <p className="sn-card-text sn-card-empty-title">Generated description appears here</p>
-          {words ? <div className="sn-card-meta">{words} words</div> : null}
-        </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  return (
-    <div className="sn-card-split has-copy" id={id} {...live}>
-      <div className="sn-card-panel sn-card-out sn-card-out-head">
-        {v.headline && <h3 className="sn-card-heading">{v.headline}</h3>}
-      </div>
-      <div className="sn-card-panel sn-card-out sn-card-out-desc">
-        {v.body && <p className="sn-card-text">{v.body}</p>}
-        <div className="sn-card-meta">{wordCount(v)} / {node.words} words</div>
-        <BannedCheck copy={v} banned={banned} />
-        {node.variants.length > 1 && (
-          <div className="sn-vtabs sn-card-tabs">
-            {node.variants.map((_, i) => (
-              <button key={i} type="button" className={"sn-vtab" + (i === idx ? " on" : "")} aria-pressed={i === idx} onClick={() => onVariant(i)}>{i + 1}</button>
-            ))}
-          </div>
+    if (!v) {
+      return (
+        <div key={field} className={className} style={style}>
+          <p className={(head ? "sn-card-heading" : "sn-card-text") + " sn-card-empty-title"}>
+            {head ? "Generated heading" : "Generated description appears here"}
+          </p>
+          {!head && target ? <div className="sn-card-meta">{target} words</div> : null}
+        </div>
+      );
+    }
+
+    if (head) {
+      return (
+        <div key={field} className={className} style={style}>
+          {v.headline && <EditableText as="h3" className="sn-card-heading" value={v.headline} label={`${node.label} heading`} onCommit={onEdit && ((text) => onEdit("headline", text))} />}
+        </div>
+      );
+    }
+
+    const shown = [field, ...(field === "body" && extra ? [extra] : [])];
+    const words = shown.reduce((n, f) => n + countWords(v[f]), 0);
+    const withExtras = box.large && !extrasUsed;
+    if (withExtras) extrasUsed = true;
+    return (
+      <div key={field} className={className} style={style}>
+        {shown.map((f) => (v[f]
+          ? <EditableText key={f} className="sn-card-text" value={v[f]} label={`${node.label} ${f === "body2" ? "second description" : "description"}`} onCommit={onEdit && ((text) => onEdit(f, text))} />
+          // A panel this copy has nothing for yet (written for another layout).
+          : <p key={f} className="sn-card-text sn-card-empty-title">Generate again to fill this box</p>))}
+        <div className="sn-card-meta">{words} / {target} words</div>
+        {withExtras && (
+          <>
+            <BannedCheck copy={v} banned={banned} />
+            {node.variants.length > 1 && (
+              <div className="sn-vtabs sn-card-tabs">
+                {node.variants.map((_, i) => (
+                  <button key={i} type="button" className={"sn-vtab" + (i === idx ? " on" : "")} aria-pressed={i === idx} onClick={() => onVariant(i)}>{i + 1}</button>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
-    </div>
+    );
+  };
+
+  return (
+    <CopyLayout
+      layout={layout}
+      className={"sn-card-split" + (v && !node.generating ? " has-copy" : "")}
+      id={id}
+      aria-live={v ? "polite" : undefined}
+      aria-busy={node.generating || undefined}
+      renderBox={renderBox}
+    />
   );
 }
 
 // The generated copy: the headline as the heading, the body under it, then a
 // small word count. A placeholder until something has been generated.
-function NodeOutput({ node, banned, onVariant }) {
+function NodeOutput({ node, banned, onVariant, onEdit }) {
   if (node.generating) return <Skeleton />;
   if (!node.variants.length) return <EmptyOutput words={node.words || NODE_DEFAULT_WORDS[node.category]} />;
   const idx = node.activeIdx || 0;
@@ -232,8 +283,9 @@ function NodeOutput({ node, banned, onVariant }) {
   }
   return (
     <>
-      {v.headline && <h3 className="sn-card-heading">{v.headline}</h3>}
-      {v.body && <p className="sn-card-text">{v.body}</p>}
+      {v.headline && <EditableText as="h3" className="sn-card-heading" value={v.headline} label={`${node.label} heading`} onCommit={onEdit && ((text) => onEdit("headline", text))} />}
+      {v.body && <EditableText className="sn-card-text" value={v.body} label={`${node.label} description`} onCommit={onEdit && ((text) => onEdit("body", text))} />}
+      {v.body2 && <EditableText className="sn-card-text" value={v.body2} label={`${node.label} second description`} onCommit={onEdit && ((text) => onEdit("body2", text))} />}
       <div className="sn-card-meta">{wordCount(v)} / {node.words} words</div>
       <BannedCheck copy={v} banned={banned} />
       {tabs}
@@ -244,12 +296,12 @@ function NodeOutput({ node, banned, onVariant }) {
 // A node card. The pencil beside the title swaps the card between its copy
 // (default) and its settings. Copy view: the generated copy in a soft panel,
 // then Copy, Regenerate and the blue Generate arrow. Settings view: the job,
-// target words (a slider) and any medium options, with
-// Regenerate and × in the header.
+// target words (a slider), any medium options and "Select a layout", as on a
+// Quick Grid card; the pencil stays lit and a red Close takes Copy's place.
 // linkEnd: "src" / "tgt" while a link touching this node is hovered or selected.
 // drop: "ok" / "no" while a new link is dragged over this node.
 function StudioNode({
-  node, banned, expanded, picked, onToggle, linkEnd, drop, onField, onGenerate, onDelete, onCopy, onVariant,
+  node, banned, expanded, picked, onToggle, linkEnd, drop, onField, onGenerate, onDelete, onCopy, onVariant, onEdit,
 }) {
   const cat = NODE_CATS[node.category];
   const comp = node.component || "hero";
@@ -261,6 +313,15 @@ function StudioNode({
   const canCopy = hasCopy && !node.generating;
   const copy = async () => { if (await onCopy()) flashCopied(); };
   const settingsOpen = expanded;
+  // The node's height with its copy, measured after each render while the
+  // settings are closed. Opening them keeps it as the node's minimum and the
+  // settings scroll inside (studio-card.css .sn-card.is-open), as on a Quick
+  // Grid card, so the node doesn't grow.
+  const cardRef = useRef(null);
+  const closedH = useRef(null);
+  useLayoutEffect(() => {
+    if (!settingsOpen && cardRef.current) closedH.current = cardRef.current.offsetHeight;
+  });
 
   const regenButton = (
     <button
@@ -277,11 +338,12 @@ function StudioNode({
 
   return (
     <article
+      ref={cardRef}
       className={"node sn-node sn-card" + (settingsOpen ? " is-open" : "") + (picked ? " is-picked" : "") + (leaving ? " is-leaving" : "")}
       data-id={node.id}
       data-pl-link-end={linkEnd || undefined}
       data-pl-drop={drop || undefined}
-      style={{ "--cat": cat.color }}
+      style={{ "--cat": cat.color, minHeight: settingsOpen && closedH.current ? `${closedH.current}px` : undefined }}
       onAnimationEnd={(e) => { if (leaving && e.animationName === "studio-node-out") onDelete(); }}
     >
       <header className="sn-card-head">
@@ -303,11 +365,10 @@ function StudioNode({
           title={settingsOpen ? "Hide settings" : "Settings"}
           onClick={onToggle}
         >
-          {/* Pencil opens the settings; while they show, a × closes them. */}
-          {settingsOpen ? <XIcon /> : <PencilIcon />}
+          {/* Stays a pencil (lit while open); the foot's Close hides the settings. */}
+          <PencilIcon />
         </button>
         <div className="sn-card-actions">
-          {settingsOpen && regenButton}
           <button type="button" className="sn-card-btn sn-card-close" title="Delete node" aria-label="Delete node" onClick={() => setLeaving(true)}>
             <XIcon />
           </button>
@@ -359,6 +420,9 @@ function StudioNode({
               onChange={(value) => onField("words", value)}
             />
           </div>
+          <div className="sn-field"><label>Select a layout</label>
+            <LayoutPicker value={node.layout ?? 0} onChange={(value) => onField("layout", value)} />
+          </div>
         </div>
       ) : (
         <>
@@ -371,41 +435,55 @@ function StudioNode({
             const v = node.variants[node.activeIdx || 0] || node.variants[0];
             return node.generating || !v || (!v.pointers && Boolean(v.body));
           })() ? (
-            <SplitOutput node={node} banned={banned} onVariant={onVariant} id={bodyId} />
+            <SplitOutput node={node} banned={banned} onVariant={onVariant} onEdit={canCopy ? onEdit : undefined} id={bodyId} />
           ) : (
             <div className={"sn-card-panel sn-card-out" + (hasCopy || node.generating ? " has-copy" : "")} id={bodyId} aria-live="polite">
-              <NodeOutput node={node} banned={banned} onVariant={onVariant} />
+              <NodeOutput node={node} banned={banned} onVariant={onVariant} onEdit={canCopy ? onEdit : undefined} />
             </div>
           )}
-          <div className="sn-card-foot">
-            <button
-              type="button"
-              className={"sn-card-copy" + (copied ? " is-copied" : "")}
-              aria-label={copied ? "Output copied" : "Copy output"}
-              title={canCopy ? undefined : "Generate copy first"}
-              disabled={!canCopy}
-              onClick={copy}
-            >
-              {copied && <CheckIcon />}
-              {copied ? "Copied" : "Copy"}
-            </button>
-            <div className="sn-card-actions">
-              {regenButton}
-              <button
-                type="button"
-                className="sn-card-go"
-                aria-label={node.generating ? "Generating" : hasCopy ? "Generate again" : "Generate"}
-                title={node.generating ? "Generating…" : "Generate"}
-                aria-busy={node.generating || undefined}
-                disabled={node.generating}
-                onClick={onGenerate}
-              >
-                {node.generating ? <span className="sn-card-spin" aria-hidden="true" /> : <ArrowIcon />}
-              </button>
-            </div>
-          </div>
         </>
       )}
+      {/* Copy | regenerate, Generate. While the settings show, a red Close
+          takes Copy's place and hides them. */}
+      <div className="sn-card-foot">
+        {settingsOpen ? (
+          <button
+            type="button"
+            className="sn-card-copy sn-card-close-settings"
+            aria-label={`Close ${node.label} settings`}
+            title="Close settings"
+            onClick={onToggle}
+          >
+            Close
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={"sn-card-copy" + (copied ? " is-copied" : "")}
+            aria-label={copied ? "Output copied" : "Copy output"}
+            title={canCopy ? undefined : "Generate copy first"}
+            disabled={!canCopy}
+            onClick={copy}
+          >
+            {copied && <CheckIcon />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        )}
+        <div className="sn-card-actions">
+          {regenButton}
+          <button
+            type="button"
+            className="sn-card-go"
+            aria-label={node.generating ? "Generating" : hasCopy ? "Generate again" : "Generate"}
+            title={node.generating ? "Generating…" : "Generate"}
+            aria-busy={node.generating || undefined}
+            disabled={node.generating}
+            onClick={onGenerate}
+          >
+            {node.generating ? <span className="sn-card-spin" aria-hidden="true" /> : <ArrowIcon />}
+          </button>
+        </div>
+      </div>
     </article>
   );
 }
@@ -1274,7 +1352,7 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     expanded: [...expanded],
   });
   const loadCanvas = (saved) => {
-    const next = saved?.nodes?.length ? saved.nodes : seedNodes();
+    const next = saved?.nodes?.length ? withPreferredLayout(saved.nodes) : seedNodes();
     // Sizes are measured afresh, so nothing shifts as the nodes remount.
     sizesRef.current = {};
     setSizes({});
@@ -1294,6 +1372,8 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
     restore: restoreNode,
     snapshot: snapshotCanvas,
     load: loadCanvas,
+    // The user's saved layouts have loaded: nodes with no copy yet take their medium's.
+    applyPreferredLayout: () => commit(withPreferredLayout),
   }));
 
   const generateColumn = async (category) => {
@@ -1304,11 +1384,19 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
   const copyNode = (n) => {
     if (!n.variants.length) return Promise.resolve(false);
     const v = n.variants[n.activeIdx || 0];
-    const text = v.pointers ? v.pointers.map((p) => `${p.title} — ${p.detail}`).join("\n") : `${v.headline}\n\n${v.body}`;
+    const text = v.pointers ? v.pointers.map((p) => `${p.title} — ${p.detail}`).join("\n") : [v.headline, v.body, v.body2].filter(Boolean).join("\n\n");
     return host.copyText(text)
       .then(() => { setStatus("Copied — paste it into your design tool.", "ok"); return true; })
       .catch(() => { setStatus("Couldn't copy automatically — select the text and copy manually.", "err"); return false; });
   };
+
+  // Inline edit of the variant showing ("headline" or "body"). Copy and links
+  //  into other nodes then use the edited text.
+  const editVariant = (id, field, text) => commit((list) => list.map((n) => {
+    if (n.id !== id) return n;
+    const idx = n.variants[n.activeIdx || 0] ? n.activeIdx || 0 : 0;
+    return { ...n, variants: n.variants.map((v, i) => (i === idx ? { ...v, [field]: text } : v)) };
+  }));
 
   const labelOf = (id) => (nodesRef.current.find((n) => n.id === id) || {}).label || "";
 
@@ -1531,10 +1619,14 @@ const NodeStudio = forwardRef(function NodeStudio({ active, ctx, variantCount, t
                 onToggle={() => setOpen(n.id, !expanded.has(n.id))}
                 linkEnd={linkEndOf(n.id)}
                 drop={linkDrag?.hit?.id === n.id ? linkDrag.hit.state : null}
-                onField={(f, v) => patch(n.id, { [f]: v })}
+                onField={(f, v) => {
+                  if (f === "layout") rememberLayout(n.category, v);
+                  patch(n.id, { [f]: v });
+                }}
                 onGenerate={() => generateNode(n.id)}
                 onDelete={() => deleteNode(n.id)}
                 onCopy={() => copyNode(n)}
+                onEdit={(field, text) => editVariant(n.id, field, text)}
                 onVariant={(i) => {
                   patch(n.id, { activeIdx: i });
                   if (lastNodeRef.current === n.id) announce(n, i);

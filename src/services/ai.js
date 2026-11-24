@@ -80,14 +80,16 @@ function shapeItem(medium, v) {
   // heading on its own.
   if (typeof v === "string") return v.trim() || null;
   if (typeof v !== "object") return null;
+  // sub2: the second description, when the card's layout has two boxes for it.
+  const sub2 = typeof v.sub2 === "string" && v.sub2.trim() ? { sub2: v.sub2 } : {};
   if (medium === "email") {
     const subject = v.subject || v.headline || "";
     const preview = v.preview || v.sub || "";
-    return subject || preview ? { subject, preview } : null;
+    return subject || preview ? { subject, preview, ...sub2 } : null;
   }
   const headline = v.headline || v.subject || v.text || "";
   const sub = v.sub || v.preview || v.description || "";
-  return headline || sub ? { headline, sub } : null;
+  return headline || sub ? { headline, sub, ...sub2 } : null;
 }
 function toItems(medium, value) {
   const arr = Array.isArray(value) ? value : [value];
@@ -103,7 +105,10 @@ function normalizeVariants(data) {
           .map((p) => ({ title: String(p.title || ""), detail: String(p.detail || "") }));
         return pointers.length ? { pointers } : null;
       }
-      if (v && (v.headline || v.body)) return { headline: String(v.headline || ""), body: String(v.body || "") };
+      // body2: the second description, when the node's layout has two boxes for it.
+      if (v && (v.headline || v.body)) {
+        return { headline: String(v.headline || ""), body: String(v.body || ""), ...(v.body2 ? { body2: String(v.body2) } : {}) };
+      }
       return null;
     })
     .filter(Boolean);
@@ -113,7 +118,8 @@ const malformed = () => new AIError("The AI returned an unexpected format. Try a
 /* ---------- public API ---------- */
 // cards = [{ key, medium, settings }], one per Quick Grid card. key names the
 // card's copy in the answer ("website", "website_2", ...); settings =
-// { words: { headline, sub } (per-field word targets), brief, component, pointerCount }. Costs one credit per card.
+// { words: { headline, sub } (per-field word targets), brief, component, pointerCount, platform,
+// layout (the "Select a layout" tile: one description, or sub + sub2) }. Costs one credit per card.
 // platforms = the composer's picked platform keys (optional) to write for.
 // Returns { [key]: items[] }.
 export async function generateQuickGrid({ ctx, variantCount, tier, cards, platforms }) {
